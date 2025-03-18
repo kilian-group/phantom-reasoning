@@ -3,11 +3,13 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "phantom-reasoning"
-description = "Phantom Reasoning"
+name = "phantom-reasoner"
+description = "Phantom Reasoner"
 version = "0.0.0"
 authors = [
     {name="Anmol Kabra", email="anmol@cs.cornell.edu"},
+    {name="Kamilė Stankevičiūtė", email="ks2448@cornell.edu"},
+    {name="Albert Gong", email="agong@cs.cornell.edu"},
 ]
 
 
@@ -18,8 +20,19 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-# TODO
-dependencies = []
+
+# TODO wandb should probably be optional
+dependencies = [
+    "torch",
+    "vllm",
+    "deepspeed",
+    "trl",
+    "wandb",
+    "accelerate",
+    "datasets",
+    "huggingface_hub[cli]",
+    "phantom-wiki[eval]",
+    ]
 
 [project.optional-dependencies]
 dev = [
