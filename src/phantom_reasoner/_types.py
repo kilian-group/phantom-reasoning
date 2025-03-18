@@ -2,4 +2,9 @@
 
 """
 
-from phantom_eval._types import *  # noqa: F401, F403
+from phantom_eval._types import (  # noqa: F401, F403
+    ContentTextMessage,
+    Conversation,
+    LLMChatResponse,
+    Message,
+)
