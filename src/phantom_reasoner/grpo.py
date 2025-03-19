@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from datasets import Dataset
 from phantom_eval.agents.common import get_all_evidence
@@ -21,7 +21,7 @@ def reward_exact_match(
         answer: (shape (batch, # answers)): The true answers for the prompts.
     """
     return [
-        float(exact_match(completion[0]["content"], a.join(answer_sep)))
+        float(exact_match(completion[0]["content"], answer_sep.join(a)))
         for completion, a in zip(completions, answer)
     ]
 
@@ -36,7 +36,7 @@ def reward_precision(
         answer: (shape (batch, # answers)): The true answers for the prompts.
     """
     return [
-        float(precision(completion[0]["content"], a.join(answer_sep)))
+        float(precision(completion[0]["content"], answer_sep.join(a)))
         for completion, a in zip(completions, answer)
     ]
 
@@ -49,7 +49,7 @@ def reward_recall(completions: list[list[dict[str, str]]], answer: list[list[str
         answer: (shape (batch, # answers)): The true answers for the prompts.
     """
     return [
-        float(recall(completion[0]["content"], a.join(answer_sep)))
+        float(recall(completion[0]["content"], answer_sep.join(a)))
         for completion, a in zip(completions, answer)
     ]
 
@@ -62,7 +62,7 @@ def reward_f1(completions: list[list[dict[str, str]]], answer: list[list[str]], 
         answer: (shape (batch, # answers)): The true answers for the prompts.
     """
     return [
-        float(f1(completion[0]["content"], a.join(answer_sep))) for completion, a in zip(completions, answer)
+        float(f1(completion[0]["content"], answer_sep.join(a))) for completion, a in zip(completions, answer)
     ]
 
 
@@ -79,7 +79,7 @@ class GRPOScriptArguments(ScriptArguments):
     dataset_name: str
     split_name: str = "depth_20_size_50_seed_1"
     from_local: bool = False
-    reward_func_types: list[str] = ["exact_match"]
+    reward_func_types: list[str] = field(default_factory=lambda: ["exact_match"])
 
 
 def get_pw_train_dataset(dataset_name: str, split_name: str, from_local: bool) -> Dataset:
@@ -96,7 +96,10 @@ def get_pw_train_dataset(dataset_name: str, split_name: str, from_local: bool) -
     train_dataset: Dataset = question_answer.map(
         lambda x: {
             "prompt": [
-                {"role": "user", "content": llm_prompt.get_prompt(evidence=evidence, question=x["question"])},
+                {
+                    "role": "user",
+                    "content": llm_prompt.get_prompt().format(evidence=evidence, question=x["question"]),
+                },
             ],
             "answer": x["answer"],  # x['answer'] is a list of strings
         }
