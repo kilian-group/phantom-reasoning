@@ -1,11 +1,12 @@
 # Importing all libraries
 import os
 import json
+import argparse
 from tqdm import tqdm
-from utils.evaluate_utils import f1, recall, precision, exact_match
+from phantom_reasoner.utils.score import f1, recall, precision, exact_match
 
 
-def obtain_subset_of_traces(prediction_dir, metric, threshold=1):
+def filter_traces(prediction_dir, metric, threshold=1):
   """
   Extracts a subset of model prediction traces that meet a specified quality threshold.
 
@@ -60,14 +61,16 @@ def obtain_subset_of_traces(prediction_dir, metric, threshold=1):
   - For the "em" metric, the score itself is used as the validity check (1 = valid).
     For other metrics, the score must be >= the threshold.
   """
-    # Get all model directories, filtering out hidden files/directories
-  model_dirs = [os.path.join(prediction_dir, i) for i in os.listdir(prediction_dir)
+  prediction_dir = os.path.join(prediction_dir, "preds") # All out repos contain "preds" by default in our phantom-eval implementation
+
+  # Get all method directories, filtering out hidden files/directories
+  method_dirs = [os.path.join(prediction_dir, i) for i in os.listdir(prediction_dir)
                 if not i.startswith('.')]
   
-  # Initialize dictionary to store valid traces for all models
+  # Initialize dictionary to store valid traces for all methods
   all_valid_traces = {}
 
-  for md in tqdm(model_dirs, desc="Filtering traces"): # Process each model directory with a progress bar
+  for md in tqdm(method_dirs, desc="Filtering traces"): # Process each model directory with a progress bar
     # Get all prediction trace files for this model
     pred_trace_files = os.listdir(md)
     model_valid_traces = {}
@@ -97,9 +100,9 @@ def obtain_subset_of_traces(prediction_dir, metric, threshold=1):
         elif metric=="em":
           score = exact_match(preds, labels)
 
-        # For exact match, any non-zero score is valid
+        # For exact match, we either have True or False, thus (EM>=1) == EM
         # For other metrics, score must meet or exceed threshold
-        is_trace_valid = score if metric=="em" else score>=threshold
+        is_trace_valid = score>=threshold
 
         # If the trace meets criteria, add it to the valid traces
         if is_trace_valid:
@@ -153,33 +156,36 @@ def save_filtered_traces(filtered_traces, output_dir, metric, threshold):
     """
     # Create appropriate output directory name based on filtering criteria
     if metric == "em":
-        filter_dir_name = "only-correct"
+        filter_dir_name = "-only-correct"
     elif threshold==1:
-        filter_dir_name = f"filtered-{metric}-correct"
+        filter_dir_name = f"-filtered-{metric}-correct"
     else:
-        filter_dir_name = f"filtered-{metric}-above-{threshold}"
-    filter_dir_name = "out-v05-0222-" + filter_dir_name
+        filter_dir_name = f"-filtered-{metric}-above-{threshold}"
+
+    unfiltered_dir_name = os.path.basename(output_dir) # Used to obtain version number
+    filter_dir_name = "out-v" + unfiltered_dir_name.split("out-v")[1] + filter_dir_name
 
     # Construct the full output directory path
-    full_output_dir = os.path.join(output_dir, filter_dir_name)
+    base_dir = os.path.dirname(output_dir) 
+    full_output_dir = os.path.join(os.path.join(base_dir, filter_dir_name), "preds") # Save to preds to stay consistent with norms
     
-    # Process each model directory
-    for model_dir_path, model_traces in tqdm(filtered_traces.items(), desc="Saving filtered traces"):
+    # Process each method directory
+    for method_dir_path, method_traces in tqdm(filtered_traces.items(), desc="Saving filtered traces"):
         # Extract the model directory name from the full path
-        model_dir_name = os.path.basename(model_dir_path)
+        method_dir_name = os.path.basename(method_dir_path)
         
         # Create the corresponding output model directory
-        model_output_dir = os.path.join(full_output_dir, model_dir_name)
-        os.makedirs(model_output_dir, exist_ok=True)
+        method_dir_name = os.path.join(full_output_dir, method_dir_name)
+        os.makedirs(method_dir_name, exist_ok=True)
         
         # Save each prediction file for this model
-        for pred_file_name, valid_traces in model_traces.items():
+        for pred_file_name, valid_traces in method_traces.items():
             # Skip if there are no valid traces for this file
             if not valid_traces:
                 continue
             
             # Create the output file path
-            output_file_path = os.path.join(model_output_dir, pred_file_name)
+            output_file_path = os.path.join(method_dir_name, pred_file_name)
             
             # Save the filtered traces to a JSON file
             with open(output_file_path, 'w') as f:
@@ -188,9 +194,18 @@ def save_filtered_traces(filtered_traces, output_dir, metric, threshold):
     print(f"Filtered traces saved to: {full_output_dir}")
     return full_output_dir
 
-# Example usage
-metric = "f1"
-thresh = 0.9
-gen_path = "/share/nikola/phantom-wiki/eval"
-filtered_traces = obtain_subset_of_traces(os.path.join(gen_path, "out-v05-0222/preds"), metric, thresh)
-save_filtered_traces(filtered_traces, os.path.join(gen_path, "preds"), metric, thresh)
+
+
+if __name__=="__main__":
+  parser = argparse.ArgumentParser(
+      description="Filter prediction traces based on quality metrics."
+  )
+  parser.add_argument("--metric", type=str, required=True, choices=["f1", "precision", "recall", "em"])  
+  parser.add_argument("--threshold", type=float, required=True)
+  parser.add_argument("--traces-path", type=str, required=True)
+
+  args = parser.parse_args()
+  filtered_traces = filter_traces(args.traces_path, args.metric, args.threshold)
+  save_filtered_traces([], args.traces_path, args.metric, args.threshold)
+
+# python filter.py --metric f1 --threshold 0.9 --traces-path "/share/nikola/phantom-wiki/eval/out-v05-0222"
