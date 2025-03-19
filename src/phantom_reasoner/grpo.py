@@ -2,47 +2,15 @@
 from datasets import load_dataset
 from trl import GRPOConfig, GRPOTrainer
 
+from phantom_reasoner.utils.score import exact_match
+
 from ._types import LLMChatResponse
-
-# TODO remove exact_match and dependencies once Raphael's code is merged
-answer_sep: str = ","
-
-
-def normalize_pred(pred: str, sep: str) -> set[str]:
-    """
-    Normalize the prediction by splitting and stripping whitespace the answers.
-    Operations:
-    1. Split by separator
-    2. Strip whitespace
-    3. Lowercase
-    4. Convert to set to remove duplicates
-    Args:
-        pred (str): The prediction string of format "A<sep>B<sep>C".
-        sep (str): The separator used to split the prediction.
-    Returns:
-        set[str]: A set of normalized answers.
-    """
-    return set(map(str.lower, map(str.strip, pred.split(sep))))
-
-
-def exact_match(
-    pred: str,
-    true: str,
-    sep: str = answer_sep,
-) -> bool:
-    """
-    Simple score function that checks if the prediction is equal to the true answer
-    """
-    return normalize_pred(pred, sep) == normalize_pred(true, sep)
 
 
 def reward_exact_match(completions: LLMChatResponse, **kwargs) -> list[float]:
     """Reward exact answer match."""
     # TODO I'm assuming output is of LLMChatResponse type--which is probably wrong?
     return [1.0 if exact_match(completion.pred, completion.true) else 0.0 for completion in completions]
-
-
-# TODO extra reward functions for correct formatting, etc.
 
 
 def train_grpo(script_args, training_args, model_args):
