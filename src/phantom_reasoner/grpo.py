@@ -1,62 +1,128 @@
-from datasets import load_dataset
+from dataclasses import dataclass
+
+from datasets import Dataset
+from phantom_eval.agents.common import get_all_evidence
+from phantom_eval.prompts import ZeroshotLLMPrompt
+from phantom_eval.utils import load_data
+from transformers import AutoTokenizer
 from trl import GRPOTrainer, ModelConfig, ScriptArguments, TrlParser
 
 from phantom_reasoner.configs import GRPOConfig
-from phantom_reasoner.utils.score import exact_match
-
-from ._types import LLMChatResponse
+from phantom_reasoner.utils.score import answer_sep, exact_match, f1, precision, recall
 
 
-def reward_exact_match(completions: LLMChatResponse, **kwargs) -> list[float]:
-    """Reward exact answer match."""
-    # TODO I'm assuming output is of LLMChatResponse type--which is probably wrong?
-    return [1.0 if exact_match(completion.pred, completion.true) else 0.0 for completion in completions]
-
-
-def train_grpo(script_args, training_args, model_args):
-    # TODO types of these arguments and convenions
-    #   e.g. are these dictionaries?
-    """Training script for the GRPO model.
-
-    script_args:
-        dataset_name: HuggingFace dataset on which the training occurs
-
-
-    training_args:
-        logging_steps
-        output_dir: path to the training outputs (e.g. checkpoints and logs)
-
-    model_args:
-        model_name_or_path
-
+def reward_exact_match(
+    completions: list[list[dict[str, str]]], answer: list[list[str]], **kwargs
+) -> list[float]:
     """
-    dataset = load_dataset(script_args.dataset_name, split="train")
+    Args:
+        completions (shape (batch, len of convo)): Batch of completions,
+            where each is a conversation (i.e. a list of dicts).
+        answer: (shape (batch, # answers)): The true answers for the prompts.
+    """
+    return [
+        float(exact_match(completion[0]["content"], a.join(answer_sep)))
+        for completion, a in zip(completions, answer)
+    ]
 
-    # GRPOConfig options from @willccbb's script
-    # TODO clean up---what is the smallest sufficient config?
-    #   (HF tutorial only suggests output_dir and logging_steps)
-    training_args_ = GRPOConfig(
-        output_dir=training_args.output_dir,
-        run_name=training_args.run_name,
-        learning_rate=5e-6,
-        adam_beta1=0.9,
-        adam_beta2=0.99,
-        weight_decay=0.1,
-        warmup_ratio=0.1,
-        lr_scheduler_type="cosine",
-        logging_steps=1,  # HF tutorial suggests 10
-        bf16=True,
-        per_device_train_batch_size=1,
-        gradient_accumulation_steps=4,
-        num_generations=16,
-        max_prompt_length=256,
-        max_completion_length=786,
-        num_train_epochs=1,
-        save_steps=100,
-        max_grad_norm=0.1,
-        # report_to="wandb",
-        log_on_each_node=False,
+
+def reward_precision(
+    completions: list[list[dict[str, str]]], answer: list[list[str]], **kwargs
+) -> list[float]:
+    """
+    Args:
+        completions (shape (batch, len of convo)): Batch of completions,
+            where each is a conversation (i.e. a list of dicts).
+        answer: (shape (batch, # answers)): The true answers for the prompts.
+    """
+    return [
+        float(precision(completion[0]["content"], a.join(answer_sep)))
+        for completion, a in zip(completions, answer)
+    ]
+
+
+def reward_recall(completions: list[list[dict[str, str]]], answer: list[list[str]], **kwargs) -> list[float]:
+    """
+    Args:
+        completions (shape (batch, len of convo)): Batch of completions,
+            where each is a conversation (i.e. a list of dicts).
+        answer: (shape (batch, # answers)): The true answers for the prompts.
+    """
+    return [
+        float(recall(completion[0]["content"], a.join(answer_sep)))
+        for completion, a in zip(completions, answer)
+    ]
+
+
+def reward_f1(completions: list[list[dict[str, str]]], answer: list[list[str]], **kwargs) -> list[float]:
+    """
+    Args:
+        completions (shape (batch, len of convo)): Batch of completions,
+            where each is a conversation (i.e. a list of dicts).
+        answer: (shape (batch, # answers)): The true answers for the prompts.
+    """
+    return [
+        float(f1(completion[0]["content"], a.join(answer_sep))) for completion, a in zip(completions, answer)
+    ]
+
+
+REWARD_FUNC_TYPE2FUNC = {
+    "exact_match": reward_exact_match,
+    "precision": reward_precision,
+    "recall": reward_recall,
+    "f1": reward_f1,
+}
+
+
+@dataclass
+class GRPOScriptArguments(ScriptArguments):
+    dataset_name: str
+    split_name: str = "depth_20_size_50_seed_1"
+    from_local: bool = False
+    reward_func_types: list[str] = ["exact_match"]
+
+
+def get_pw_train_dataset(dataset_name: str, split_name: str, from_local: bool) -> Dataset:
+    dataset: dict[str, Dataset] = load_data(
+        script_args.dataset_name, split=script_args.split_name, from_local=script_args.from_local
     )
+    text_corpus: Dataset = dataset["text"]
+    question_answer: Dataset = dataset["qa_pairs"]
+
+    evidence: str = get_all_evidence(text_corpus)
+
+    llm_prompt = ZeroshotLLMPrompt()
+
+    train_dataset: Dataset = question_answer.map(
+        lambda x: {
+            "prompt": [
+                {"role": "user", "content": llm_prompt.get_prompt(evidence=evidence, question=x["question"])},
+            ],
+            "answer": x["answer"],  # x['answer'] is a list of strings
+        }
+    )
+    return train_dataset
+
+
+def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, model_args: ModelConfig) -> None:
+    """Training script for the GRPO model using Zeroshot prompt from PhantomEval.
+
+    Args:
+        script_args: Script arguments.
+        training_args: Training arguments.
+        model_args: Model arguments.
+    """
+    # Get the dataset
+    train_dataset = get_pw_train_dataset(
+        script_args.dataset_name, script_args.split_name, script_args.from_local
+    )
+
+    # Load tokenizer
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code, use_fast=True
+    )
+    tokenizer.pad_token = tokenizer.eos_token
+    # GRPOConfig options from @willccbb's script
     # TODO is any of this needed?
     # peft_config = LoraConfig(
     #     r=16,
@@ -72,25 +138,25 @@ def train_grpo(script_args, training_args, model_args):
     #     device_map=None
     # ).to("cuda")
 
-    # tokenizer = AutoTokenizer.from_pretrained(model_name)
-    # tokenizer.pad_token = tokenizer.eos_token
+    reward_funcs: list[callable] = [
+        REWARD_FUNC_TYPE2FUNC[reward_func_type] for reward_func_type in script_args.reward_func_types
+    ]
 
     trainer = GRPOTrainer(
         model=model_args.model_name_or_path,
-        # TODO make reward_funcs an argument to the training script
-        reward_funcs=reward_exact_match,
-        train_dataset=dataset,
-        # TODO additional options from @willccbb's script
-        args=training_args_,
-        # processing_class=tokenizer,
-        # args=training_args,
-        # train_dataset=dataset,
+        args=training_args,
+        train_dataset=train_dataset,
+        eval_dataset=None,  # TODO: add eval dataset
+        processing_class=tokenizer,
         # peft_config=peft_config  # "Use at your own risk, didn't work for multi-GPU setup"
+        # TODO make reward_funcs an argument to the training script
+        reward_funcs=reward_funcs,
+        # TODO additional options from @willccbb's script
     )
     trainer.train()
 
 
 if __name__ == "__main__":
-    parser = TrlParser((ScriptArguments, GRPOConfig, ModelConfig))
+    parser = TrlParser((GRPOScriptArguments, GRPOConfig, ModelConfig))
     script_args, training_args, model_args = parser.parse_args_and_config()
     train_grpo(script_args, training_args, model_args)
