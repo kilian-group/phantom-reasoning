@@ -1,3 +1,14 @@
+"""
+Notes:
+  - Make sure to cd into `src`
+  - Make sure to not add a slash at the end of `traces-path`
+  - Ensure that `traces-path` folder starts with "out-v" 
+Example usage:
+  - python -m phantom_reasoner.scripts.filter --metric f1 --threshold 0.9 --traces-path "/share/nikola/phantom-wiki/eval/out-v05-0222"
+  - This will filter traces based on the given metric and threshold, e.g. f1>=0.9, and will save the results to 
+  the output path, in this case "/share/nikola/phantom-wiki/eval/out-v05-0222-filtered-f1-above-0.9", and mimick the json file structure.
+"""
+
 # Importing all libraries
 import os
 import json
