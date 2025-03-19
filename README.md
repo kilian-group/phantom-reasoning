@@ -37,3 +37,7 @@ ACCELERATE_LOG_LEVEL=info accelerate launch --num_processes 3 --config_file reci
 ## GRPO settings
 
 On wandb.ai, create a new project, e.g. `phantom-reasoning`. Then run `wandb login`, and paste the API key given from the website.
+
+```bash
+python -m phantom_reasoner.grpo --dataset_name "kilian-group/phantom-wiki-v1" --use_vllm --model_name_or_path "Qwen/Qwen2.5-0.5B-Instruct" --output_dir out-0319-grpo-testrun
+```
