@@ -33,3 +33,7 @@ ACCELERATE_LOG_LEVEL=info accelerate launch --num_processes 3 --config_file reci
 
 > \[!NOTE\]
 > Add CLI arguments before `--config_file` to override the arguments in `zero3.yaml`
+
+## GRPO settings
+
+On wandb.ai, create a new project, e.g. `phantom-reasoning`. Then run `wandb login`, and paste the API key given from the website.

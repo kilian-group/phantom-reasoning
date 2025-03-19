@@ -1,7 +1,7 @@
-# train_grpo.py
 from datasets import load_dataset
-from trl import GRPOConfig, GRPOTrainer
+from trl import GRPOTrainer, ModelConfig, ScriptArguments, TrlParser
 
+from phantom_reasoner.configs import GRPOConfig
 from phantom_reasoner.utils.score import exact_match
 
 from ._types import LLMChatResponse
@@ -89,62 +89,8 @@ def train_grpo(script_args, training_args, model_args):
     )
     trainer.train()
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="Train a GRPO model")
-    
-    # Script arguments
-    parser.add_argument("--dataset_name", type=str, required=True,
-                        help="HuggingFace dataset name on which the training occurs")
-    
-    # Training arguments
-    parser.add_argument("--output_dir", type=str, required=True,
-                        help="Path to the training outputs (e.g. checkpoints and logs)")
-    parser.add_argument("--run_name", type=str, default=None,
-                        help="Name of the run for logging purposes")
-    parser.add_argument("--logging_steps", type=int, default=1,
-                        help="Number of steps between logging updates")
-    
-    # Model arguments
-    parser.add_argument("--model_name_or_path", type=str, required=True,
-                        help="Path or name of the model to fine-tune")
-    
-    # Additional GRPO specific arguments
-    parser.add_argument("--learning_rate", type=float, default=5e-6,
-                        help="Learning rate for training")
-    parser.add_argument("--per_device_train_batch_size", type=int, default=1,
-                        help="Batch size per GPU/TPU core/CPU for training")
-    parser.add_argument("--gradient_accumulation_steps", type=int, default=4,
-                        help="Number of updates steps to accumulate before performing a backward/update pass")
-    parser.add_argument("--num_train_epochs", type=float, default=1.0,
-                        help="Total number of training epochs to perform")
-    parser.add_argument("--save_steps", type=int, default=100,
-                        help="Save checkpoint every X updates steps")
-    
-    return parser.parse_args()
-
-
-def main():
-    """Main function to parse arguments and train the GRPO model."""
-    args = parse_args()
-    
-    # Create the dataclass objects from parsed arguments
-    script_args = ScriptArgs(
-        dataset_name=args.dataset_name,
-    )
-    
-    training_args = TrainingArgs(
-        output_dir=args.output_dir,
-        run_name=args.run_name,
-        logging_steps=args.logging_steps,
-    )
-    
-    model_args = ModelArgs(
-        model_name_or_path=args.model_name_or_path,
-    )
-    
-    # Call the training function
-    train_grpo(script_args, training_args, model_args)
-
 
 if __name__ == "__main__":
-    main()
+    parser = TrlParser((ScriptArguments, GRPOConfig, ModelConfig))
+    script_args, training_args, model_args = parser.parse_args_and_config()
+    train_grpo(script_args, training_args, model_args)
