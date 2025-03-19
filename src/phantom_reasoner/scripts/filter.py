@@ -206,6 +206,4 @@ if __name__=="__main__":
 
   args = parser.parse_args()
   filtered_traces = filter_traces(args.traces_path, args.metric, args.threshold)
-  save_filtered_traces([], args.traces_path, args.metric, args.threshold)
-
-# python filter.py --metric f1 --threshold 0.9 --traces-path "/share/nikola/phantom-wiki/eval/out-v05-0222"
+  save_filtered_traces(filtered_traces, args.traces_path, args.metric, args.threshold)
