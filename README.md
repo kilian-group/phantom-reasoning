@@ -38,6 +38,11 @@ ACCELERATE_LOG_LEVEL=info accelerate launch --num_processes 3 --config_file reci
 
 On wandb.ai, create a new project, e.g. `phantom-reasoning`. Then run `wandb login`, and paste the API key given from the website.
 
+- Anmol's settings for full-finetuning https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct model:
+  - --gres=gpu:a100:2 on AIDA cluster. 2 A600s on G2 should also suffice
+  - --mem=100GB memory
+  - -n 8 cores
+
 ```bash
-python -m phantom_reasoner.grpo --dataset_name "kilian-group/phantom-wiki-v1" --use_vllm --model_name_or_path "Qwen/Qwen2.5-0.5B-Instruct" --output_dir out-0319-grpo-testrun
+./scripts/train_grpo.sh --output_dir /path/to/output_dir/
 ```
