@@ -20,7 +20,7 @@ Usage:
 # One 1 node of 8 x H100s
 accelerate launch --config_file=recipes/accelerate_configs/zero3.yaml src/phantom_reasoner/sft.py \
     --model_name_or_path Qwen/Qwen2.5-1.5B-Instruct \
-    --dataset_name HuggingFaceH4/Bespoke-Stratos-17k \
+    --preds_dir  \
     --learning_rate 2.0e-5 \
     --num_train_epochs 1 \
     --packing \
@@ -38,11 +38,11 @@ accelerate launch --config_file=recipes/accelerate_configs/zero3.yaml src/phanto
 import logging
 import os
 import sys
+import argparse
 
 import datasets
 import torch
 import transformers
-from datasets import load_dataset
 from transformers import AutoTokenizer, set_seed
 from transformers.trainer_utils import get_last_checkpoint
 
@@ -59,8 +59,21 @@ from trl import (
     get_quantization_config,
 )
 
+from .utils import filter_by_split_model
+
 
 logger = logging.getLogger(__name__)
+
+
+############################################
+# SCRIPT ARGUMENTS
+############################################
+@dataclass
+class SFTScriptArguments(ScriptArguments):
+    # TODO: currently only handles the CoT traces, later we may want to load from multiple folders
+    preds_dir: str = "cot"
+    split: str = "split=depth_20_size_50"
+    model_name: str = "deepseek"
 
 
 def main(script_args, training_args, model_args):
@@ -104,7 +117,11 @@ def main(script_args, training_args, model_args):
     ################
     # Load datasets
     ################
-    dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config)
+    logger.info("*** Loading datasets ***")
+    # filter the predictions data by split and model
+    predictions_data = filter_by_split_model(script_args.preds_dir, script_args.split, script_args.model_name)
+    dataset = datasets.Dataset.from_dict(predictions_data)
+
 
     ################
     # Load tokenizer
@@ -139,11 +156,13 @@ def main(script_args, training_args, model_args):
     trainer = SFTTrainer(
         model=model_args.model_name_or_path,
         args=training_args,
-        train_dataset=dataset[script_args.dataset_train_split],
-        eval_dataset=dataset[script_args.dataset_test_split] if training_args.eval_strategy != "no" else None,
+        train_dataset=dataset,
+        # TODO: separate eval dataset
+        eval_dataset=None,
+        dataset_text_field = 'text',
         processing_class=tokenizer,
         peft_config=get_peft_config(model_args),
-        callbacks=get_callbacks(training_args, model_args),
+        # callbacks=get_callbacks(training_args, model_args),
     )
 
     ###############
@@ -199,6 +218,6 @@ def main(script_args, training_args, model_args):
 
 
 if __name__ == "__main__":
-    parser = TrlParser((ScriptArguments, SFTConfig, ModelConfig))
+    parser = TrlParser((SFTScriptArguments, SFTConfig, ModelConfig))
     script_args, training_args, model_args = parser.parse_args_and_config()
     main(script_args, training_args, model_args)
