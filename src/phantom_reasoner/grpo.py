@@ -2,6 +2,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any, Literal
 
 from datasets import Dataset
 from phantom_eval.agents.common import get_all_evidence
@@ -102,7 +103,8 @@ class GRPOScriptArguments(ScriptArguments):
     # TODO add support for eval dataset
     from_local: bool = False
     reward_func_names: list[str] = field(default_factory=lambda: ["f1"])
-    # TODO add flag --curriculum: str = "none"  # "none" or "difficulty_asc" or "difficulty_desc" options
+    data_curriculum: Literal["random", "difficulty_asc", "difficulty_desc"] = "random"
+    prompt_method: Literal["zeroshot", "cot"] = "zeroshot"
 
 
 # TODO move to utils.py or something
@@ -113,25 +115,66 @@ def get_checkpoint(training_args: GRPOConfig):
     return last_checkpoint
 
 
+def arrange_dataset(dataset: Dataset, data_curriculum: str, seed: int) -> Dataset:
+    match data_curriculum:
+        case "random":
+            return dataset.shuffle(seed=seed)
+        case "difficulty_asc":
+            return dataset.sort("difficulty")
+        case "difficulty_desc":
+            return dataset.sort("difficulty", reverse=True)
+        case _:
+            raise ValueError(f"Invalid {data_curriculum=}")
+
+
+def get_prompt_for_sample(sample: dict[str, Any], evidence: str, prompt_method: str) -> list[dict[str, str]]:
+    """
+    Get the prompt for a sample, depending on the prompt method.
+
+    Args:
+        sample (dict[str, Any]): A sample from the dataset, with key "question".
+        evidence (str): The evidence text to include in the prompt.
+        prompt_method (str): Either "zeroshot" or "cot".
+
+    Returns:
+        list[dict[str, str]]: A list of messages for the conversational-style prompt.
+            Each message is a dict with keys "role" and "content".
+    """
+    match prompt_method:
+        case "zeroshot":
+            llm_prompt = ZeroshotLLMPrompt()
+            prompt = [
+                {
+                    "role": "user",
+                    "content": llm_prompt.get_prompt().format(evidence=evidence, question=sample["question"]),
+                },
+            ]
+            return prompt
+
+        case "cot":
+            # llm_prompt = CoTLLMPrompt()
+            # return [
+            #     {
+            #         "role": "user",
+            #         "content": llm_prompt.get_prompt().format(evidence=evidence,
+            # examples=COT_EXAMPLES<, question=sample["question"]),
+            #     },
+            # ]
+            raise NotImplementedError("COT prompt method not implemented")
+        case _:
+            raise ValueError(f"Invalid {prompt_method=}")
+
+
 def get_pw_train_dataset(dataset_name: str, split_name: str, from_local: bool) -> Dataset:
     dataset: dict[str, Dataset] = load_data(dataset_name, split=split_name, from_local=from_local)
     text_corpus: Dataset = dataset["text"]
-    question_answer: Dataset = dataset["qa_pairs"]
-
+    qa_pairs: Dataset = dataset["qa_pairs"]
     evidence: str = get_all_evidence(text_corpus)
 
-    # TODO support multiple prompting methods, use get_llm_prompt somehow
-    llm_prompt = ZeroshotLLMPrompt()
-
-    train_dataset: Dataset = question_answer.map(
-        lambda x: {
-            "prompt": [
-                {
-                    "role": "user",
-                    "content": llm_prompt.get_prompt().format(evidence=evidence, question=x["question"]),
-                },
-            ],
-            "answer": x["answer"],  # x['answer'] is a list of strings
+    train_dataset: Dataset = qa_pairs.map(
+        lambda sample: {
+            "prompt": get_prompt_for_sample(sample, evidence, script_args.prompt_method),
+            "answer": sample["answer"],  # x['answer'] is a list of strings
         }
     )
     return train_dataset
@@ -152,6 +195,10 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
     logger.info(
         f"*** Loaded dataset {script_args.dataset_name}::{script_args.split_name} "
         f"with {len(train_dataset)} samples."
+    )
+    train_dataset = arrange_dataset(train_dataset, script_args.data_curriculum, training_args.seed)
+    logger.info(
+        f"*** Arranged dataset with {len(train_dataset)} samples using {script_args.data_curriculum}."
     )
     # Count number of tokens in train dataset
     # NOTE: depth_20_size_50_seed_1 prompts have num_tokens ~ 4k
