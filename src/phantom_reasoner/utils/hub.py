@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding=utf-8
 # Copyright 2025 The HuggingFace Inc. team. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,8 +17,6 @@ import logging
 import re
 from concurrent.futures import Future
 
-from transformers import AutoConfig
-
 from huggingface_hub import (
     create_branch,
     create_repo,
@@ -30,8 +27,8 @@ from huggingface_hub import (
     repo_exists,
     upload_folder,
 )
+from transformers import AutoConfig
 from trl import GRPOConfig, SFTConfig
-
 
 logger = logging.getLogger(__name__)
 
@@ -126,6 +123,8 @@ def get_gpu_count_for_vllm(model_name: str, revision: str = "main", num_gpus: in
     num_heads = config.num_attention_heads
     # Reduce num_gpus so that num_heads is divisible by num_gpus and 64 is divisible by num_gpus
     while num_heads % num_gpus != 0 or 64 % num_gpus != 0:
-        logger.info(f"Reducing num_gpus from {num_gpus} to {num_gpus - 1} to make num_heads divisible by num_gpus")
+        logger.info(
+            f"Reducing num_gpus from {num_gpus} to {num_gpus - 1} to make num_heads divisible by num_gpus"
+        )
         num_gpus -= 1
     return num_gpus
