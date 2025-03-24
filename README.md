@@ -27,8 +27,8 @@ From https://github.com/huggingface/open-r1?tab=readme-ov-file#sft:
 
 ```bash
 ACCELERATE_LOG_LEVEL=info accelerate launch --num_processes 3 --config_file recipes/accelerate_configs/zero3.yaml \
-    src/phantom_reasoner/sft.py \
-    --config recipes/qwen2.5-1.5b-instruct/sft/config_demo.yaml
+	src/phantom_reasoner/sft.py \
+	--config recipes/qwen2.5-1.5b-instruct/sft/config_demo.yaml
 ```
 
 > \[!NOTE\]
@@ -36,13 +36,20 @@ ACCELERATE_LOG_LEVEL=info accelerate launch --num_processes 3 --config_file reci
 
 ## GRPO settings
 
-On wandb.ai, create a new project, e.g. `phantom-reasoning`. Then run `wandb login`, and paste the API key given from the website.
+On wandb.ai under the `mlcore` org, create your own project by setting the `WANDB_PROJECT` environment variable.
+Then run `wandb login`, and paste the API key given from the website.
+
+```bash
+export WANDB_PROJECT="phantom-reasoner"
+# or
+conda env config vars set WANDB_PROJECT=phantom-reasoner
+```
 
 - Anmol's settings for full-finetuning https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct model:
-  - --gres=gpu:a100:2 on AIDA cluster. 2 A600s on G2 should also suffice
+  - --gres=gpu:a100:1 on AIDA cluster. 2 A600s on G2 should suffice. At bf16, no accelerate, 0.5B model with the default settings uses 55GB GPU memory.
   - --mem=100GB memory
   - -n 8 cores
 
 ```bash
-./scripts/train_grpo.sh --output_dir /path/to/output_dir/
+./scripts/train_grpo.sh --prompt_method cot --output_dir /path/to/output_dir/
 ```

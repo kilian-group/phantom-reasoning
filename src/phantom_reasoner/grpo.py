@@ -6,7 +6,8 @@ from typing import Any, Literal
 
 from datasets import Dataset
 from phantom_eval.agents.common import get_all_evidence
-from phantom_eval.prompts import ZeroshotLLMPrompt
+from phantom_eval.agents.cot import CoTAgent
+from phantom_eval.prompts import COT_EXAMPLES, CoTLLMPrompt, ZeroshotLLMPrompt
 from phantom_eval.utils import load_data, setup_logging
 from transformers import AutoTokenizer
 from transformers.trainer_utils import get_last_checkpoint
@@ -22,59 +23,90 @@ logger = logging.getLogger(__name__)
 # REWARD FUNCTIONS
 ############################################
 # TODO refactor reward functions to a separate python module
+def format_pred(pred: str, prompt_method: str) -> str:
+    match prompt_method:
+        case "zeroshot":
+            return pred
+        case "cot":
+            try:
+                # TODO partial reward for correct parsing but wrong values?
+                return CoTAgent.parse_answer(pred)
+            except ValueError:
+                return ""
+        case _:
+            raise ValueError(f"Invalid {prompt_method=}")
+
+
 def reward_exact_match(
-    completions: list[list[dict[str, str]]], answer: list[list[str]], **kwargs
+    completions: list[list[dict[str, str]]], answer: list[list[str]], prompt_method: list[str], **kwargs
 ) -> list[float]:
     """
     Args:
         completions (shape (batch, len of convo)): Batch of completions,
             where each is a conversation (i.e. a list of dicts).
         answer: (shape (batch, # answers)): The true answers for the prompts.
+        prompt_method: (shape (batch,)): The prompt method used for each sample.
     """
-    return [
-        float(exact_match(completion[0]["content"], answer_sep.join(a)))
-        for completion, a in zip(completions, answer)
+    # Format the model output text based on the prompting format
+    preds = [
+        format_pred(completion[0]["content"], method)
+        for completion, method in zip(completions, prompt_method)
     ]
+    return [float(exact_match(pred, answer_sep.join(a))) for pred, a in zip(preds, answer)]
 
 
 def reward_precision(
-    completions: list[list[dict[str, str]]], answer: list[list[str]], **kwargs
+    completions: list[list[dict[str, str]]], answer: list[list[str]], prompt_method: list[str], **kwargs
 ) -> list[float]:
     """
     Args:
         completions (shape (batch, len of convo)): Batch of completions,
             where each is a conversation (i.e. a list of dicts).
         answer: (shape (batch, # answers)): The true answers for the prompts.
+        prompt_method: (shape (batch,)): The prompt method used for each sample.
     """
-    return [
-        float(precision(completion[0]["content"], answer_sep.join(a)))
-        for completion, a in zip(completions, answer)
+    # Format the model output text based on the prompting format
+    preds = [
+        format_pred(completion[0]["content"], method)
+        for completion, method in zip(completions, prompt_method)
     ]
+    return [float(precision(pred, answer_sep.join(a))) for pred, a in zip(preds, answer)]
 
 
-def reward_recall(completions: list[list[dict[str, str]]], answer: list[list[str]], **kwargs) -> list[float]:
+def reward_recall(
+    completions: list[list[dict[str, str]]], answer: list[list[str]], prompt_method: list[str], **kwargs
+) -> list[float]:
     """
     Args:
         completions (shape (batch, len of convo)): Batch of completions,
             where each is a conversation (i.e. a list of dicts).
         answer: (shape (batch, # answers)): The true answers for the prompts.
+        prompt_method: (shape (batch,)): The prompt method used for each sample.
     """
-    return [
-        float(recall(completion[0]["content"], answer_sep.join(a)))
-        for completion, a in zip(completions, answer)
+    # Format the model output text based on the prompting format
+    preds = [
+        format_pred(completion[0]["content"], method)
+        for completion, method in zip(completions, prompt_method)
     ]
+    return [float(recall(pred, answer_sep.join(a))) for pred, a in zip(preds, answer)]
 
 
-def reward_f1(completions: list[list[dict[str, str]]], answer: list[list[str]], **kwargs) -> list[float]:
+def reward_f1(
+    completions: list[list[dict[str, str]]], answer: list[list[str]], prompt_method: list[str], **kwargs
+) -> list[float]:
     """
     Args:
         completions (shape (batch, len of convo)): Batch of completions,
             where each is a conversation (i.e. a list of dicts).
         answer: (shape (batch, # answers)): The true answers for the prompts.
+        prompt_method: (shape (batch,)): The prompt method used for each sample.
     """
-    return [
-        float(f1(completion[0]["content"], answer_sep.join(a))) for completion, a in zip(completions, answer)
+    # Format the model output text based on the prompting format
+    preds = [
+        format_pred(completion[0]["content"], method)
+        for completion, method in zip(completions, prompt_method)
     ]
+    return [float(f1(pred, answer_sep.join(a))) for pred, a in zip(preds, answer)]
 
 
 def get_reward_func(reward_type_name: str) -> callable:
@@ -152,15 +184,15 @@ def get_prompt_for_sample(sample: dict[str, Any], evidence: str, prompt_method: 
             return prompt
 
         case "cot":
-            # llm_prompt = CoTLLMPrompt()
-            # return [
-            #     {
-            #         "role": "user",
-            #         "content": llm_prompt.get_prompt().format(evidence=evidence,
-            # examples=COT_EXAMPLES<, question=sample["question"]),
-            #     },
-            # ]
-            raise NotImplementedError("COT prompt method not implemented")
+            llm_prompt = CoTLLMPrompt()
+            return [
+                {
+                    "role": "user",
+                    "content": llm_prompt.get_prompt().format(
+                        evidence=evidence, examples=COT_EXAMPLES, question=sample["question"]
+                    ),
+                },
+            ]
         case _:
             raise ValueError(f"Invalid {prompt_method=}")
 
@@ -175,6 +207,7 @@ def get_pw_train_dataset(dataset_name: str, split_name: str, from_local: bool) -
         lambda sample: {
             "prompt": get_prompt_for_sample(sample, evidence, script_args.prompt_method),
             "answer": sample["answer"],  # x['answer'] is a list of strings
+            "prompt_method": script_args.prompt_method,
         }
     )
     return train_dataset
