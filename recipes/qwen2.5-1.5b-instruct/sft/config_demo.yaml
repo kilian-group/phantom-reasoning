@@ -4,15 +4,11 @@ model_revision: main
 torch_dtype: bfloat16
 attn_implementation: flash_attention_2
 
-# Data training arguments
-dataset_name: out-v05-0222-filtered-f1-above-0.9
-# dataset_configs:
-# - all
-# preprocessing_num_workers: 8
 # Script arguments
-preds_dir: cot
+dataset_name: out-v05-0222-filtered-f1-above-0.9
+data_dir: /share/nikola/phantom-wiki/eval/out-v05-0222-filtered-f1-above-0.9
+method: cot
 split: depth_20_size_50_seed_1
-# NOTE: check if / are allowed in the model name
 model_name: deepseek-ai/deepseek-r1-distill-qwen-32b
 
 # SFT trainer config

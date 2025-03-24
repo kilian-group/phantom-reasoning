@@ -11,6 +11,7 @@ ACCELERATE_LOG_LEVEL=info accelerate launch --num_processes NUM_GPUS --config_fi
     --config recipes/qwen2.5-1.5b-instruct/sft/config_demo.yaml
 ```
 Here NUM_GPUS is the number of GPUs you want to use.
+NOTE: when changing the number of GPUs, the total batch size will be scaled by NUM_GPUS.
 """
 
 import logging
@@ -43,23 +44,21 @@ logger = logging.getLogger(__name__)
 ############################################
 # SCRIPT ARGUMENTS
 ############################################
+# TODO: add functionality to load from multiple folders
 @dataclass
 class ScriptArguments:
-    dataset_name: str
-    # TODO: add functionality to load from multiple folders
-    preds_dir: str
-    split: str
-    model_name: str
+    dataset_name: str # name to use in the model card
+    data_dir: str # output directory where the predictions are stored
+    method: str # method to filter by
+    split: str # split to filter by
+    model_name: str # model_name to filter by
 
 
-# TODO: remove hardcoding later
-BASE_DIR = "/share/nikola/phantom-wiki/eval/out-v05-0222-filtered-f1-above-0.9/preds/"
-
-def filter_by_split_model(preds_dir: str, split: str, modelname: str):
+def get_data_by_split_model(data_dir: str, method: str, split: str, model_name: str):
     """
-    filter the predictions by split and model
+    Filter the predictions by split and model
     Args:       
-        dir: the directory where the predictions are stored as .json files
+        data_dir: the directory where the predictions are stored as .json files
             each json file is a dictionary in the format of 
             {"question_id": {
                 "interaction": {"messages": list[{"role": str, "content": str}]},
@@ -67,15 +66,15 @@ def filter_by_split_model(preds_dir: str, split: str, modelname: str):
                 }
             }
         split: the split of PhantomWiki to filter by
-        model: the model that made the predictions
+        model_name: the model that made the predictions
     Returns:
         a dictionary containing the filtered predictions
     """
-    dir = os.path.join(BASE_DIR, preds_dir)
+    dir = os.path.join(data_dir, 'preds', method)
     filtered_predictions = {}
     for file in os.listdir(dir):
         if file.endswith(".json"):
-            if file.startswith(f"split={split}") and f"model_name={modelname}" in file:
+            if file.startswith(f"split={split}") and f"model_name={model_name}" in file:
                 with open(os.path.join(dir, file), "r") as f:
                     # load the predictions from the file and add them to the dictionary
                     data = json.load(f)
@@ -126,7 +125,13 @@ def main(script_args, training_args, model_args):
     ################
     logger.info("*** Loading datasets ***")
     # filter the predictions data by split and model
-    predictions_data = filter_by_split_model(script_args.preds_dir, script_args.split, script_args.model_name.replace('/', '--'))
+    predictions_data = get_data_by_split_model(
+        data_dir=script_args.data_dir, 
+        method=script_args.method, 
+        split=script_args.split, 
+        # NOTE: the preds are saved with model name using -- in the filename
+        model_name=script_args.model_name.replace('/', '--')
+    )
     # NOTE: the raw prediction data follows the Conversation schema from phantom_eval:
     # https://github.com/kilian-group/phantom-wiki/blob/main/src/phantom_eval/_types.py#L21
     # For example:
