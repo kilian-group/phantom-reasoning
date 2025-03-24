@@ -13,14 +13,13 @@ import logging
 # %%
 import os
 
+from phantom_eval import get_parser
 from phantom_eval.evaluate_utils import get_evaluation_data
 from phantom_eval.utils import setup_logging
 
-from memento.utils import get_parser
-
 logger = logging.getLogger(__name__)
 
-parser = get_parser(require_split=False)
+parser = get_parser()
 args = parser.parse_args()
 output_dir = args.output_dir
 method = args.method
