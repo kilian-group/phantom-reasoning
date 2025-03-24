@@ -4,14 +4,23 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal
 
+import torch
 from datasets import Dataset
+from peft import get_peft_model, prepare_model_for_kbit_training
 from phantom_eval.agents.common import get_all_evidence
 from phantom_eval.agents.cot import CoTAgent
 from phantom_eval.prompts import COT_EXAMPLES, CoTLLMPrompt, ZeroshotLLMPrompt
 from phantom_eval.utils import load_data, setup_logging
-from transformers import AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.trainer_utils import get_last_checkpoint
-from trl import GRPOTrainer, ModelConfig, ScriptArguments, TrlParser, get_peft_config
+from trl import (
+    GRPOTrainer,
+    ModelConfig,
+    ScriptArguments,
+    TrlParser,
+    get_peft_config,
+    get_quantization_config,
+)
 
 from phantom_reasoner.configs import GRPOConfig
 from phantom_reasoner.utils.score import answer_sep, exact_match, f1, precision, recall
@@ -247,22 +256,6 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    # GRPOConfig options from @willccbb's script
-    # TODO Could need Lora for larger models
-    # peft_config = LoraConfig(
-    #     r=16,
-    #     lora_alpha=64,
-    #     target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "up_proj", "down_proj", "gate_proj"],
-    #     task_type="CAUSAL_LM",
-    #     lora_dropout=0.05,
-    # )
-    # model = AutoModelForCausalLM.from_pretrained(
-    #     model_name,
-    #     torch_dtype=torch.bfloat16,
-    #     attn_implementation="flash_attention_2",
-    #     device_map=None
-    # ).to("cuda")
-
     reward_funcs: list[callable] = [
         get_reward_func(reward_func_name) for reward_func_name in script_args.reward_func_names
     ]
@@ -270,17 +263,44 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
 
     # TODO setup run_name
 
+    logger.info("*** Initializing model kwargs ***")
+    torch_dtype = (
+        model_args.torch_dtype
+        if model_args.torch_dtype in ["auto", None]
+        else getattr(torch, model_args.torch_dtype)
+    )
+    model_kwargs = dict(
+        revision=model_args.model_revision,
+        trust_remote_code=model_args.trust_remote_code,
+        attn_implementation=model_args.attn_implementation,
+        torch_dtype=torch_dtype,
+        use_cache=False if training_args.gradient_checkpointing else True,
+        quantization_config=get_quantization_config(model_args) if model_args.use_peft else None,
+    )
+    logger.info(f"*** Model kwargs: {model_kwargs} ***")
+    # NOTE: GRPOTrainer does not prepare model for kbit training,
+    # so we do it outside of the trainer manually
+    # Reference: https://huggingface.co/docs/peft/en/developer_guides/quantization
+    model = AutoModelForCausalLM.from_pretrained(
+        model_args.model_name_or_path,
+        **model_kwargs,
+    )
+    if model_kwargs["quantization_config"] is not None:
+        logger.info("*** Preparing model for kbit training ***")
+        model = prepare_model_for_kbit_training(model)
+    if model_args.use_peft:
+        logger.info("*** Initializing PEFT model ***")
+        lora_config = get_peft_config(model_args)
+        model = get_peft_model(model, lora_config)
+
     # Instantiate the trainer
-    peft_config = get_peft_config(model_args)
-    # import pdb; pdb.set_trace()
     trainer = GRPOTrainer(
-        model=model_args.model_name_or_path,
+        model=model,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=None,  # TODO: add eval dataset
         processing_class=tokenizer,
         reward_funcs=reward_funcs,
-        peft_config=peft_config,
     )
     logger.info(f"*** Instantiated GRPO trainer for model {model_args.model_name_or_path}")
 
