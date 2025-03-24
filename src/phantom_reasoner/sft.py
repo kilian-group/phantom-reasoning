@@ -6,7 +6,8 @@ Adapted from the Open-R1 SFT script:
 
 Usage:
 ```bash
-ACCELERATE_LOG_LEVEL=info accelerate launch --num_processes NUM_GPUS --config_file recipes/accelerate_configs/zero3.yaml \
+ACCELERATE_LOG_LEVEL=info accelerate launch --num_processes NUM_GPUS \
+    --config_file recipes/accelerate_configs/zero3.yaml \
     src/phantom_reasoner/sft.py \
     --config recipes/qwen2.5-1.5b-instruct/sft/config_demo.yaml
 ```
@@ -14,21 +15,17 @@ Here NUM_GPUS is the number of GPUs you want to use.
 NOTE: when changing the number of GPUs, the total batch size will be scaled by NUM_GPUS.
 """
 
+import json
 import logging
 import os
 import sys
 from dataclasses import dataclass
-import json
 
 import datasets
 import torch
 import transformers
 from transformers import AutoTokenizer, set_seed
 from transformers.trainer_utils import get_last_checkpoint
-
-from phantom_reasoner.configs import SFTConfig
-from phantom_reasoner.utils.callbacks import get_callbacks
-from phantom_reasoner.utils.wandb_logging import init_wandb_training
 from trl import (
     ModelConfig,
     SFTTrainer,
@@ -37,6 +34,10 @@ from trl import (
     get_peft_config,
     get_quantization_config,
 )
+
+from phantom_reasoner.configs import SFTConfig
+from phantom_reasoner.utils.callbacks import get_callbacks
+from phantom_reasoner.utils.wandb_logging import init_wandb_training
 
 logger = logging.getLogger(__name__)
 
@@ -47,19 +48,19 @@ logger = logging.getLogger(__name__)
 # TODO: add functionality to load from multiple folders
 @dataclass
 class ScriptArguments:
-    dataset_name: str # name to use in the model card
-    data_dir: str # output directory where the predictions are stored
-    method: str # method to filter by
-    split: str # split to filter by
-    model_name: str # model_name to filter by
+    dataset_name: str  # name to use in the model card
+    data_dir: str  # output directory where the predictions are stored
+    method: str  # method to filter by
+    split: str  # split to filter by
+    model_name: str  # model_name to filter by
 
 
 def get_data_by_split_model(data_dir: str, method: str, split: str, model_name: str):
     """
     Filter the predictions by split and model
-    Args:       
+    Args:
         data_dir: the directory where the predictions are stored as .json files
-            each json file is a dictionary in the format of 
+            each json file is a dictionary in the format of
             {"question_id": {
                 "interaction": {"messages": list[{"role": str, "content": str}]},
                 ...
@@ -70,12 +71,12 @@ def get_data_by_split_model(data_dir: str, method: str, split: str, model_name: 
     Returns:
         a dictionary containing the filtered predictions
     """
-    dir = os.path.join(data_dir, 'preds', method)
+    dir = os.path.join(data_dir, "preds", method)
     filtered_predictions = {}
     for file in os.listdir(dir):
         if file.endswith(".json"):
             if file.startswith(f"split={split}") and f"model_name={model_name}" in file:
-                with open(os.path.join(dir, file), "r") as f:
+                with open(os.path.join(dir, file)) as f:
                     # load the predictions from the file and add them to the dictionary
                     data = json.load(f)
                     filtered_predictions.update(data)
@@ -103,8 +104,10 @@ def main(script_args, training_args, model_args):
 
     # Log on each process a small summary
     logger.warning(
-        f"Process rank: {training_args.local_rank}, device: {training_args.device}, n_gpu: {training_args.n_gpu}"
-        + f" distributed training: {bool(training_args.local_rank != -1)}, 16-bits training: {training_args.fp16}"
+        f"Process rank: {training_args.local_rank}, device: {training_args.device},"
+        + f" n_gpu: {training_args.n_gpu}"
+        + f" distributed training: {bool(training_args.local_rank != -1)},"
+        + f" 16-bits training: {training_args.fp16}"
     )
     logger.info(f"Model parameters {model_args}")
     logger.info(f"Script parameters {script_args}")
@@ -126,18 +129,18 @@ def main(script_args, training_args, model_args):
     logger.info("*** Loading datasets ***")
     # filter the predictions data by split and model
     predictions_data = get_data_by_split_model(
-        data_dir=script_args.data_dir, 
-        method=script_args.method, 
-        split=script_args.split, 
+        data_dir=script_args.data_dir,
+        method=script_args.method,
+        split=script_args.split,
         # NOTE: the preds are saved with model name using -- in the filename
-        model_name=script_args.model_name.replace('/', '--')
+        model_name=script_args.model_name.replace("/", "--"),
     )
     # NOTE: the raw prediction data follows the Conversation schema from phantom_eval:
     # https://github.com/kilian-group/phantom-wiki/blob/main/src/phantom_eval/_types.py#L21
     # For example:
     # {
     #     "messages": [
-    #         {"role": "user", "content": [{"text": "What's the capital of France?", "type": "text"}]}, 
+    #         {"role": "user", "content": [{"text": "What's the capital of France?", "type": "text"}]},
     #         {"role": "assistant", "content": [{"text": "...", "type": "text"}]}
     #     ]
     # }
@@ -147,8 +150,8 @@ def main(script_args, training_args, model_args):
     # For example:
     # {
     #     "messages": [
-    #         {"role": "system", "content": "You are helpful"}, 
-    #         {"role": "user", "content": "What's the capital of France?"}, 
+    #         {"role": "system", "content": "You are helpful"},
+    #         {"role": "user", "content": "What's the capital of France?"},
     #         {"role": "assistant", "content": "..."}
     #     ]
     # }
@@ -157,11 +160,11 @@ def main(script_args, training_args, model_args):
     dataset = dataset.map(
         lambda x: {
             "messages": [
-                {"role": msg["role"], "content": msg["content"][0]["text"]} 
+                {"role": msg["role"], "content": msg["content"][0]["text"]}
                 for msg in x["interaction"]["messages"]
             ]
         },
-        remove_columns=dataset.column_names  # This removes all existing columns
+        remove_columns=dataset.column_names,  # This removes all existing columns
     )
     # split the dataset into train and eval
     dataset = dataset.train_test_split(test_size=0.1, seed=training_args.seed)
@@ -179,7 +182,9 @@ def main(script_args, training_args, model_args):
     ###################
     logger.info("*** Initializing model kwargs ***")
     torch_dtype = (
-        model_args.torch_dtype if model_args.torch_dtype in ["auto", None] else getattr(torch, model_args.torch_dtype)
+        model_args.torch_dtype
+        if model_args.torch_dtype in ["auto", None]
+        else getattr(torch, model_args.torch_dtype)
     )
     quantization_config = get_quantization_config(model_args)
     model_kwargs = dict(
@@ -223,7 +228,7 @@ def main(script_args, training_args, model_args):
     metrics = train_result.metrics
     # HACK: currently we use the train set from train_test_split() as the train split
     # metrics["train_samples"] = len(dataset[script_args.dataset_train_split])
-    metrics["train_samples"] = len(dataset['train'])
+    metrics["train_samples"] = len(dataset["train"])
     trainer.log_metrics("train", metrics)
     trainer.save_metrics("train", metrics)
     trainer.save_state()
