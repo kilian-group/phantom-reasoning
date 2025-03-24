@@ -1,0 +1,21 @@
+# Script config
+dataset_name: "kilian-group/phantom-wiki-v1"
+split_name: "depth_20_size_50_seed_1"
+reward_func_names: ["f1"]
+data_curriculum: "random"
+prompt_method: "cot"
+
+# GRPO trainer config
+model_name_or_path: "Qwen/Qwen2.5-3B-Instruct"
+bf16: true
+num_train_epochs: 10
+
+# Logging config
+log_level: "info"
+logging_strategy: "steps"
+logging_first_step: true
+logging_steps: 10
+save_strategy: "steps"
+save_steps: 100
+save_total_limit: 5
+log_completions: true
