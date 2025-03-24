@@ -17,6 +17,7 @@ import logging
 import os
 import sys
 from dataclasses import dataclass
+import json
 
 import datasets
 import torch
@@ -25,8 +26,8 @@ from transformers import AutoTokenizer, set_seed
 from transformers.trainer_utils import get_last_checkpoint
 
 from phantom_reasoner.configs import SFTConfig
-from phantom_reasoner.training_utils.callbacks import get_callbacks
-from phantom_reasoner.training_utils.wandb_logging import init_wandb_training
+from phantom_reasoner.utils.callbacks import get_callbacks
+from phantom_reasoner.utils.wandb_logging import init_wandb_training
 from trl import (
     ModelConfig,
     SFTTrainer,
@@ -35,9 +36,6 @@ from trl import (
     get_peft_config,
     get_quantization_config,
 )
-
-from phantom_reasoner.utils import filter_by_split_model
-
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +50,38 @@ class ScriptArguments:
     preds_dir: str
     split: str
     model_name: str
+
+
+# TODO: remove hardcoding later
+BASE_DIR = "/share/nikola/phantom-wiki/eval/out-v05-0222-filtered-f1-above-0.9/preds/"
+
+def filter_by_split_model(preds_dir: str, split: str, modelname: str):
+    """
+    filter the predictions by split and model
+    Args:       
+        dir: the directory where the predictions are stored as .json files
+            each json file is a dictionary in the format of 
+            {"question_id": {
+                "interaction": {"messages": list[{"role": str, "content": str}]},
+                ...
+                }
+            }
+        split: the split of PhantomWiki to filter by
+        model: the model that made the predictions
+    Returns:
+        a dictionary containing the filtered predictions
+    """
+    dir = os.path.join(BASE_DIR, preds_dir)
+    filtered_predictions = {}
+    for file in os.listdir(dir):
+        if file.endswith(".json"):
+            if file.startswith(f"split={split}") and f"model_name={modelname}" in file:
+                with open(os.path.join(dir, file), "r") as f:
+                    # load the predictions from the file and add them to the dictionary
+                    data = json.load(f)
+                    filtered_predictions.update(data)
+    return filtered_predictions
+
 
 def main(script_args, training_args, model_args):
     # Set seed for reproducibility
