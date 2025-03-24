@@ -2,6 +2,12 @@
 
 ## Setup instructions
 
+Create a conda environment: 
+```bash
+conda create -n rsn python=3.12
+```
+For reference, see [example-environment.yml](./example-environment.yml) for exact package versions.
+
 ### Install special dependencies
 
 <!-- TODO create a setup.py script to handle this automatically -->
