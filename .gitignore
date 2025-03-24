@@ -169,3 +169,12 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Wandb
+**/wandb/
+.editorconfig
+
+# Custom
+cachedir/
+out*
+logs/
