@@ -13,11 +13,10 @@ import logging
 # %%
 import os
 
+from phantom_eval import get_parser
 from phantom_eval.utils import setup_logging
 
-from memento.utils import get_parser
-
-setup_logging("INFO")
+setup_logging("ERROR")
 import matplotlib.lines as lines
 import matplotlib.pyplot as plt
 
@@ -42,7 +41,7 @@ plt.rcParams.update(
 import plotting_utils
 from phantom_eval.evaluate_utils import get_evaluation_data, mean, pivot_mean_std, std
 
-parser = get_parser(require_split=False)
+parser = get_parser()
 parser.add_argument("--depth", type=int, default=20, help="Depth to plot accuracies for")
 parser.add_argument(
     "--model_list", nargs="+", default=plotting_utils.DEFAULT_MODEL_LIST, help="List of models to plot"
