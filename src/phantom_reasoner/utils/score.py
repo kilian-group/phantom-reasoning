@@ -1,6 +1,7 @@
 # Answer separator
 answer_sep: str = ","
 
+
 def normalize_pred(pred: str, sep: str) -> set[str]:
     """
     Normalize the prediction by splitting and stripping whitespace the answers.

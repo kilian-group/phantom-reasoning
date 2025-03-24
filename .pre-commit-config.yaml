@@ -4,10 +4,7 @@ default_language_version:
 exclude: |
   (?x)^(
         docs/.*|
-        examples/.*|
-        out/.*|
-        output/.*|
-        src/phantom_wiki/facts/family/names/(\w+).json
+        examples/.*
     )$
 
 repos:
