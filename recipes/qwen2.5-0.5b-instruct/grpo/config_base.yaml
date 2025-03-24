@@ -1,6 +1,10 @@
 # Script config
 dataset_name: "kilian-group/phantom-wiki-v1"
 split_name: "depth_20_size_50_seed_1"
+from_local: false
+eval_dataset_name: "kilian-group/phantom-wiki-v1"
+eval_split_name: "depth_20_size_50_seed_2"
+eval_from_local: false
 reward_func_names: ["f1"]
 data_curriculum: "random"
 prompt_method: "cot"
@@ -9,6 +13,15 @@ prompt_method: "cot"
 model_name_or_path: "Qwen/Qwen2.5-0.5B-Instruct"
 bf16: true
 num_train_epochs: 10
+per_device_train_batch_size: 8
+gradient_accumulation_steps: 1
+
+# Evaluation config
+bf16_full_eval: true
+eval_on_start: true
+eval_strategy: "steps"
+eval_steps: 100
+per_device_eval_batch_size: 8
 
 # Logging config
 log_level: "info"
