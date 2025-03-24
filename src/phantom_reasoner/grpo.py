@@ -11,7 +11,7 @@ from phantom_eval.prompts import COT_EXAMPLES, CoTLLMPrompt, ZeroshotLLMPrompt
 from phantom_eval.utils import load_data, setup_logging
 from transformers import AutoTokenizer
 from transformers.trainer_utils import get_last_checkpoint
-from trl import GRPOTrainer, ModelConfig, ScriptArguments, TrlParser
+from trl import GRPOTrainer, ModelConfig, ScriptArguments, TrlParser, get_peft_config
 
 from phantom_reasoner.configs import GRPOConfig
 from phantom_reasoner.utils.score import answer_sep, exact_match, f1, precision, recall
@@ -271,6 +271,8 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
     # TODO setup run_name
 
     # Instantiate the trainer
+    peft_config = get_peft_config(model_args)
+    # import pdb; pdb.set_trace()
     trainer = GRPOTrainer(
         model=model_args.model_name_or_path,
         args=training_args,
@@ -278,8 +280,7 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         eval_dataset=None,  # TODO: add eval dataset
         processing_class=tokenizer,
         reward_funcs=reward_funcs,
-        # peft_config=peft_config  # "Use at your own risk, didn't work for multi-GPU setup"
-        # TODO additional options from @willccbb's script
+        peft_config=peft_config,
     )
     logger.info(f"*** Instantiated GRPO trainer for model {model_args.model_name_or_path}")
 
