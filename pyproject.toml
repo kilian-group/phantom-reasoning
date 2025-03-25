@@ -24,7 +24,7 @@ classifiers = [
 # TODO wandb should probably be optional
 dependencies = [
     "torch",
-    "vllm=0.6.6", # TODO: phantom-eval gives CUDA errors for latest version 0.8.0
+    "vllm",
     "deepspeed",
     "trl",
     "wandb",
