@@ -21,7 +21,8 @@ bf16_full_eval: true
 eval_on_start: true
 eval_strategy: "steps"
 eval_steps: 100
-per_device_eval_batch_size: 8
+per_device_eval_batch_size: 256
+use_vllm: true
 num_completions_to_print: 0 # don't want to print any vllm completions to stdout
 
 # Logging config
