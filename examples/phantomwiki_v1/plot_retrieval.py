@@ -112,7 +112,12 @@ for metric in METRICS:
             acc_mean_std = acc_mean_std.groupby(["_model", "_size"]).agg([mean, std])
             acc_mean_std = acc_mean_std.reset_index()
 
-            df_mean, df_std = pivot_mean_std(acc_mean_std, metric, independent_variable="_size")
+            df_mean, df_std = pivot_mean_std(
+                acc_mean_std,
+                metric,
+                independent_variable="_size",
+                enforce_order=False,
+            )
 
             # use log10 scale for the x-axis
             all_x.extend(df_mean.columns.tolist())

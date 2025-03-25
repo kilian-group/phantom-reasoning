@@ -111,7 +111,12 @@ for metric in METRICS:
 
             for size in sizes_in_preds:
                 acc_mean_std_size = acc_mean_std[acc_mean_std["_size"].astype(int) == size]
-                df_mean, df_std = pivot_mean_std(acc_mean_std_size, metric, independent_variable=DIFFICULTY)
+                df_mean, df_std = pivot_mean_std(
+                    acc_mean_std_size,
+                    metric,
+                    independent_variable=DIFFICULTY,
+                    enforce_order=False,
+                )
                 x = df_mean.columns
                 for model_name, row in df_mean.iterrows():
                     if model_name not in model_list:
