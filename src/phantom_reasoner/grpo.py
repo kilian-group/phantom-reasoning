@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal
 
-from datasets import Dataset
+from datasets import Dataset, concatenate_datasets
 from phantom_eval.agents.common import get_all_evidence
 from phantom_eval.agents.cot import CoTAgent
 from phantom_eval.prompts import COT_EXAMPLES, CoTLLMPrompt, ZeroshotLLMPrompt
@@ -131,11 +131,13 @@ class GRPOScriptArguments(ScriptArguments):
     # TODO convert to list of dataset_names, split_names, from_locals to support multiple datasets
     # Train dataset arguments
     dataset_name: str = "kilian-group/phantom-wiki-v1"
-    split_name: str = "depth_20_size_50_seed_1"
+    split_list: list[str] = field(
+        default_factory=lambda: ["depth_20_size_50_seed_1", "depth_20_size_50_seed_2"]
+    )
     from_local: bool = False
     # Eval dataset arguments
     eval_dataset_name: str = "kilian-group/phantom-wiki-v1"
-    eval_split_name: str = "depth_20_size_50_seed_2"
+    eval_split_list: str = field(default_factory=lambda: ["depth_20_size_50_seed_3"])
     eval_from_local: bool = False
     # Script arguments
     reward_func_names: list[str] = field(default_factory=lambda: ["f1"])
@@ -201,20 +203,23 @@ def get_prompt_for_sample(sample: dict[str, Any], evidence: str, prompt_method: 
             raise ValueError(f"Invalid {prompt_method=}")
 
 
-def get_pw_dataset(dataset_name: str, split_name: str, from_local: bool) -> Dataset:
-    dataset: dict[str, Dataset] = load_data(dataset_name, split=split_name, from_local=from_local)
-    text_corpus: Dataset = dataset["text"]
-    qa_pairs: Dataset = dataset["qa_pairs"]
-    evidence: str = get_all_evidence(text_corpus)
+def get_pw_dataset(dataset_name: str, split_list: list[str], from_local: bool) -> Dataset:
+    all_datasets: list[Dataset] = []
+    for split_name in split_list:
+        dataset: dict[str, Dataset] = load_data(dataset_name, split=split_name, from_local=from_local)
+        text_corpus: Dataset = dataset["text"]
+        qa_pairs: Dataset = dataset["qa_pairs"]
+        evidence: str = get_all_evidence(text_corpus)
 
-    dataset: Dataset = qa_pairs.map(
-        lambda sample: {
-            "prompt": get_prompt_for_sample(sample, evidence, script_args.prompt_method),
-            "answer": sample["answer"],  # x['answer'] is a list of strings
-            "prompt_method": script_args.prompt_method,
-        }
-    )
-    return dataset
+        dataset: Dataset = qa_pairs.map(
+            lambda sample: {
+                "prompt": get_prompt_for_sample(sample, evidence, script_args.prompt_method),
+                "answer": sample["answer"],  # x['answer'] is a list of strings
+                "prompt_method": script_args.prompt_method,
+            }
+        )
+        all_datasets.append(dataset)
+    return concatenate_datasets(all_datasets)
 
 
 def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, model_args: ModelConfig) -> None:
@@ -226,19 +231,19 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         model_args: Model arguments.
     """
     # Get train dataset and use a curriculum
-    train_dataset = get_pw_dataset(script_args.dataset_name, script_args.split_name, script_args.from_local)
+    train_dataset = get_pw_dataset(script_args.dataset_name, script_args.split_list, script_args.from_local)
     train_dataset = arrange_dataset(train_dataset, script_args.data_curriculum, training_args.seed)
     logger.info(
-        f"*** Loaded train dataset {script_args.dataset_name}::{script_args.split_name} "
+        f"*** Loaded train dataset {script_args.dataset_name}::{script_args.split_list} "
         f"with {len(train_dataset)} samples, and arranged in curriculum={script_args.data_curriculum}."
     )
 
     # Get eval dataset
     eval_dataset = get_pw_dataset(
-        script_args.eval_dataset_name, script_args.eval_split_name, script_args.eval_from_local
+        script_args.eval_dataset_name, script_args.eval_split_list, script_args.eval_from_local
     )
     logger.info(
-        f"*** Loaded eval dataset {script_args.eval_dataset_name}::{script_args.eval_split_name} "
+        f"*** Loaded eval dataset {script_args.eval_dataset_name}::{script_args.eval_split_list} "
         f"with {len(eval_dataset)} samples."
     )
     # Count number of tokens in train dataset
@@ -275,8 +280,6 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         get_reward_func(reward_func_name) for reward_func_name in script_args.reward_func_names
     ]
     logger.info(f"*** Selected reward functions: {script_args.reward_func_names}")
-
-    # TODO setup run_name
 
     # Instantiate the trainer
     trainer = GRPOTrainer(
