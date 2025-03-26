@@ -5,20 +5,17 @@
 #SBATCH -p full
 #SBATCH -N 1
 #SBATCH -n 8
-#SBATCH --gres=gpu:a100:2
+#SBATCH --gres=gpu:a100:1
 #SBATCH --mem=100GB
 #SBATCH --time=24:00:00
 
 # NUM_PROCESSES=NUM_GPUS
-NUM_PROCESSES=2
+# --use_vllm reserves 1 GPU for generation, so then set NUM_PROCESSES=NUM_GPUS-1
+NUM_PROCESSES=1
 
-# TODO: accelerate is actually really slow...
-# 20 hours for 0.5B model vs 2 hours without accelerate
-# Anmol: I think it's because of zero3 config that's offloading
-# matrices to the CPU. Might want to try zero1 or zero2.
-
+# 0.5B model on 1 A100s (80GB GPU memory) works with multi_gpu (no deepspeed)
 ACCELERATE_LOG_LEVEL=info accelerate launch --num_processes=$NUM_PROCESSES \
-    --config_file recipes/accelerate_configs/zero3.yaml \
+    --config_file recipes/accelerate_configs/multi_gpu.yaml \
 	src/phantom_reasoner/grpo.py \
 	--config recipes/qwen2.5-0.5b-instruct/grpo/config_base.yaml \
     $@

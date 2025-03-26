@@ -8,20 +8,18 @@ prompt_method: "cot"
 ###################
 # Model arguments #
 ###################
-model_name_or_path: "Qwen/Qwen2.5-0.5B-Instruct"
+model_name_or_path: "Qwen/Qwen2.5-3B-Instruct"
 bf16: true
 torch_dtype: bfloat16
 attn_implementation: flash_attention_2
 # LoRA arguments
 use_peft: true
-lora_target_modules:
-  - "q_proj"
-  - "k_proj"
-  - "v_proj"
-  - "o_proj"
-  - "up_proj"
-  - "down_proj"
-  - "gate_proj"
+lora_target_modules: all-linear
+# Reference: https://huggingface.co/docs/peft/en/developer_guides/quantization#loraconfig
+# Blog: https://huggingface.co/blog/4bit-transformers-bitsandbytes
+load_in_4bit: true
+bnb_4bit_quant_type: nf4
+use_bnb_nested_quant: true
 
 ####################
 # Trainer arguments #
