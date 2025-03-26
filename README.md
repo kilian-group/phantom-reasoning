@@ -27,21 +27,15 @@ git clone git@github.com:anmolkabra/phantom-reasoning.git
 cd phantom-reasoning
 pip install -e ".[dev]"
 
-pre-commit install
-```
-
-For reference, see [example-environment.yml](./example-environment.yml) for exact package versions.
-
-### Install special dependencies
-
-<!-- TODO create a setup.py script to handle this automatically -->
-
-```bash
 pip install flash-attn --no-build-isolation
+
+pre-commit install
 ```
 
 > \[!NOTE\]
 > The `flash-attn` dependency restricts the system requirements to Linux with CUDA/ROCm toolkit support.
+
+For reference, see [example-environment.yml](./example-environment.yml) for exact package versions.
 
 ## SFT settings
 
