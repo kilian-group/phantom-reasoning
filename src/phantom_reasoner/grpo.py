@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Any, Literal
 
 import torch
-from datasets import Dataset
+from datasets import Dataset, concatenate_datasets
 from peft import get_peft_model, prepare_model_for_kbit_training
 from phantom_eval.agents.common import get_all_evidence
 from phantom_eval.agents.cot import CoTAgent
@@ -138,11 +138,17 @@ def get_reward_func(reward_type_name: str) -> callable:
 @dataclass
 class GRPOScriptArguments(ScriptArguments):
     # TODO convert to list of dataset_names, split_names, from_locals to support multiple datasets
-    # TODO do this for both train and eval datasets
-    dataset_name: str
-    split_name: str = "depth_20_size_50_seed_1"
-    # TODO add support for eval dataset
+    # Train dataset arguments
+    dataset_name: str = "kilian-group/phantom-wiki-v1"
+    split_list: list[str] = field(
+        default_factory=lambda: ["depth_20_size_50_seed_1", "depth_20_size_50_seed_2"]
+    )
     from_local: bool = False
+    # Eval dataset arguments
+    eval_dataset_name: str = "kilian-group/phantom-wiki-v1"
+    eval_split_list: str = field(default_factory=lambda: ["depth_20_size_50_seed_3"])
+    eval_from_local: bool = False
+    # Script arguments
     reward_func_names: list[str] = field(default_factory=lambda: ["f1"])
     data_curriculum: Literal["random", "difficulty_asc", "difficulty_desc"] = "random"
     prompt_method: Literal["zeroshot", "cot"] = "zeroshot"
@@ -206,20 +212,23 @@ def get_prompt_for_sample(sample: dict[str, Any], evidence: str, prompt_method: 
             raise ValueError(f"Invalid {prompt_method=}")
 
 
-def get_pw_train_dataset(dataset_name: str, split_name: str, from_local: bool) -> Dataset:
-    dataset: dict[str, Dataset] = load_data(dataset_name, split=split_name, from_local=from_local)
-    text_corpus: Dataset = dataset["text"]
-    qa_pairs: Dataset = dataset["qa_pairs"]
-    evidence: str = get_all_evidence(text_corpus)
+def get_pw_dataset(dataset_name: str, split_list: list[str], from_local: bool) -> Dataset:
+    all_datasets: list[Dataset] = []
+    for split_name in split_list:
+        dataset: dict[str, Dataset] = load_data(dataset_name, split=split_name, from_local=from_local)
+        text_corpus: Dataset = dataset["text"]
+        qa_pairs: Dataset = dataset["qa_pairs"]
+        evidence: str = get_all_evidence(text_corpus)
 
-    train_dataset: Dataset = qa_pairs.map(
-        lambda sample: {
-            "prompt": get_prompt_for_sample(sample, evidence, script_args.prompt_method),
-            "answer": sample["answer"],  # x['answer'] is a list of strings
-            "prompt_method": script_args.prompt_method,
-        }
-    )
-    return train_dataset
+        dataset: Dataset = qa_pairs.map(
+            lambda sample: {
+                "prompt": get_prompt_for_sample(sample, evidence, script_args.prompt_method),
+                "answer": sample["answer"],  # x['answer'] is a list of strings
+                "prompt_method": script_args.prompt_method,
+            }
+        )
+        all_datasets.append(dataset)
+    return concatenate_datasets(all_datasets)
 
 
 def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, model_args: ModelConfig) -> None:
@@ -230,17 +239,21 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         training_args: Training arguments.
         model_args: Model arguments.
     """
-    # Get the dataset
-    train_dataset = get_pw_train_dataset(
-        script_args.dataset_name, script_args.split_name, script_args.from_local
-    )
-    logger.info(
-        f"*** Loaded dataset {script_args.dataset_name}::{script_args.split_name} "
-        f"with {len(train_dataset)} samples."
-    )
+    # Get train dataset and use a curriculum
+    train_dataset = get_pw_dataset(script_args.dataset_name, script_args.split_list, script_args.from_local)
     train_dataset = arrange_dataset(train_dataset, script_args.data_curriculum, training_args.seed)
     logger.info(
-        f"*** Arranged dataset with {len(train_dataset)} samples using {script_args.data_curriculum}."
+        f"*** Loaded train dataset {script_args.dataset_name}::{script_args.split_list} "
+        f"with {len(train_dataset)} samples, and arranged in curriculum={script_args.data_curriculum}."
+    )
+
+    # Get eval dataset
+    eval_dataset = get_pw_dataset(
+        script_args.eval_dataset_name, script_args.eval_split_list, script_args.eval_from_local
+    )
+    logger.info(
+        f"*** Loaded eval dataset {script_args.eval_dataset_name}::{script_args.eval_split_list} "
+        f"with {len(eval_dataset)} samples."
     )
     # Count number of tokens in train dataset
     # NOTE: depth_20_size_50_seed_1 prompts have num_tokens ~ 4k
@@ -260,8 +273,6 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         get_reward_func(reward_func_name) for reward_func_name in script_args.reward_func_names
     ]
     logger.info(f"*** Selected reward functions: {script_args.reward_func_names}")
-
-    # TODO setup run_name
 
     logger.info("*** Initializing model kwargs ***")
     torch_dtype = (
@@ -298,7 +309,7 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         model=model,
         args=training_args,
         train_dataset=train_dataset,
-        eval_dataset=None,  # TODO: add eval dataset
+        eval_dataset=eval_dataset,
         processing_class=tokenizer,
         reward_funcs=reward_funcs,
     )

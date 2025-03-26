@@ -7,12 +7,9 @@ name = "phantom-reasoner"
 description = "Phantom Reasoner"
 version = "0.0.0"
 authors = [
-    {name="Albert Gong", email="ag2435@cornell.edu"},
     {name="Anmol Kabra", email="anmol@cs.cornell.edu"},
-    {name="Johann Lee", email="jcl354@cornell.edu"},
     {name="Kamilė Stankevičiūtė", email="ks2448@cornell.edu"},
-    {name="Raphael Thesmar", email="rft38@cornell.edu"},
-    {name="Chao Wan", email="cw862@cornell.edu"},
+    {name="Albert Gong", email="agong@cs.cornell.edu"},
 ]
 
 
@@ -26,16 +23,17 @@ classifiers = [
 
 # TODO wandb should probably be optional
 dependencies = [
-    # "torch", # NOTE: vllm installs specific torch versions
+    "torch",
     "vllm",
     "deepspeed",
-    "trl",
+    "trl[vllm]",
     "wandb",
     "accelerate",
     "datasets",
+    "peft",
     "huggingface_hub[cli]",
     "phantom-wiki[eval]",
-]
+    ]
 
 [project.optional-dependencies]
 dev = [
