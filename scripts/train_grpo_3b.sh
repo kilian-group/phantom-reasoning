@@ -9,20 +9,24 @@
 #SBATCH --mem=100GB
 #SBATCH --time=24:00:00
 
-# NUM_PROCESSES=NUM_GPUS
-# --use_vllm reserves 1 GPU for generation, so then set NUM_PROCESSES=NUM_GPUS-1
-NUM_PROCESSES=3
+# Get NUM_GPUS from nvidia-smi. It repeats the number of GPUs a few times, take the first one.
+NUM_GPUS=$(nvidia-smi --query-gpu=count --format=csv,noheader,nounits | head -n 1)
 
+# --use_vllm reserves 1 GPU for generation, so then set NUM_PROCESSES=NUM_GPUS-1
+NUM_PROCESSES=$NUM_GPUS
+
+# TODO: Figure out why vllm server keeps crashing.
+# Till then we train without vllm generations.
 # Start a vllm server in a separate terminal
 # CUDA_VISIBLE_DEVICES=3 trl vllm-serve --model "Qwen/Qwen2.5-3B-Instruct" &
 
 # 3B model on 4 A100s (320GB GPU memory) works with zero1
-# Start the training script on the first 3 GPUs
-CUDA_VISIBLE_DEVICES=0,1,2 ACCELERATE_LOG_LEVEL=info accelerate launch \
+# Start the training script on the GPUs
+ACCELERATE_LOG_LEVEL=info accelerate launch \
     --num_processes=$NUM_PROCESSES \
     --config_file recipes/accelerate_configs/zero1.yaml \
 	src/phantom_reasoner/grpo.py \
-	--config recipes/qwen2.5-3b-instruct/grpo/config_vllm.yaml \
+	--config recipes/qwen2.5-3b-instruct/grpo/config_base.yaml \
     $@
 
 # python -m phantom_reasoner.grpo \
@@ -43,5 +47,3 @@ CUDA_VISIBLE_DEVICES=0,1,2 ACCELERATE_LOG_LEVEL=info accelerate launch \
 #     --num_generations 4 \
 #     $@
 #     # --use_vllm \
-
-# NOTE: Using vllm goes OOM even for 0.5B model on 160GB GPU memory (2 A100s on AIDA)
