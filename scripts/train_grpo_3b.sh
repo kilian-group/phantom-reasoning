@@ -20,13 +20,13 @@ NUM_PROCESSES=$NUM_GPUS
 # Start a vllm server in a separate terminal
 # CUDA_VISIBLE_DEVICES=3 trl vllm-serve --model "Qwen/Qwen2.5-3B-Instruct" &
 
-# 3B model on 4 A100s (320GB GPU memory) works with zero1
+# 3B model on 4 A100s (320GB GPU memory) works with zero1 with lora
 # Start the training script on the GPUs
 ACCELERATE_LOG_LEVEL=info accelerate launch \
     --num_processes=$NUM_PROCESSES \
     --config_file recipes/accelerate_configs/zero1.yaml \
 	src/phantom_reasoner/grpo.py \
-	--config recipes/qwen2.5-3b-instruct/grpo/config_base.yaml \
+	--config recipes/qwen2.5-3b-instruct/grpo/config_lora.yaml \
     $@
 
 # python -m phantom_reasoner.grpo \
