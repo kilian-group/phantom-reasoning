@@ -179,3 +179,4 @@ cachedir/
 out*
 logs/
 runs/
+data/

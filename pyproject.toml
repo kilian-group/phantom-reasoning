@@ -30,6 +30,7 @@ dependencies = [
     "wandb",
     "accelerate",
     "datasets",
+    "peft",
     "huggingface_hub[cli]",
     "phantom-wiki[eval]",
     ]

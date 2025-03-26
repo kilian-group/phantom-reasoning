@@ -30,6 +30,8 @@ pip install -e ".[dev]"
 pre-commit install
 ```
 
+For reference, see [example-environment.yml](./example-environment.yml) for exact package versions.
+
 ### Install special dependencies
 
 <!-- TODO create a setup.py script to handle this automatically -->
@@ -64,6 +66,9 @@ export WANDB_PROJECT="phantom-reasoner"
 # or
 conda env config vars set WANDB_PROJECT=phantom-reasoner
 ```
+
+> \[!NOTE\]
+> If you are in multiple teams, you will also need to set the `WANDB_ENTITY` environment variable (e.g., `conda env config vars set WANDB_ENTITY=phantom-reasoner`)
 
 - Anmol's settings for full-finetuning https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct model:
   - --gres=gpu:a100:1 on AIDA cluster. 2 A600s on G2 should suffice. At bf16, no accelerate, 0.5B model with the default settings uses 55GB GPU memory.
