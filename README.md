@@ -37,6 +37,26 @@ pre-commit install
 
 For reference, see [example-environment.yml](./example-environment.yml) for exact package versions.
 
+## PhantomWiki data
+
+There are 3\*3 evaluation splits on Huggingface at `"kilian-group/phantom-wiki-v1"`: `depth_20_size_{50,500,5000}_seed_{1,2,3}`.
+We care about `depth_20_size_50_seed_{1,2,3}` as the bigger universe sizes do
+not fit in 32K context length models.
+
+We can train on 10 other seeds `depth_20_size_50_seed_{10,...,19}`, which are
+saved on G2, as `/share/nikola/phantom-wiki/data/wiki-v1.zip` and
+`/share/nikola/phantom-wiki/data/wiki-v1-easy.zip`.
+We recommend copying them to `data/`:
+
+```bash
+mkdir -p data/
+cp /share/nikola/phantom-wiki/data/wiki-v1.zip data/
+# To transfer to another cluster: scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-wiki/data/wiki-v1.zip data/
+cd data/
+unzip wiki-v1.zip
+cd ..
+```
+
 ## SFT settings
 
 From https://github.com/huggingface/open-r1?tab=readme-ov-file#sft:
