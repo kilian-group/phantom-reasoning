@@ -40,7 +40,7 @@ use_vllm: true
 bf16_full_eval: true
 eval_on_start: true
 eval_strategy: "steps"
-eval_steps: 10
+eval_steps: 100
 per_device_eval_batch_size: 64
 
 # Logging config
