@@ -76,21 +76,29 @@ On wandb.ai under the `mlcore` org, create your own project by setting the `WAND
 Then run `wandb login`, and paste the API key given from the website.
 
 ```bash
-export WANDB_PROJECT="phantom-reasoner"
+export WANDB_PROJECT="grpo"
 # or
-conda env config vars set WANDB_PROJECT=phantom-reasoner
+conda env config vars set WANDB_PROJECT=grpo
 ```
 
 > \[!NOTE\]
 > If you are in multiple teams, you will also need to set the `WANDB_ENTITY` environment variable (e.g., `conda env config vars set WANDB_ENTITY=phantom-reasoner`)
 
 - Anmol's settings for full-finetuning https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct model:
-  - --gres=gpu:a100:1 on AIDA cluster. 2 A600s on G2 should suffice. At bf16, no accelerate, 0.5B model with the default settings uses 55GB GPU memory.
+  - --gres=gpu:a100:4 on AIDA cluster. 4 A600s on G2 should suffice. At bf16, no accelerate, 0.5B model with the default settings uses 55GB GPU memory.
   - --mem=100GB memory
   - -n 8 cores
 
 ```bash
-./scripts/train_grpo.sh --prompt_method cot --output_dir /path/to/output_dir/
+./scripts/train_grpo.sh /path/to/training/config/file.yaml --prompt_method cot --output_dir /path/to/output_dir/
+```
+
+For example,
+
+```bash
+./scripts/train_grpo.sh recipes/qwen2.5-0.5b-instruct/grpo/config_base.yaml \
+  --prompt_method cot \
+  --output_dir runs/grpo/username/qwen0.5b__MMDD__flags
 ```
 
 ## PhantomWiki evaluation
