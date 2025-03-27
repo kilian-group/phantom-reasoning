@@ -1,3 +1,13 @@
+"""
+Training script for the GRPO model using Zeroshot or CoT prompt from PhantomEval.
+
+Usage:
+```bash
+./scripts/train_grpo.sh recipes/qwen2.5-0.5b-instruct/grpo/config_base.yaml \
+    --prompt_method cot \
+    --output_dir runs/grpo/username/qwen0.5b__MMDD__flags
+```
+"""
 import logging
 import os
 from dataclasses import dataclass, field
@@ -137,7 +147,6 @@ def get_reward_func(reward_type_name: str) -> callable:
 ############################################
 @dataclass
 class GRPOScriptArguments(ScriptArguments):
-    # TODO convert to list of dataset_names, split_names, from_locals to support multiple datasets
     # Train dataset arguments
     dataset_name: str = "kilian-group/phantom-wiki-v1"
     split_list: list[str] = field(
