@@ -63,7 +63,7 @@ From https://github.com/huggingface/open-r1?tab=readme-ov-file#sft:
 
 ```bash
 ACCELERATE_LOG_LEVEL=info accelerate launch --num_processes 3 --config_file recipes/accelerate_configs/zero3.yaml \
-	src/phantom_reasoner/sft.py \
+	src/phantom_reasoner/sft_on_traces.py \
 	--config recipes/qwen2.5-1.5b-instruct/sft/config_demo.yaml
 ```
 
