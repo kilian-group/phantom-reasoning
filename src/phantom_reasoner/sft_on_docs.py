@@ -16,7 +16,7 @@ from datetime import datetime
 import torch
 from datasets import Dataset, concatenate_datasets
 from phantom_eval.agents.common import get_all_evidence
-from phantom_eval.prompts import FEWSHOT_EXAMPLES, FewshotLLMPrompt
+from phantom_eval.prompts import ZeroshotLLMPrompt
 from phantom_eval.utils import load_data, setup_logging
 from transformers import AutoTokenizer
 from transformers.trainer_utils import get_last_checkpoint
@@ -60,7 +60,7 @@ def get_checkpoint(training_args: SFTConfig):
 
 
 def get_pw_dataset(dataset_name: str, split_list: list[str], from_local: bool) -> Dataset:
-    llm_prompt = FewshotLLMPrompt()
+    llm_prompt = ZeroshotLLMPrompt()
     all_datasets: list[Dataset] = []
     for split_name in split_list:
         dataset: dict[str, Dataset] = load_data(dataset_name, split=split_name, from_local=from_local)
@@ -72,7 +72,6 @@ def get_pw_dataset(dataset_name: str, split_list: list[str], from_local: bool) -
             lambda sample: {
                 "prompt": llm_prompt.get_prompt().format(
                     evidence=evidence,
-                    examples=FEWSHOT_EXAMPLES,
                     question=sample["question"],
                 ),
                 "completion": answer_sep.join(sample["answer"]),
