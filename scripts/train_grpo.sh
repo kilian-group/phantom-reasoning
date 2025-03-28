@@ -54,6 +54,11 @@ CUDA_VISIBLE_DEVICES=$CUDA_DEVICES_TRAINING ACCELERATE_LOG_LEVEL=info accelerate
 	--config $GRPO_CONFIG_FILE_PATH \
     $@
 
+echo "-------------------------------"
+echo "Killing VLLM server"
+echo "-------------------------------"
+pkill -e -f vllm
+
 # python -m phantom_reasoner.grpo \
 #     --dataset_name "kilian-group/phantom-wiki-v1" \
 #     --split_name "depth_20_size_50_seed_1" \
