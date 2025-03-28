@@ -15,10 +15,11 @@ from datetime import datetime
 
 import torch
 from datasets import Dataset, concatenate_datasets
+from peft import get_peft_config, get_peft_model
 from phantom_eval.agents.common import get_all_evidence
 from phantom_eval.prompts import ZeroshotLLMPrompt
 from phantom_eval.utils import load_data, setup_logging
-from transformers import AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.trainer_utils import get_last_checkpoint
 from trl import (
     ModelConfig,
@@ -138,8 +139,17 @@ def train_sft_on_docs(script_args: ScriptArguments, training_args: SFTConfig, mo
     ############################
     # Initialize the SFT Trainer
     ############################
+    model = AutoModelForCausalLM.from_pretrained(
+        model_args.model_name_or_path,
+        **model_kwargs,
+    )
+    if model_args.use_peft:
+        logger.info("*** Initializing PEFT model ***")
+        lora_config = get_peft_config(model_args)
+        model = get_peft_model(model, lora_config)
+
     trainer = SFTTrainer(
-        model=model_args.model_name_or_path,
+        model=model,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
