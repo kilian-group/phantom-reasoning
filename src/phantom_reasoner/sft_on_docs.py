@@ -15,7 +15,7 @@ from datetime import datetime
 
 import torch
 from datasets import Dataset, concatenate_datasets
-from peft import get_peft_config, get_peft_model
+from peft import get_peft_model, prepare_model_for_kbit_training
 from phantom_eval.agents.common import get_all_evidence
 from phantom_eval.prompts import ZeroshotLLMPrompt
 from phantom_eval.utils import load_data, setup_logging
@@ -25,7 +25,7 @@ from trl import (
     ModelConfig,
     SFTTrainer,
     TrlParser,
-    get_kbit_device_map,
+    get_peft_config,
     get_quantization_config,
 )
 
@@ -124,17 +124,14 @@ def train_sft_on_docs(script_args: ScriptArguments, training_args: SFTConfig, mo
         if model_args.torch_dtype in ["auto", None]
         else getattr(torch, model_args.torch_dtype)
     )
-    quantization_config = get_quantization_config(model_args)
     model_kwargs = dict(
         revision=model_args.model_revision,
         trust_remote_code=model_args.trust_remote_code,
         attn_implementation=model_args.attn_implementation,
         torch_dtype=torch_dtype,
         use_cache=False if training_args.gradient_checkpointing else True,
-        device_map=get_kbit_device_map() if quantization_config is not None else None,
-        quantization_config=quantization_config,
+        quantization_config=get_quantization_config(model_args) if model_args.use_peft else None,
     )
-    training_args.model_init_kwargs = model_kwargs
 
     ############################
     # Initialize the SFT Trainer
@@ -143,6 +140,9 @@ def train_sft_on_docs(script_args: ScriptArguments, training_args: SFTConfig, mo
         model_args.model_name_or_path,
         **model_kwargs,
     )
+    if model_kwargs["quantization_config"] is not None:
+        logger.info("*** Preparing model for kbit training ***")
+        model = prepare_model_for_kbit_training(model)
     if model_args.use_peft:
         logger.info("*** Initializing PEFT model ***")
         lora_config = get_peft_config(model_args)
