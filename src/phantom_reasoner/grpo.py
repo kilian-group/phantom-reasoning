@@ -3,9 +3,11 @@ Training script for the GRPO model using Zeroshot or CoT prompt from PhantomEval
 
 Usage:
 ```bash
-./scripts/train_grpo.sh recipes/qwen2.5-0.5b-instruct/grpo/config_base.yaml \
+./scripts/train_grpo.sh \
+    recipes/accelerate_configs/zero1.yaml \
+    recipes/qwen2.5-1.5b-instruct/grpo/config_base.yaml \
     --prompt_method cot \
-    --output_dir runs/grpo/username/qwen0.5b__MMDD__flags
+    --output_dir runs/grpo/username/qwen1.5b__MMDD__flags
 ```
 """
 import logging
@@ -159,7 +161,7 @@ class GRPOScriptArguments(ScriptArguments):
     eval_from_local: bool = False
     # Script arguments
     reward_func_names: list[str] = field(default_factory=lambda: ["f1"])
-    data_curriculum: Literal["random", "difficulty_asc", "difficulty_desc"] = "random"
+    data_curriculum: Literal["random", "difficulty_asc_stage_off", "difficulty_desc_stage_off"] = "random"
     prompt_method: Literal["zeroshot", "cot"] = "zeroshot"
 
 
@@ -175,9 +177,9 @@ def arrange_dataset(dataset: Dataset, data_curriculum: str, seed: int) -> Datase
     match data_curriculum:
         case "random":
             return dataset.shuffle(seed=seed)
-        case "difficulty_asc":
+        case "difficulty_asc_stage_off":
             return dataset.sort("difficulty")
-        case "difficulty_desc":
+        case "difficulty_desc_stage_off":
             return dataset.sort("difficulty", reverse=True)
         case _:
             raise ValueError(f"Invalid {data_curriculum=}")
