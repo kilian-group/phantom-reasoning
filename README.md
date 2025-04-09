@@ -39,21 +39,24 @@ For reference, see [example-environment.yml](./example-environment.yml) for exac
 
 ## PhantomWiki data
 
-There are 3\*3 evaluation splits on Huggingface at `"kilian-group/phantom-wiki-v1"`: `depth_20_size_{50,500,5000}_seed_{1,2,3}`.
-We care about `depth_20_size_50_seed_{1,2,3}` as the bigger universe sizes do
-not fit in 32K context length models.
+PhantomWiki paper used 3\*3 evaluation splits on Huggingface at `"kilian-group/phantom-wiki-v1"`: `depth_20_size_{50,500,5000}_seed_{1,2,3}`.
 
-We can train on 10 other seeds `depth_20_size_50_seed_{10,...,19}`, which are
-saved on G2, as `/share/nikola/phantom-wiki/data/wiki-v1.zip` and
-`/share/nikola/phantom-wiki/data/wiki-v1-easy.zip`.
+**NOTE**: For this project, we are using smaller universes, smaller question depth, easy mode, no aggregation questions.
+These are the easiest settings, due to small context length requirements for LLMs and easy questions, hence low GPU loads.
+
+Concretely, we will use splits `depth_10_size_25_seed_*` with created with `--easy-mode` and no aggregation questions.
+We reserve seeds 1 through 10 for evaluation.
+We will use seeds 11+ for training.
+
+For these purposes, `depth_10_size_25_seed_{1,...,100}` are on G2 at `/share/nikola/phantom-wiki/data/wiki-v1-easy-no-agg.zip`.
 We recommend copying them to `data/`:
 
 ```bash
 mkdir -p data/
-cp /share/nikola/phantom-wiki/data/wiki-v1.zip data/
-# To transfer to another cluster: scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-wiki/data/wiki-v1.zip data/
+cp /share/nikola/phantom-wiki/data/wiki-v1-easy-no-agg.zip data/
+# To transfer to another cluster: scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-wiki/data/wiki-v1-easy-no-agg.zip data/
 cd data/
-unzip wiki-v1.zip
+unzip wiki-v1-easy-no-agg.zip
 cd ..
 ```
 
@@ -84,50 +87,42 @@ conda env config vars set WANDB_PROJECT=grpo
 > \[!NOTE\]
 > If you are in multiple teams, you will also need to set the `WANDB_ENTITY` environment variable (e.g., `conda env config vars set WANDB_ENTITY=phantom-reasoner`)
 
-- Anmol's settings for full-finetuning https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct model:
-  - --gres=gpu:a100:4 on AIDA cluster. 4 A600s on G2 should suffice. At bf16, no accelerate, 0.5B model with the default settings uses 55GB GPU memory.
+- Anmol's settings for full-finetuning https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct model:
+  - --gres=gpu:a100:4 on AIDA cluster. 4 A600s on G2 should suffice. At bf16, no accelerate, 1.5B model with the default settings uses ~55GB GPU memory.
   - --mem=100GB memory
   - -n 8 cores
 
 ```bash
-./scripts/train_grpo.sh /path/to/training/config/file.yaml --prompt_method cot --output_dir /path/to/output_dir/
+./scripts/train_grpo.sh \
+	/path/to/accelerate/config/file.yaml \
+	/path/to/training/config/file.yaml \
+	--prompt_method cot \
+	--output_dir /path/to/output_dir/
 ```
 
-For example,
+For example, running the following command full-finetunes a 1.5B model using GRPO.
+The multi-gpu config distributes model and data across all but last GPU---the last GPU in your allocation is reserved for generating with vllm.
+Checkpoints are saved at `runs/grpo/username/qwen1.5b__MMDD__flags/checkpoint-XX`.
 
 ```bash
-./scripts/train_grpo.sh recipes/qwen2.5-0.5b-instruct/grpo/config_base.yaml \
-  --prompt_method cot \
-  --output_dir runs/grpo/username/qwen0.5b__MMDD__flags
+./scripts/train_grpo.sh \
+	recipes/accelerate_configs/multi_gpu.yaml \
+	recipes/qwen2.5-1.5b-instruct/grpo/config_base.yaml \
+	--prompt_method cot \
+	--output_dir runs/grpo/username/qwen1.5b__MMDD__flags
 ```
 
 ## PhantomWiki evaluation
 
-Anmol: phantom-eval does not work with the latest `vllm==0.8.1` right now on
-AIDA cluster. But it does work with `vllm==0.6.6`, which was the latest vllm
-version when we released PhantomWiki paper.
-Till we get phantom-eval working with the latest `vllm`, I recommend creating a
-**separate** python environment with `pip install vllm==0.6.6` for running the
-phantom-wiki evaluation.
-
-Concretely, do this if you don't have a separate phantom-wiki environment:
-
-```bash
-conda create -n phantom-wiki python=3.12
-conda activate phantom-wiki
-
-conda install conda-forge::swi-prolog
-cd phantom-wiki
-pip install "vllm==0.6.6"
-pip install -e ".[eval]"
-```
-
-Now, run phantom-eval in this new environment:
+Since `phantom-wiki[eval]` is installed from github source, run the evaluation module like so:
 
 ```bash
 python -m phantom_eval \
 	--method cot \
 	--server vllm \
-	--model_name /path/to/model/checkpoint/ \
+	--model_name /path/to/model/checkpoint \
+	--dataset data/wiki-v1-easy-no-agg \
+	--split_list depth_10_size_25_seed_1 \
+	--from_local \
 	-od /path/to/output_for_preds/
 ```
