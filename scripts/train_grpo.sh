@@ -40,7 +40,7 @@ CUDA_VISIBLE_DEVICES=$((NUM_GPUS - 1)) nohup \
 CUDA_DEVICES_TRAINING=$(seq -s, 0 $((NUM_GPUS - 2)))
 
 # Get additional arguments
-shift 1
+shift 2
 cmd_args=$@
 echo "-------------------------------"
 echo "Additional arguments: $cmd_args"
