@@ -106,7 +106,7 @@ Checkpoints are saved at `runs/grpo/username/qwen1.5b__MMDD__flags/checkpoint-XX
 
 ```bash
 ./scripts/train_grpo.sh \
-	recipes/accelerate_configs/multi_gpu.yaml \
+	recipes/accelerate_configs/zero1.yaml \
 	recipes/qwen2.5-1.5b-instruct/grpo/config_base.yaml \
 	--prompt_method cot \
 	--output_dir runs/grpo/username/qwen1.5b__MMDD__flags
