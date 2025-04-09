@@ -17,44 +17,31 @@ from_local: true
 eval_dataset_name: "kilian-group/phantom-wiki-v1"
 eval_split_list: ["depth_20_size_50_seed_1"]
 eval_from_local: false
-reward_func_names: ["f1"]
-data_curriculum: "random"
-prompt_method: "cot"
 
 # Model arguments
 model_name_or_path: "Qwen/Qwen2.5-3B-Instruct"
 bf16: true
 torch_dtype: bfloat16
 
-# LoRA arguments
-use_peft: true
-lora_target_modules: all-linear
-
-# QLoRA arguments
-# Reference: https://huggingface.co/docs/peft/en/developer_guides/quantization#loraconfig
-# Blog: https://huggingface.co/blog/4bit-transformers-bitsandbytes
-load_in_4bit: true
-bnb_4bit_quant_type: nf4
-use_bnb_nested_quant: true
-
 # Trainer arguments
 num_train_epochs: 3
-per_device_train_batch_size: 8
+per_device_train_batch_size: 1
 gradient_accumulation_steps: 1
+packing: false
+max_length: 8192 # sufficient for size 50 seeds
 
 # Evaluation config
 bf16_full_eval: true
-eval_on_start: true
+# eval_on_start: true
 eval_strategy: "steps"
-eval_steps: 100
-per_device_eval_batch_size: 8
+eval_steps: 200
+per_device_eval_batch_size: 2
 
 # Logging config
 log_level: "info"
 logging_strategy: "steps"
 logging_first_step: true
-logging_steps: 10
+logging_steps: 100
 save_strategy: "steps"
-save_steps: 10
+save_steps: 100
 save_total_limit: 5
-log_completions: true

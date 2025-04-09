@@ -37,13 +37,33 @@ pre-commit install
 
 For reference, see [example-environment.yml](./example-environment.yml) for exact package versions.
 
+## PhantomWiki data
+
+There are 3\*3 evaluation splits on Huggingface at `"kilian-group/phantom-wiki-v1"`: `depth_20_size_{50,500,5000}_seed_{1,2,3}`.
+We care about `depth_20_size_50_seed_{1,2,3}` as the bigger universe sizes do
+not fit in 32K context length models.
+
+We can train on 10 other seeds `depth_20_size_50_seed_{10,...,19}`, which are
+saved on G2, as `/share/nikola/phantom-wiki/data/wiki-v1.zip` and
+`/share/nikola/phantom-wiki/data/wiki-v1-easy.zip`.
+We recommend copying them to `data/`:
+
+```bash
+mkdir -p data/
+cp /share/nikola/phantom-wiki/data/wiki-v1.zip data/
+# To transfer to another cluster: scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-wiki/data/wiki-v1.zip data/
+cd data/
+unzip wiki-v1.zip
+cd ..
+```
+
 ## SFT settings
 
 From https://github.com/huggingface/open-r1?tab=readme-ov-file#sft:
 
 ```bash
 ACCELERATE_LOG_LEVEL=info accelerate launch --num_processes 3 --config_file recipes/accelerate_configs/zero3.yaml \
-	src/phantom_reasoner/sft.py \
+	src/phantom_reasoner/sft_on_traces.py \
 	--config recipes/qwen2.5-1.5b-instruct/sft/config_demo.yaml
 ```
 
@@ -56,21 +76,29 @@ On wandb.ai under the `mlcore` org, create your own project by setting the `WAND
 Then run `wandb login`, and paste the API key given from the website.
 
 ```bash
-export WANDB_PROJECT="phantom-reasoner"
+export WANDB_PROJECT="grpo"
 # or
-conda env config vars set WANDB_PROJECT=phantom-reasoner
+conda env config vars set WANDB_PROJECT=grpo
 ```
 
 > \[!NOTE\]
 > If you are in multiple teams, you will also need to set the `WANDB_ENTITY` environment variable (e.g., `conda env config vars set WANDB_ENTITY=phantom-reasoner`)
 
 - Anmol's settings for full-finetuning https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct model:
-  - --gres=gpu:a100:1 on AIDA cluster. 2 A600s on G2 should suffice. At bf16, no accelerate, 0.5B model with the default settings uses 55GB GPU memory.
+  - --gres=gpu:a100:4 on AIDA cluster. 4 A600s on G2 should suffice. At bf16, no accelerate, 0.5B model with the default settings uses 55GB GPU memory.
   - --mem=100GB memory
   - -n 8 cores
 
 ```bash
-./scripts/train_grpo.sh --prompt_method cot --output_dir /path/to/output_dir/
+./scripts/train_grpo.sh /path/to/training/config/file.yaml --prompt_method cot --output_dir /path/to/output_dir/
+```
+
+For example,
+
+```bash
+./scripts/train_grpo.sh recipes/qwen2.5-0.5b-instruct/grpo/config_base.yaml \
+  --prompt_method cot \
+  --output_dir runs/grpo/username/qwen0.5b__MMDD__flags
 ```
 
 ## PhantomWiki evaluation
