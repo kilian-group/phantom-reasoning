@@ -6,6 +6,7 @@ Prints out the leaderboard in latex and markdown formats -- used in the paper.
 Example:
     python eval/format_leaderboard.py -od out --method_list zeroshot cot react
 """
+import logging
 import os
 
 import pandas as pd
@@ -17,6 +18,8 @@ import plotting_utils
 from phantom_eval.evaluate_utils import get_evaluation_data, mean, std
 from tabulate import tabulate
 
+logger = logging.getLogger(__name__)
+
 parser = get_parser()
 parser.add_argument(
     "--method_list", nargs="+", default=plotting_utils.DEFAULT_METHOD_LIST, help="Method to plot"
@@ -24,7 +27,12 @@ parser.add_argument(
 parser.add_argument(
     "--model_list", nargs="+", default=plotting_utils.DEFAULT_MODEL_LIST, help="List of models to plot"
 )
-parser.add_argument("--filter_by_depth", default=20, type=int, help="Filter by depth")
+parser.add_argument(
+    "--filter_by_depth",
+    default=20,
+    type=int,
+    help="Depth to filter by when there are multiple depths in the data",
+)
 args = parser.parse_args()
 output_dir = args.output_dir
 method_list = args.method_list
@@ -38,19 +46,21 @@ METRICS = [
     # 'recall',
     "f1"
 ]
-SIZE_LIST = [50, 500, 5000]
+SIZE_LIST = [25, 50, 500, 5000]
 
 df_list = []
 for method in method_list:
     # get evaluation data from the specified output directory and method subdirectory
     df = get_evaluation_data(output_dir, method, dataset, from_local)
     if df.empty:
-        print(f"No data found for method {method}")
+        logger.warning(f"No data found for method {method}")
         continue
     # filter by model
     df = df[df["_model"].isin(model_list)]
     # filter by depth
-    df = df[df["_depth"] == filter_by_depth]
+    if df["_depth"].nunique() > 1:
+        logger.info(f"Filtering by depth {filter_by_depth}")
+        df = df[df["_depth"] == filter_by_depth]
     # group by model, split, and seed
     grouped = df.groupby(["_model", "_depth", "_size", "_data_seed", "_seed"])
     # print the accuracy
