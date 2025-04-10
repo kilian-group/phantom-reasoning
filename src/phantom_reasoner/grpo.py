@@ -1,17 +1,36 @@
+"""
+Training script for the GRPO model using Zeroshot or CoT prompt from PhantomEval.
+
+Usage:
+```bash
+./scripts/train_grpo.sh recipes/qwen2.5-0.5b-instruct/grpo/config_base.yaml \
+    --prompt_method cot \
+    --output_dir runs/grpo/username/qwen0.5b__MMDD__flags
+```
+"""
 import logging
 import os
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal
 
-from datasets import Dataset
+import torch
+from datasets import Dataset, concatenate_datasets
+from peft import get_peft_model, prepare_model_for_kbit_training
 from phantom_eval.agents.common import get_all_evidence
 from phantom_eval.agents.cot import CoTAgent
 from phantom_eval.prompts import COT_EXAMPLES, CoTLLMPrompt, ZeroshotLLMPrompt
 from phantom_eval.utils import load_data, setup_logging
-from transformers import AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.trainer_utils import get_last_checkpoint
-from trl import GRPOTrainer, ModelConfig, ScriptArguments, TrlParser
+from trl import (
+    GRPOTrainer,
+    ModelConfig,
+    ScriptArguments,
+    TrlParser,
+    get_peft_config,
+    get_quantization_config,
+)
 
 from phantom_reasoner.configs import GRPOConfig
 from phantom_reasoner.utils.score import answer_sep, exact_match, f1, precision, recall
@@ -128,12 +147,17 @@ def get_reward_func(reward_type_name: str) -> callable:
 ############################################
 @dataclass
 class GRPOScriptArguments(ScriptArguments):
-    # TODO convert to list of dataset_names, split_names, from_locals to support multiple datasets
-    # TODO do this for both train and eval datasets
-    dataset_name: str
-    split_name: str = "depth_20_size_50_seed_1"
-    # TODO add support for eval dataset
+    # Train dataset arguments
+    dataset_name: str = "kilian-group/phantom-wiki-v1"
+    split_list: list[str] = field(
+        default_factory=lambda: ["depth_20_size_50_seed_1", "depth_20_size_50_seed_2"]
+    )
     from_local: bool = False
+    # Eval dataset arguments
+    eval_dataset_name: str = "kilian-group/phantom-wiki-v1"
+    eval_split_list: str = field(default_factory=lambda: ["depth_20_size_50_seed_3"])
+    eval_from_local: bool = False
+    # Script arguments
     reward_func_names: list[str] = field(default_factory=lambda: ["f1"])
     data_curriculum: Literal["random", "difficulty_asc", "difficulty_desc"] = "random"
     prompt_method: Literal["zeroshot", "cot"] = "zeroshot"
@@ -197,20 +221,23 @@ def get_prompt_for_sample(sample: dict[str, Any], evidence: str, prompt_method: 
             raise ValueError(f"Invalid {prompt_method=}")
 
 
-def get_pw_train_dataset(dataset_name: str, split_name: str, from_local: bool) -> Dataset:
-    dataset: dict[str, Dataset] = load_data(dataset_name, split=split_name, from_local=from_local)
-    text_corpus: Dataset = dataset["text"]
-    qa_pairs: Dataset = dataset["qa_pairs"]
-    evidence: str = get_all_evidence(text_corpus)
+def get_pw_dataset(dataset_name: str, split_list: list[str], from_local: bool) -> Dataset:
+    all_datasets: list[Dataset] = []
+    for split_name in split_list:
+        dataset: dict[str, Dataset] = load_data(dataset_name, split=split_name, from_local=from_local)
+        text_corpus: Dataset = dataset["text"]
+        qa_pairs: Dataset = dataset["qa_pairs"]
+        evidence: str = get_all_evidence(text_corpus)
 
-    train_dataset: Dataset = qa_pairs.map(
-        lambda sample: {
-            "prompt": get_prompt_for_sample(sample, evidence, script_args.prompt_method),
-            "answer": sample["answer"],  # x['answer'] is a list of strings
-            "prompt_method": script_args.prompt_method,
-        }
-    )
-    return train_dataset
+        dataset: Dataset = qa_pairs.map(
+            lambda sample: {
+                "prompt": get_prompt_for_sample(sample, evidence, script_args.prompt_method),
+                "answer": sample["answer"],  # x['answer'] is a list of strings
+                "prompt_method": script_args.prompt_method,
+            }
+        )
+        all_datasets.append(dataset)
+    return concatenate_datasets(all_datasets)
 
 
 def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, model_args: ModelConfig) -> None:
@@ -221,17 +248,21 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         training_args: Training arguments.
         model_args: Model arguments.
     """
-    # Get the dataset
-    train_dataset = get_pw_train_dataset(
-        script_args.dataset_name, script_args.split_name, script_args.from_local
-    )
-    logger.info(
-        f"*** Loaded dataset {script_args.dataset_name}::{script_args.split_name} "
-        f"with {len(train_dataset)} samples."
-    )
+    # Get train dataset and use a curriculum
+    train_dataset = get_pw_dataset(script_args.dataset_name, script_args.split_list, script_args.from_local)
     train_dataset = arrange_dataset(train_dataset, script_args.data_curriculum, training_args.seed)
     logger.info(
-        f"*** Arranged dataset with {len(train_dataset)} samples using {script_args.data_curriculum}."
+        f"*** Loaded train dataset {script_args.dataset_name}::{script_args.split_list} "
+        f"with {len(train_dataset)} samples, and arranged in curriculum={script_args.data_curriculum}."
+    )
+
+    # Get eval dataset
+    eval_dataset = get_pw_dataset(
+        script_args.eval_dataset_name, script_args.eval_split_list, script_args.eval_from_local
+    )
+    logger.info(
+        f"*** Loaded eval dataset {script_args.eval_dataset_name}::{script_args.eval_split_list} "
+        f"with {len(eval_dataset)} samples."
     )
     # Count number of tokens in train dataset
     # NOTE: depth_20_size_50_seed_1 prompts have num_tokens ~ 4k
@@ -247,39 +278,49 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    # GRPOConfig options from @willccbb's script
-    # TODO Could need Lora for larger models
-    # peft_config = LoraConfig(
-    #     r=16,
-    #     lora_alpha=64,
-    #     target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "up_proj", "down_proj", "gate_proj"],
-    #     task_type="CAUSAL_LM",
-    #     lora_dropout=0.05,
-    # )
-    # model = AutoModelForCausalLM.from_pretrained(
-    #     model_name,
-    #     torch_dtype=torch.bfloat16,
-    #     attn_implementation="flash_attention_2",
-    #     device_map=None
-    # ).to("cuda")
-
     reward_funcs: list[callable] = [
         get_reward_func(reward_func_name) for reward_func_name in script_args.reward_func_names
     ]
     logger.info(f"*** Selected reward functions: {script_args.reward_func_names}")
 
-    # TODO setup run_name
+    logger.info("*** Initializing model kwargs ***")
+    torch_dtype = (
+        model_args.torch_dtype
+        if model_args.torch_dtype in ["auto", None]
+        else getattr(torch, model_args.torch_dtype)
+    )
+    model_kwargs = dict(
+        revision=model_args.model_revision,
+        trust_remote_code=model_args.trust_remote_code,
+        attn_implementation=model_args.attn_implementation,
+        torch_dtype=torch_dtype,
+        use_cache=False if training_args.gradient_checkpointing else True,
+        quantization_config=get_quantization_config(model_args) if model_args.use_peft else None,
+    )
+    logger.info(f"*** Model kwargs: {model_kwargs} ***")
+    # NOTE: GRPOTrainer does not prepare model for kbit training,
+    # so we do it outside of the trainer manually
+    # Reference: https://huggingface.co/docs/peft/en/developer_guides/quantization
+    model = AutoModelForCausalLM.from_pretrained(
+        model_args.model_name_or_path,
+        **model_kwargs,
+    )
+    if model_kwargs["quantization_config"] is not None:
+        logger.info("*** Preparing model for kbit training ***")
+        model = prepare_model_for_kbit_training(model)
+    if model_args.use_peft:
+        logger.info("*** Initializing PEFT model ***")
+        lora_config = get_peft_config(model_args)
+        model = get_peft_model(model, lora_config)
 
     # Instantiate the trainer
     trainer = GRPOTrainer(
-        model=model_args.model_name_or_path,
+        model=model,
         args=training_args,
         train_dataset=train_dataset,
-        eval_dataset=None,  # TODO: add eval dataset
+        eval_dataset=eval_dataset,
         processing_class=tokenizer,
         reward_funcs=reward_funcs,
-        # peft_config=peft_config  # "Use at your own risk, didn't work for multi-GPU setup"
-        # TODO additional options from @willccbb's script
     )
     logger.info(f"*** Instantiated GRPO trainer for model {model_args.model_name_or_path}")
 

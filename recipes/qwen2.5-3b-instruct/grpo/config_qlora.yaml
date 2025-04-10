@@ -26,11 +26,21 @@ model_name_or_path: "Qwen/Qwen2.5-3B-Instruct"
 bf16: true
 torch_dtype: bfloat16
 
+# LoRA arguments
+use_peft: true
+lora_target_modules: all-linear
+
+# QLoRA arguments
+# Reference: https://huggingface.co/docs/peft/en/developer_guides/quantization#loraconfig
+# Blog: https://huggingface.co/blog/4bit-transformers-bitsandbytes
+load_in_4bit: true
+bnb_4bit_quant_type: nf4
+use_bnb_nested_quant: true
+
 # Trainer arguments
 num_train_epochs: 3
 per_device_train_batch_size: 8
 gradient_accumulation_steps: 1
-use_vllm: true
 
 # Evaluation config
 bf16_full_eval: true
