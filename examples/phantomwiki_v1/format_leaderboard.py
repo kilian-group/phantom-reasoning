@@ -1,10 +1,12 @@
-"""Script to format the accuracy of the models on the splits.
+"""Script to format the accuracy of the models (rows) and methods (columns) averaged across splits and seeds.
 
 Generates a table with rows for each model, split, and seed combination.
 Prints out the leaderboard in latex and markdown formats -- used in the paper.
 
-Example:
-    python eval/format_leaderboard.py -od out --method_list zeroshot cot react
+Example usage:
+```bash
+python format_leaderboard.py -od out --method_list zeroshot cot react
+```
 """
 import logging
 import os
@@ -22,10 +24,16 @@ logger = logging.getLogger(__name__)
 
 parser = get_parser()
 parser.add_argument(
-    "--method_list", nargs="+", default=plotting_utils.DEFAULT_METHOD_LIST, help="Method to plot"
+    "--method_list",
+    nargs="+",
+    default=plotting_utils.DEFAULT_METHOD_LIST,
+    help="List of methods to include in the leaderboard",
 )
 parser.add_argument(
-    "--model_list", nargs="+", default=plotting_utils.DEFAULT_MODEL_LIST, help="List of models to plot"
+    "--model_list",
+    nargs="+",
+    default=plotting_utils.DEFAULT_MODEL_LIST,
+    help="List of models to include in the leaderboard",
 )
 parser.add_argument(
     "--filter_by_depth",
@@ -33,20 +41,23 @@ parser.add_argument(
     type=int,
     help="Depth to filter by when there are multiple depths in the data",
 )
+parser.add_argument(
+    "--size_list", nargs="+", default=[], help="List of universe sizes to include in the leaderboard"
+)
 args = parser.parse_args()
 output_dir = args.output_dir
-method_list = args.method_list
-model_list = args.model_list
+method_list = [m.lower() for m in args.method_list]
+model_list = [m.lower() for m in args.model_list]
 dataset = args.dataset
 from_local = args.from_local
 filter_by_depth = args.filter_by_depth
+size_list = args.size_list
 METRICS = [
     # 'EM',
     # 'precision',
     # 'recall',
     "f1"
 ]
-SIZE_LIST = [25, 50, 500, 5000]
 
 df_list = []
 for method in method_list:
@@ -55,8 +66,9 @@ for method in method_list:
     if df.empty:
         logger.warning(f"No data found for method {method}")
         continue
-    # filter by model
-    df = df[df["_model"].isin(model_list)]
+    if df["_model"].nunique() > 1:
+        logger.info(f"Filtering by models: {model_list}")
+        df = df[df["_model"].str.lower().isin(model_list)]
     # filter by depth
     if df["_depth"].nunique() > 1:
         logger.info(f"Filtering by depth {filter_by_depth}")
@@ -85,8 +97,19 @@ df_all = pd.concat(df_list)
 # reset index
 df_all = df_all.reset_index(drop=True)
 
-# only consider universe sizes in SIZE_LIST
-results = df_all[df_all["_size"].isin(SIZE_LIST)]
+if df_all["_size"].nunique() > 1:
+    logger.info(f"Multiple universe sizes found in the data: {df_all['_size'].unique()}")
+    if len(size_list) > 0:
+        logger.info(f"Filtering by universe sizes: {size_list}")
+        results = df_all[df_all["_size"].isin(size_list)]
+    else:
+        logger.info(
+            "No universe sizes provided, using all sizes. " "To filter by size, use the --size_list flag."
+        )
+        results = df_all
+else:
+    results = df_all
+
 # use model aliases
 results["_model"] = results["_model"].apply(lambda x: plotting_utils.MODEL_ALIASES.get(x, x))
 # create table with models as rows and methods as columns
