@@ -46,7 +46,6 @@ echo "-------------------------------"
 echo "Additional arguments: $cmd_args"
 echo "-------------------------------"
 
-# 3B model on 4 A100s (320GB GPU memory) works with zero1 with lora
 echo "-------------------------------"
 echo "Starting GRPO training with"
 echo "- accelerate config=$ACCELERATE_CONFIG_FILE_PATH"
