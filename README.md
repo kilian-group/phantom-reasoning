@@ -60,7 +60,12 @@ unzip wiki-v1-easy-no-agg.zip
 cd ..
 ```
 
-## SFT settings
+## Training on PhantomWiki data
+
+> \[!NOTE\]
+> If you are in multiple teams, you will also need to set the `WANDB_ENTITY` environment variable (e.g., `conda env config vars set WANDB_ENTITY=phantom-reasoner`)
+
+### SFT on traces settings
 
 From https://github.com/huggingface/open-r1?tab=readme-ov-file#sft:
 
@@ -73,22 +78,35 @@ ACCELERATE_LOG_LEVEL=info accelerate launch --num_processes 3 --config_file reci
 > \[!NOTE\]
 > Add CLI arguments before `--config_file` to override the arguments in `zero3.yaml`
 
-## GRPO settings
-
-On wandb.ai under the `mlcore` org, create your own project by setting the `WANDB_PROJECT` environment variable.
-Then run `wandb login`, and paste the API key given from the website.
-
-```bash
-export WANDB_PROJECT="grpo"
-# or
-conda env config vars set WANDB_PROJECT=grpo
-```
-
-> \[!NOTE\]
-> If you are in multiple teams, you will also need to set the `WANDB_ENTITY` environment variable (e.g., `conda env config vars set WANDB_ENTITY=phantom-reasoner`)
+### SFT on docs settings
 
 - Anmol's settings for full-finetuning https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct model:
-  - --gres=gpu:a100:4 on AIDA cluster. 4 A600s on G2 should suffice. At bf16, no accelerate, 1.5B model with the default settings uses ~55GB GPU memory.
+  - --gres=gpu:a100:4 on AIDA cluster. 4 A6000s on G2 should suffice. At bf16, accelerate-zero1, 1.5B model with the default settings uses ~70GB GPU memory.
+  - --mem=100GB memory
+  - -n 8 cores
+
+```bash
+./scripts/train_sft_on_docs.sh \
+	/path/to/accelerate/config/file.yaml \
+	/path/to/training/config/file.yaml \
+	--output_dir /path/to/output_dir/
+```
+
+For example, running the following command full-finetunes a 1.5B model using SFT on PhantomWiki documents with Zeroshot prompt.
+The multi-gpu config distributes model and data across all GPUs.
+Checkpoints are saved at `runs/sft_on_docs/username/qwen1.5b__MMDD__flags/checkpoint-XX`.
+
+```bash
+./scripts/train_sft_on_docs.sh \
+	recipes/accelerate_configs/multi_gpu.yaml \
+	recipes/qwen2.5-1.5b-instruct/sft_on_docs/config_base.yaml \
+	--output_dir runs/sft_on_docs/username/qwen1.5b__MMDD__flags
+```
+
+### GRPO settings
+
+- Anmol's settings for full-finetuning https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct model:
+  - --gres=gpu:a100:4 on AIDA cluster. 4 A6000s on G2 should suffice. At bf16, accelerate-zero1, 1.5B model with the default settings uses ~70GB GPU memory.
   - --mem=100GB memory
   - -n 8 cores
 
@@ -116,13 +134,16 @@ Checkpoints are saved at `runs/grpo/username/qwen1.5b__MMDD__flags/checkpoint-XX
 
 Since `phantom-wiki[eval]` is installed from github source, run the evaluation module like so:
 
+Evaluating on just 1 GPU is faster than multiple GPUs due to communication overhead, so we can specify to only use the first GPU.
+
 ```bash
-python -m phantom_eval \
+CUDA_VISIBLE_DEVICES=0 python -m phantom_eval \
 	--method cot \
 	--server vllm \
 	--model_name /path/to/model/checkpoint \
 	--dataset data/wiki-v1-easy-no-agg \
-	--split_list depth_10_size_25_seed_1 \
+	--split_list depth_10_size_25_seed_1 depth_10_size_25_seed_2 depth_10_size_25_seed_3 depth_10_size_25_seed_4 depth_10_size_25_seed_5 \
 	--from_local \
+	--inf_vllm_tensor_parallel_size 1 \
 	-od /path/to/output_for_preds/
 ```
