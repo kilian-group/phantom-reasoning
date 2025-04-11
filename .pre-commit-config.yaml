@@ -3,8 +3,7 @@ default_language_version:
 
 exclude: |
   (?x)^(
-        docs/.*|
-        examples/.*
+        docs/.*
     )$
 
 repos:
