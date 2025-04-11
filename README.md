@@ -147,3 +147,15 @@ CUDA_VISIBLE_DEVICES=0 python -m phantom_eval \
 	--inf_vllm_tensor_parallel_size 1 \
 	-od /path/to/output_for_preds/
 ```
+
+Then get numbers for the leaderboard:
+
+```bash
+python examples/phantomwiki_v1/format_leaderboard.py \
+	-od /path/to/output_for_preds/ \
+	--model_list /path/to/model/checkpoint \
+	--size_list 25 \
+	--method_list cot \
+	--filter_by_depth 10 \
+	--dataset data/wiki-v1-easy-no-agg --from_local
+```
