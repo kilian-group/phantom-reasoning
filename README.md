@@ -97,8 +97,8 @@ For example,
 
 ```bash
 ./scripts/train_grpo.sh recipes/qwen2.5-0.5b-instruct/grpo/config_base.yaml \
-  --prompt_method cot \
-  --output_dir runs/grpo/username/qwen0.5b__MMDD__flags
+	--prompt_method cot \
+	--output_dir runs/grpo/username/qwen0.5b__MMDD__flags
 ```
 
 ## PhantomWiki evaluation
@@ -130,4 +130,13 @@ python -m phantom_eval \
 	--server vllm \
 	--model_name /path/to/model/checkpoint/ \
 	-od /path/to/output_for_preds/
+```
+
+## Lighteval (GSM8k, ARC etc.)
+
+```bash
+python -m phantom_reasoner.utils.benchmarks \
+	-cp /path/to/checkpoint \
+	-t "leaderboard|arc:challenge|2|0,lighteval|arc:easy|2|0" \
+	-or ./out-lighteval
 ```

@@ -36,6 +36,7 @@ dependencies = [
     "peft",
     "huggingface_hub[cli]",
     "phantom-wiki[eval]",
+    "lighteval[math]"
 ]
 
 [project.optional-dependencies]
