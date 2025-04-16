@@ -3,8 +3,10 @@ Supervised fine-tuning on PhantomWiki documents.
 
 Usage:
 ```bash
-./scripts/train_sft_on_docs.sh recipes/qwen2.5-0.5b-instruct/sft_on_docs/config_base.yaml \
-    --output_dir runs/sft_on_docs/username/qwen0.5b__MMDD__flags
+./scripts/train_sft_on_docs.sh \
+    recipes/accelerate_configs/zero1.yaml \
+    recipes/qwen2.5-1.5b-instruct/sft_on_docs/config_base.yaml \
+    --output_dir runs/sft_on_docs/<YOUR_USERNAME_HERE>/qwen1.5b__MMDD__flags
 ```
 """
 
@@ -12,6 +14,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Literal
 
 import torch
 from datasets import Dataset, concatenate_datasets
@@ -51,6 +54,13 @@ class ScriptArguments:
     eval_dataset_name: str = "kilian-group/phantom-wiki-v1"
     eval_split_list: str = field(default_factory=lambda: ["depth_20_size_50_seed_3"])
     eval_from_local: bool = False
+    data_curriculum: Literal[
+        "random",
+        "difficulty_asc_stage_off",
+        "difficulty_desc_stage_off",
+        "difficulty_asc_stage_on",
+        "difficulty_asc_stage_off",
+    ] = "random"
 
 
 def get_checkpoint(training_args: SFTConfig):
@@ -82,19 +92,35 @@ def get_pw_dataset(dataset_name: str, split_list: list[str], from_local: bool) -
     return concatenate_datasets(all_datasets)
 
 
-def train_sft_on_docs(script_args: ScriptArguments, training_args: SFTConfig, model_args: ModelConfig):
-    # Check for last checkpoint
-    last_checkpoint = None
-    if os.path.isdir(training_args.output_dir):
-        last_checkpoint = get_last_checkpoint(training_args.output_dir)
-    if last_checkpoint is not None and training_args.resume_from_checkpoint is None:
-        logger.info(f"Checkpoint detected, resuming training at {last_checkpoint=}.")
+def arrange_dataset(dataset: Dataset, data_curriculum: str, seed: int) -> Dataset:
+    match data_curriculum:
+        case "random":
+            return dataset.shuffle(seed=seed)
+        case "difficulty_asc_stage_off" | "difficulty_asc_stage_on":
+            return dataset.sort("difficulty")
+        case "difficulty_desc_stage_off" | "difficulty_desc_stage_on":
+            return dataset.sort("difficulty", reverse=True)
+        case _:
+            raise ValueError(f"Invalid {data_curriculum=}")
 
+
+def train_sft_on_docs(script_args: ScriptArguments, training_args: SFTConfig, model_args: ModelConfig):
     # Get train dataset and use a curriculum
     train_dataset = get_pw_dataset(script_args.dataset_name, script_args.split_list, script_args.from_local)
+    train_dataset = arrange_dataset(train_dataset, script_args.data_curriculum, training_args.seed)
+
+    if script_args.data_curriculum in ["difficulty_asc_stage_on", "difficulty_desc_stage_on"]:
+        # Repeat each dataset entry num_train_epochs times and reduce num_train_epochs to 1
+        # This creates a curriculum where the easy questions are processed num_train_epochs times
+        # before the harder questions are processed
+        train_dataset = train_dataset.select(
+            [i for i in range(len(train_dataset)) for _ in range(training_args.num_train_epochs)]
+        )
+        training_args.num_train_epochs = 1
+
     logger.info(
         f"*** Loaded train dataset {script_args.dataset_name}::{script_args.split_list} "
-        f"with {len(train_dataset)} samples."
+        f"with {len(train_dataset)} samples, and arranged in curriculum={script_args.data_curriculum}."
     )
 
     # Get eval dataset

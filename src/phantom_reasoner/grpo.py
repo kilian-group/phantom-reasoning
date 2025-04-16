@@ -3,9 +3,11 @@ Training script for the GRPO model using Zeroshot or CoT prompt from PhantomEval
 
 Usage:
 ```bash
-./scripts/train_grpo.sh recipes/qwen2.5-0.5b-instruct/grpo/config_base.yaml \
+./scripts/train_grpo.sh \
+    recipes/accelerate_configs/zero1.yaml \
+    recipes/qwen2.5-1.5b-instruct/grpo/config_base.yaml \
     --prompt_method cot \
-    --output_dir runs/grpo/username/qwen0.5b__MMDD__flags
+    --output_dir runs/grpo/<YOUR_USERNAME_HERE>/qwen1.5b__MMDD__flags
 ```
 """
 import logging
@@ -159,7 +161,13 @@ class GRPOScriptArguments(ScriptArguments):
     eval_from_local: bool = False
     # Script arguments
     reward_func_names: list[str] = field(default_factory=lambda: ["f1"])
-    data_curriculum: Literal["random", "difficulty_asc", "difficulty_desc"] = "random"
+    data_curriculum: Literal[
+        "random",
+        "difficulty_asc_stage_off",
+        "difficulty_desc_stage_off",
+        "difficulty_asc_stage_on",
+        "difficulty_asc_stage_off",
+    ] = "random"
     prompt_method: Literal["zeroshot", "cot"] = "zeroshot"
 
 
@@ -175,9 +183,9 @@ def arrange_dataset(dataset: Dataset, data_curriculum: str, seed: int) -> Datase
     match data_curriculum:
         case "random":
             return dataset.shuffle(seed=seed)
-        case "difficulty_asc":
+        case "difficulty_asc_stage_off" | "difficulty_asc_stage_on":
             return dataset.sort("difficulty")
-        case "difficulty_desc":
+        case "difficulty_desc_stage_off" | "difficulty_desc_stage_on":
             return dataset.sort("difficulty", reverse=True)
         case _:
             raise ValueError(f"Invalid {data_curriculum=}")
@@ -251,6 +259,16 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
     # Get train dataset and use a curriculum
     train_dataset = get_pw_dataset(script_args.dataset_name, script_args.split_list, script_args.from_local)
     train_dataset = arrange_dataset(train_dataset, script_args.data_curriculum, training_args.seed)
+
+    if script_args.data_curriculum in ["difficulty_asc_stage_on", "difficulty_desc_stage_on"]:
+        # Repeat each dataset entry num_train_epochs times and reduce num_train_epochs to 1
+        # This creates a curriculum where the easy questions are processed num_train_epochs times
+        # before the harder questions are processed
+        train_dataset = train_dataset.select(
+            [i for i in range(len(train_dataset)) for _ in range(training_args.num_train_epochs)]
+        )
+        training_args.num_train_epochs = 1
+
     logger.info(
         f"*** Loaded train dataset {script_args.dataset_name}::{script_args.split_list} "
         f"with {len(train_dataset)} samples, and arranged in curriculum={script_args.data_curriculum}."

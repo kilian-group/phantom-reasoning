@@ -180,3 +180,4 @@ out*
 logs/
 runs/
 data/
+nohup.out
