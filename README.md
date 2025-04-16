@@ -134,8 +134,6 @@ Checkpoints are saved at `runs/grpo/username/qwen1.5b__MMDD__flags/checkpoint-XX
 
 Since `phantom-wiki[eval]` is installed from github source, run the evaluation module like so:
 
-Evaluating on just 1 GPU is faster than multiple GPUs due to communication overhead, so we can specify to only use the first GPU.
-
 ```bash
 CUDA_VISIBLE_DEVICES=0 python -m phantom_eval \
 	--method cot \
@@ -147,6 +145,8 @@ CUDA_VISIBLE_DEVICES=0 python -m phantom_eval \
 	--inf_vllm_tensor_parallel_size 1 \
 	-od /path/to/output_for_preds/
 ```
+
+Evaluating on just 1 GPU is faster than multiple GPUs due to communication overhead, so we can specify to only use the first GPU.
 
 Then get numbers for the leaderboard:
 
