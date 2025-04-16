@@ -24,19 +24,19 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
-# TODO wandb should probably be optional
+# vllm 0.8.1 is required, o.w. trl vllm-serve is buggy: https://github.com/huggingface/trl/issues/3142
 dependencies = [
     "torch",
-    "vllm",
+    "vllm==0.8.1",
     "deepspeed",
     "trl[vllm]",
-    "wandb",
     "accelerate",
     "datasets",
     "peft",
     "huggingface_hub[cli]",
     "phantom-wiki[eval]",
-    "lighteval[math]"
+    "lighteval[math]",
+    "wandb",
 ]
 
 [project.optional-dependencies]
