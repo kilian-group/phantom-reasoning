@@ -35,7 +35,8 @@ dependencies = [
     "peft",
     "huggingface_hub[cli]",
     "phantom-wiki[eval]",
-    "wandb"
+    "lighteval[math]",
+    "wandb",
 ]
 
 [project.optional-dependencies]

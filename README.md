@@ -159,3 +159,13 @@ python examples/phantomwiki_v1/format_leaderboard.py \
 	--filter_by_depth 10 \
 	--dataset data/wiki-v1-easy-no-agg --from_local
 ```
+
+## Lighteval (GSM8k, ARC etc.)
+
+```bash
+python -m phantom_reasoner.utils.benchmarks \
+	-cp /path/to/checkpoint \
+	-t "leaderboard|arc:challenge|2|0,lighteval|arc:easy|2|0" \
+	-od ./out-lighteval
+```
+
