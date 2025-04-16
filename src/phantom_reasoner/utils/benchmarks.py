@@ -9,12 +9,12 @@ Example Usage:
     python -m phantom_reasoner.utils.benchmarks \
         -cp /path/to/checkpoint \
         -t "leaderboard|arc:challenge|2|0,lighteval|arc:easy|2|0" \
-        -or ./out
+        -od ./out-lighteval
 
 Arguments:
     -cp / --checkpoint-path : Path to the model checkpoint directory.
     -t  / --tasks           : Comma-separated task specification string (see below).
-    -or / --output-dir      : Directory to save results (default: "./out").
+    -od / --output-dir      : Directory to save results (default: "./out").
     -bs / --batch-size      : Inference batch size (default: 16).
 
 Task Format:
@@ -108,7 +108,7 @@ def main():
         help="Path to the HuggingFace-compatible model checkpoint."
     )
     parser.add_argument(
-        "--output-dir", "-or", type=str, default="./out",
+        "--output-dir", "-od", type=str, default="./out-lighteval",
         help="Directory to store output results and logs."
     )
     parser.add_argument(
@@ -129,6 +129,6 @@ See: https://huggingface.co/docs/lighteval/en/quicktour for details."""
         batch_size=args.batch_size,
         output_dir=args.output_dir,
     )
-    
+
 if __name__ == "__main__":
     main()
