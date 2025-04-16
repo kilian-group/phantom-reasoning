@@ -7,7 +7,7 @@ Usage:
     recipes/accelerate_configs/zero1.yaml \
     recipes/qwen2.5-1.5b-instruct/grpo/config_base.yaml \
     --prompt_method cot \
-    --output_dir runs/grpo/username/qwen1.5b__MMDD__flags
+    --output_dir runs/grpo/<YOUR_USERNAME_HERE>/qwen1.5b__MMDD__flags
 ```
 """
 import logging
