@@ -81,9 +81,9 @@ ACCELERATE_LOG_LEVEL=info accelerate launch --num_processes 3 --config_file reci
 ### SFT on docs settings
 
 - Anmol's settings for full-finetuning https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct model:
-  - --gres=gpu:a100:4 on AIDA cluster. 4 A6000s on G2 should suffice. At bf16, accelerate-zero1, 1.5B model with the default settings uses ~70GB GPU memory.
-  - --mem=100GB memory
-  - -n 8 cores
+  - `--gres=gpu:a100:4` on AIDA cluster. 4 A6000s on G2 should suffice. At bf16, accelerate-zero1, 1.5B model with the default settings uses ~70GB GPU memory.
+  - `--mem=100GB` memory
+  - `-n 8` cores
 
 ```bash
 ./scripts/train_sft_on_docs.sh \
@@ -100,15 +100,15 @@ Checkpoints are saved at `runs/sft_on_docs/username/qwen1.5b__MMDD__flags/checkp
 ./scripts/train_sft_on_docs.sh \
 	recipes/accelerate_configs/multi_gpu.yaml \
 	recipes/qwen2.5-1.5b-instruct/sft_on_docs/config_base.yaml \
-	--output_dir runs/sft_on_docs/username/qwen1.5b__MMDD__flags
+	--output_dir runs/sft_on_docs/<SET_YOUR_USERNAME_HERE>/qwen1.5b__MMDD__flags
 ```
 
 ### GRPO settings
 
 - Anmol's settings for full-finetuning https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct model:
-  - --gres=gpu:a100:4 on AIDA cluster. 4 A6000s on G2 should suffice. At bf16, accelerate-zero1, 1.5B model with the default settings uses ~70GB GPU memory.
-  - --mem=100GB memory
-  - -n 8 cores
+  - `--gres=gpu:a100:4` on AIDA cluster. 4 A6000s on G2 should suffice. At bf16, accelerate-zero1, 1.5B model with the default settings uses ~70GB GPU memory.
+  - `--mem=100GB` memory
+  - `-n 8` cores
 
 ```bash
 ./scripts/train_grpo.sh \
@@ -127,7 +127,7 @@ Checkpoints are saved at `runs/grpo/username/qwen1.5b__MMDD__flags/checkpoint-XX
 	recipes/accelerate_configs/zero1.yaml \
 	recipes/qwen2.5-1.5b-instruct/grpo/config_base.yaml \
 	--prompt_method cot \
-	--output_dir runs/grpo/username/qwen1.5b__MMDD__flags
+	--output_dir runs/grpo/<SET_YOUR_USERNAME_HERE>/qwen1.5b__MMDD__flags
 ```
 
 ## PhantomWiki evaluation

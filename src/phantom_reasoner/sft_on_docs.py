@@ -6,7 +6,7 @@ Usage:
 ./scripts/train_sft_on_docs.sh \
     recipes/accelerate_configs/zero1.yaml \
     recipes/qwen2.5-1.5b-instruct/sft_on_docs/config_base.yaml \
-    --output_dir runs/sft_on_docs/username/qwen1.5b__MMDD__flags
+    --output_dir runs/sft_on_docs/<YOUR_USERNAME_HERE>/qwen1.5b__MMDD__flags
 ```
 """
 
