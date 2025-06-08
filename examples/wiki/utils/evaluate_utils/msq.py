@@ -1,13 +1,20 @@
 import argparse
 import json
+import os
 from collections import Counter
 
-from evaluate_utils.metrics.answer import AnswerMetric
-from evaluate_utils.metrics.group_answer_sufficiency import GroupAnswerSufficiencyMetric
-from evaluate_utils.metrics.group_support_sufficiency import (
-    GroupSupportSufficiencyMetric,
+import pandas as pd
+from phantom_eval.evaluate_utils import _get_preds
+
+from .metrics.answer import (
+    AnswerMetric,
+    compute_exact,
+    compute_f1,
+    metric_max_over_ground_truths,
 )
-from evaluate_utils.metrics.support import SupportMetric  # noqa: F401
+from .metrics.group_answer_sufficiency import GroupAnswerSufficiencyMetric
+from .metrics.group_support_sufficiency import GroupSupportSufficiencyMetric
+from .metrics.support import SupportMetric
 
 
 def read_jsonl(file_path: str) -> list[dict]:
@@ -89,6 +96,45 @@ def evaluate(prediction_instances: list[dict], ground_truth_instances: list[dict
             group_support_sufficiency_metric.get_metric()["f1"], 3
         )
     return metrics
+
+
+def get_preds(
+    output_dir: str, data_dir: str, split: str, use_musique_full: bool, method: str
+) -> pd.DataFrame:
+    """
+    Get predictions for a given output directory and method.
+    """
+    suffix = "full" if use_musique_full else "ans"
+    gold_path = os.path.join(data_dir, f"musique_{suffix}_v1.0_{split}.jsonl")
+    print(f"Loading answers from {gold_path}...")
+    ground_truth_instances = read_jsonl(gold_path)
+
+    df_gold = pd.DataFrame(ground_truth_instances)
+
+    def update_gold_with_aliases(row):
+        return [row["answer"]] + row["answer_aliases"]
+
+    df_gold["answer"] = df_gold.apply(update_gold_with_aliases, axis=1)
+
+    df_preds = _get_preds(output_dir, method)
+    df_preds = df_preds[df_preds["_dataset"] == "msq"]
+
+    df_preds = df_preds.merge(df_gold, on="id", how="left")
+
+    # score the preds
+    def score_pred(row):
+        max_em = metric_max_over_ground_truths(compute_exact, row["pred"], row["answer"])
+        max_f1 = metric_max_over_ground_truths(compute_f1, row["pred"], row["answer"])
+        return {"em": int(max_em), "f1": max_f1}
+
+    df_preds["scores"] = df_preds.apply(lambda row: score_pred(row), axis=1)
+
+    # explode the score into separate columns
+    df1 = df_preds.drop("scores", axis=1).reset_index(drop=True)
+    df2 = pd.json_normalize(df_preds["scores"]).reset_index(drop=True)
+    df_preds = pd.concat([df1, df2], axis=1)
+
+    return df_preds
 
 
 def main():

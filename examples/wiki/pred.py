@@ -14,7 +14,6 @@ from argparse import ArgumentParser
 from pathlib import Path
 
 import pandas as pd
-from data_utils import get_parser, load_data
 from few_shot_examples import COT_EXAMPLES_2WIKI, COT_EXAMPLES_HP, COT_EXAMPLES_MSQ
 from phantom_eval.agents import Agent, get_agent
 from phantom_eval.llm import Conversation, InferenceGenerationConfig, LLMChat, get_llm
@@ -23,6 +22,7 @@ from phantom_eval.llm import Conversation, InferenceGenerationConfig, LLMChat, g
 from phantom_eval.prompts import LLMPrompt, get_llm_prompt
 from phantom_eval.utils import setup_logging
 from tqdm.asyncio import tqdm as tqdm_async
+from utils.data_utils import get_parser, load_data
 
 logger = logging.getLogger(__name__)
 

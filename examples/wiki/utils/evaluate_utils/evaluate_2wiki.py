@@ -3,12 +3,15 @@
     Adapted from HotpotQA evaluation at https://github.com/hotpotqa/hotpot
 """
 import itertools
+import os
 import re
 import string
 import sys
 from collections import Counter
 
+import pandas as pd
 import ujson as json
+from phantom_eval.evaluate_utils import _get_preds
 
 
 def normalize_answer(s):
@@ -274,7 +277,57 @@ def eval(prediction, gold, alias_file):
     for k in metrics.keys():
         metrics[k] = round(metrics[k] / N * 100, 2)
 
-    print(json.dumps(metrics, indent=4))
+    return metrics
+
+
+def get_preds(output_dir: str, data_dir: str, split: str, method: str) -> pd.DataFrame:
+    """
+    Get predictions for a given output directory and method.
+    """
+    gold_path = os.path.join(data_dir, f"{split}.json")
+    print(f"Loading answers from {gold_path}...")
+    with open(gold_path) as f:
+        gold = json.load(f)
+    df_gold = pd.DataFrame(gold)
+
+    # apply aliases to gold
+    alias_path = os.path.join(data_dir, "id_aliases.json")
+    with open(alias_path) as f:
+        aliases = {}
+        for json_line in map(json.loads, f):
+            aliases[json_line["Q_id"]] = {"aliases": set(json_line["aliases"] + json_line["demonyms"])}
+
+    def update_gold_with_aliases(row):
+        gold_answers = {row["answer"]}
+        if row["answer_id"] in aliases and aliases[row["answer_id"]]["aliases"]:
+            gold_answers.update(aliases[row["answer_id"]]["aliases"])
+        return gold_answers
+
+    df_gold["answer"] = df_gold.apply(update_gold_with_aliases, axis=1)
+
+    print(f"Loading predictions from {output_dir}...")
+    df_preds = _get_preds(output_dir, method)
+    df_preds = df_preds[df_preds["_dataset"] == "2wiki"]
+    df_preds = df_preds.merge(df_gold, left_on="id", right_on="_id", how="left")
+
+    # score the preds
+    def score_pred(row):
+        max_em, max_f1, max_prec, max_recall = 0, 0, 0, 0
+        for gold in row["answer"]:
+            em, f1, prec, recall = eval_answer(row["pred"], gold)
+            max_em = max(max_em, em)
+            max_f1 = max(max_f1, f1)
+            max_prec = max(max_prec, prec)
+            max_recall = max(max_recall, recall)
+        return {"em": int(max_em), "f1": max_f1, "prec": max_prec, "recall": max_recall}
+
+    df_preds["scores"] = df_preds.apply(lambda row: score_pred(row), axis=1)
+
+    # explode the score into separate columns
+    df1 = df_preds.drop("scores", axis=1).reset_index(drop=True)
+    df2 = pd.json_normalize(df_preds["scores"]).reset_index(drop=True)
+    df_preds = pd.concat([df1, df2], axis=1)
+    return df_preds
 
 
 if __name__ == "__main__":
