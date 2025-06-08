@@ -4,6 +4,7 @@ default_language_version:
 exclude: |
   (?x)^(
         docs/.*
+    |examples/.*/few_shot_examples\.py$
     )$
 
 repos:
