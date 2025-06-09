@@ -36,11 +36,11 @@ def get_agent_kwargs(args: ArgumentParser, llm_prompt: LLMPrompt) -> dict:
             raise NotImplementedError("Fewshot is not implemented")
         case "cot":
             match args.dataset:
-                case "hp":
+                case "hp" | "hp500":
                     cot_examples = COT_EXAMPLES_HP
-                case "2wiki":
+                case "2wiki" | "2wiki500":
                     cot_examples = COT_EXAMPLES_2WIKI
-                case "msq":
+                case "msq" | "msq500":
                     cot_examples = COT_EXAMPLES_MSQ
             agent_kwargs = dict(llm_prompt=llm_prompt, cot_examples=cot_examples)
         case _:
@@ -54,20 +54,11 @@ def get_model_kwargs(args: ArgumentParser) -> dict:
             model_kwargs = dict(
                 max_model_len=args.inf_vllm_max_model_len,
                 tensor_parallel_size=args.inf_vllm_tensor_parallel_size,
-                # NOTE: for simplicity, we will always use the vLLM server API for inference
-                # This reduces the prompt throughput somewhat over the offline batch inference
-                # But simplifies the code by avoiding the need to handle vLLM differently
-                # from other models.
-                use_api=not args.inf_vllm_offline,
-                port=args.inf_vllm_port,
+                use_api=False,  # NOTE: we use offline inference to maximize throughput
                 is_deepseek_r1_model=args.inf_is_deepseek_r1_model,
             )
         case _:
-            model_kwargs = dict(
-                usage_tier=args.inf_usage_tier,
-                enforce_rate_limits=not args.inf_relax_rate_limits,
-                llms_rpm_tpm_config_fpath=args.inf_llms_rpm_tpm_config_fpath,
-            )
+            raise ValueError(f"Invalid server: {args.server}")
     return model_kwargs
 
 
@@ -122,8 +113,8 @@ async def main(args: ArgumentParser) -> None:
     # Get the split, seed, and batch size
     split = args.split
     seed = args.seed
-    num_df_qa_pairs = len(df_qa_pairs)
-    batch_size = args.batch_size
+    # Use one batch for offline inference
+    batch_size = num_df_qa_pairs = len(df_qa_pairs)
 
     logger.info(f"Running inference for method='{args.method}' with {seed=}")
     for batch_number in range(1, math.ceil(num_df_qa_pairs / batch_size) + 1):
@@ -220,5 +211,6 @@ async def main(args: ArgumentParser) -> None:
 if __name__ == "__main__":
     parser = get_parser()
     args = parser.parse_args()
+    args.server = "vllm"  # NOTE: we use vllm with offline inference to maximize throughput
     setup_logging(args.log_level)
     asyncio.run(main(args))
