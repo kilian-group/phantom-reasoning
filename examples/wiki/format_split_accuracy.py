@@ -1,10 +1,13 @@
 """Script that formats the split accuracy.
 
+The output is a markdown table with columns corresponding to the metrics and
+rows corresponding to the model, split, and seed.
+
 Example usage:
 ```bash
-python format_split_accuracy.py -dd DATA_DIR -od OUTPUT_DIR --split SPLIT
+python format_split_accuracy.py -dd DATA_DIR -od OUTPUT_DIR --split SPLIT --dataset DATASET --method METHOD
 ```
-By default, DATA_DIR is `data/`.
+By default, DATA_DIR is `/share/nikola/phantom-reasoning/data`.
 """
 
 from tabulate import tabulate
@@ -16,7 +19,6 @@ output_dir = args.output_dir
 method = args.method
 dataset = args.dataset
 split = args.split
-use_500 = True
 
 match dataset:
     case "hp" | "hp500":
