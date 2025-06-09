@@ -15,19 +15,19 @@ from pathlib import Path
 
 import pandas as pd
 from few_shot_examples import COT_EXAMPLES_2WIKI, COT_EXAMPLES_HP, COT_EXAMPLES_MSQ
-from phantom_eval.agents import Agent, get_agent
+from phantom_eval.agents import Agent
 from phantom_eval.llm import Conversation, InferenceGenerationConfig, LLMChat, get_llm
 
 # Import CoT baseline prompts
 from phantom_eval.prompts import LLMPrompt, get_llm_prompt
 from phantom_eval.utils import setup_logging
-from tqdm.asyncio import tqdm as tqdm_async
+from utils.agent_utils import CoTWikiAgent
 from utils.data_utils import get_parser, load_data
 
 logger = logging.getLogger(__name__)
 
 
-def get_agent_kwargs(args: ArgumentParser, text_corpus: pd.DataFrame, llm_prompt: LLMPrompt) -> dict:
+def get_agent_kwargs(args: ArgumentParser, llm_prompt: LLMPrompt) -> dict:
     """Get agent initialization kwargs based on method type."""
     match args.method:
         case "zeroshot":
@@ -42,7 +42,7 @@ def get_agent_kwargs(args: ArgumentParser, text_corpus: pd.DataFrame, llm_prompt
                     cot_examples = COT_EXAMPLES_2WIKI
                 case "msq":
                     cot_examples = COT_EXAMPLES_MSQ
-            agent_kwargs = dict(text_corpus=text_corpus, llm_prompt=llm_prompt, cot_examples=cot_examples)
+            agent_kwargs = dict(llm_prompt=llm_prompt, cot_examples=cot_examples)
         case _:
             agent_kwargs = dict()
     return agent_kwargs
@@ -58,7 +58,7 @@ def get_model_kwargs(args: ArgumentParser) -> dict:
                 # This reduces the prompt throughput somewhat over the offline batch inference
                 # But simplifies the code by avoiding the need to handle vLLM differently
                 # from other models.
-                use_api=True,
+                use_api=not args.inf_vllm_offline,
                 port=args.inf_vllm_port,
                 is_deepseek_r1_model=args.inf_is_deepseek_r1_model,
             )
@@ -101,26 +101,20 @@ async def main(args: ArgumentParser) -> None:
         repetition_penalty=args.inf_repetition_penalty,
         max_retries=args.inf_max_retries,
         wait_seconds=args.inf_wait_seconds,
+        seed=args.seed,
     )
     logger.info(f"Inference generation config: {inf_gen_config}")
 
     logger.info("Loading agent kwargs")
-    agent_kwargs_list: list[dict] = []
+    corpora: list[pd.DataFrame] = []
     for i, row in df_qa_pairs.iterrows():
         titles = df_qa_pairs.iloc[i]["title"]
         articles = df_qa_pairs.iloc[i]["article"]
         text_corpus = pd.DataFrame({"title": titles, "article": articles})
-        agent_kwargs: dict = get_agent_kwargs(
-            args=args,
-            text_corpus=text_corpus,
-            llm_prompt=llm_prompt,
-        )
-        agent_kwargs_list.append(agent_kwargs)
+        corpora.append(text_corpus)
 
     logger.info("Running agent loop")
-    assert len(agent_kwargs_list) == len(
-        df_qa_pairs
-    ), "agent_kwargs_list must be a list of kwargs for each question"
+    assert len(corpora) == len(df_qa_pairs), "corpora must be a list of the same length as df_qa_pairs"
 
     # Get the LLM chat
     llm_chat: LLMChat = get_llm(args.server, args.model_name, model_kwargs=model_kwargs)
@@ -159,57 +153,33 @@ async def main(args: ArgumentParser) -> None:
             f" out of {num_df_qa_pairs}"
         )
         batch_df_qa_pairs = df_qa_pairs.iloc[batch_start_idx:batch_end_idx]
+        batch_corpora = corpora[batch_start_idx:batch_end_idx]
 
-        # Construct agent for each question
-        agents: list[Agent] = [
-            get_agent(
-                args.method,
-                text_corpus=agent_kwargs_list[i]["text_corpus"],
-                llm_prompt=agent_kwargs_list[i]["llm_prompt"],
-                agent_kwargs={
-                    k: v for k, v in agent_kwargs_list[i].items() if k not in ["text_corpus", "llm_prompt"]
-                },
-            )
-            for i in range(batch_start_idx, min(batch_end_idx, num_df_qa_pairs))
-        ]
+        # Construct agent
+        agent_kwargs: dict = get_agent_kwargs(args=args, llm_prompt=llm_prompt)
+        agent: Agent = CoTWikiAgent(**agent_kwargs)
 
         # Run predictions in parallel
         match args.method:
-            case "zeroshot" | "fewshot" | "cot":
-                responses = await tqdm_async.gather(
-                    *[
-                        agent.run(
-                            llm_chat=llm_chat,
-                            question=instance.question,
-                            inf_gen_config=inf_gen_config,
-                        )
-                        for agent, (_, instance) in zip(agents, batch_df_qa_pairs.iterrows())
-                    ]
+            case "cot":
+                responses = await agent.batch_run(
+                    llm_chat=llm_chat,
+                    questions=batch_df_qa_pairs["question"].tolist(),
+                    inf_gen_config=inf_gen_config,
+                    corpora=batch_corpora,
+                    parse_thinking_output=args.inf_is_deepseek_r1_model,
                 )
+                agent_interactions: list[Conversation] = agent.agent_interactions
+            case "zeroshot" | "fewshot":
+                raise NotImplementedError("Zeroshot and fewshot are not implemented")
             case _:
                 raise ValueError(f"Invalid method: {args.method}")
-        # Get the agent interactions
-        agent_interactions: list[Conversation | None] = [agent.agent_interactions for agent in agents]
 
         # Collect predictions for this batch
         preds = {}
         for i, (_, instance) in enumerate(batch_df_qa_pairs.iterrows()):
             uid = instance.id
-            if agent_interactions:
-                if isinstance(agent_interactions[i], Conversation):
-                    interaction = agent_interactions[i].model_dump()
-                elif isinstance(agent_interactions[i], list):
-                    # interaction = {
-                    #     "planning": agent_interactions[i][0].model_dump(),
-                    #     "executing": agent_interactions[i][1].model_dump(),
-                    # }
-                    interaction = [x.model_dump() for x in agent_interactions[i]]
-                elif agent_interactions[i] is None:
-                    interaction = []
-                else:
-                    raise ValueError(f"Invalid agent interaction: {agent_interactions[i]}")
-            else:
-                interaction = []
+            interaction = agent_interactions[i].model_dump()
             preds[uid] = {
                 "true": instance.answer,
                 "pred": responses[i].pred,
@@ -228,16 +198,10 @@ async def main(args: ArgumentParser) -> None:
                 # HACK: remove entries from agent_kwargs that are not JSON serializable
                 "agent_kwargs": {
                     k: v
-                    for k, v in agent_kwargs_list[i].items()
+                    for k, v in agent_kwargs.items()
                     if k
                     not in [
-                        "llm_prompts",
-                        "planning_llm_prompt",
-                        "executing_llm_prompt",
-                        "text_corpus",
                         "llm_prompt",
-                        "db",
-                        "agent_constructor",
                     ]
                 },
                 "usage": responses[i].usage,
