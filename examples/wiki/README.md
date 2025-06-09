@@ -1,15 +1,31 @@
 # Multi-Hop QA with HotpotQA, 2WikiMultiHopQA, and MuSiQue
 
-To evaluate on HotpotQA, please run:
+To evaluate on a dataset, please run:
 
 ```bash
-python pred.py -od OUTPUT_DIR --dataset hp --split SPLIT --method METHOD --server vllm -m MODEL_NAME -bs 100
+python pred.py -od OUTPUT_DIR --dataset DATASET --split SPLIT --method METHOD --server vllm -m MODEL_NAME
 ```
 
-To evaluate on 2WikiMultiHopQA, set `--dataset` to `2wiki`; to evaluate on MuSiQue, set `--dataset` to `msq`. The default `--data_dir` is `/share/nikola/phantom-reasoning/data`, which contains the json files for these three datasets.
+`DATASET` can be one of
 
-> \[!TIP\]
-> Since we are using vLLM, use a large batch size (e.g., 100) to maximimize throughput.
+- `hp`
+- `2wiki`
+- `msq`
+- `hp500`
+- `2wiki500`
+- `msq500`
+
+The datasets with 500 in the name include a smaller dev split to make evaluation easier. When using `hp500`, `2wiki500`, and `msq500`, please set `SPLIT` to `minidev`.
+The default `--data_dir` is `/share/nikola/phantom-reasoning/data`, which contains the JSON files for all datasets.
+
+> \[!NOTE\]
+> `pred.py` will automatically launch an LLM, so there is no need to run `vllm serve`.
+
+To obtain the accuracy numbers, please run:
+
+```bash
+python format_split_accuracy.py -od OUTPUT_DIR --method METHOD --split SPLIT --dataset DATASET
+```
 
 ## Additional Dependences
 
