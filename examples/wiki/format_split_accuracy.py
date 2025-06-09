@@ -6,7 +6,6 @@ python format_split_accuracy.py -dd DATA_DIR -od OUTPUT_DIR --split SPLIT
 ```
 By default, DATA_DIR is `data/`.
 """
-import os
 
 from tabulate import tabulate
 from utils.data_utils import get_parser
@@ -20,33 +19,36 @@ split = args.split
 use_500 = True
 
 match dataset:
-    case "hp":
+    case "hp" | "hp500":
         from utils.evaluate_utils.hp import get_preds
 
         df_preds = get_preds(
             output_dir,
-            os.path.join(args.data_dir, "hotpotqa" + ("500" if use_500 else "")),
+            args.data_dir,
+            dataset,
             split,
             "distractor",
             method,
         )
         acc = df_preds.groupby(["_model", "_split", "_seed"])[["em", "f1", "prec", "recall"]].agg("mean")
-    case "2wiki":
+    case "2wiki" | "2wiki500":
         from utils.evaluate_utils.evaluate_2wiki import get_preds
 
         df_preds = get_preds(
             output_dir,
-            os.path.join(args.data_dir, "2wikimultihopqa" + ("500" if use_500 else "")),
+            args.data_dir,
+            dataset,
             split,
             method,
         )
         acc = df_preds.groupby(["_model", "_split", "_seed"])[["em", "f1", "prec", "recall"]].agg("mean")
-    case "msq":
+    case "msq" | "msq500":
         from utils.evaluate_utils.msq import get_preds
 
         df_preds = get_preds(
             output_dir,
-            os.path.join(args.data_dir, "musique" + ("500" if use_500 else "")),
+            args.data_dir,
+            dataset,
             split,
             False,
             method,
