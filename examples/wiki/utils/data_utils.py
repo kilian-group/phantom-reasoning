@@ -24,20 +24,13 @@ def load_data(data_dir: str, dataset: str, split: str) -> dict:
             - qa_pairs: List of QA pairs with metadata
             - text: List of context paragraphs with metadata
     """
-    use_500 = True
     match dataset:
-        case "hp":
-            return load_hp_data(
-                os.path.join(data_dir, "hotpotqa" + ("500" if use_500 else "")), split, setting="distractor"
-            )
-        case "2wiki":
-            return load_2wiki_data(
-                os.path.join(data_dir, "2wikimultihopqa" + ("500" if use_500 else "")), split
-            )
-        case "msq":
-            return load_msq_data(
-                os.path.join(data_dir, "musique" + ("500" if use_500 else "")), split, answerable_only=True
-            )
+        case "hp" | "hp500":
+            return load_hp_data(os.path.join(data_dir, dataset), split, setting="distractor")
+        case "2wiki" | "2wiki500":
+            return load_2wiki_data(os.path.join(data_dir, dataset), split)
+        case "msq" | "msq500":
+            return load_msq_data(os.path.join(data_dir, dataset), split, answerable_only=True)
         case _:
             raise ValueError(f"Invalid dataset: {dataset}")
 
@@ -254,7 +247,7 @@ def get_parser():
         type=str,
         required=True,
         help="The dataset to evaluate on.",
-        choices=["hp", "2wiki", "msq"],
+        choices=["hp", "hp500", "2wiki", "2wiki500", "msq", "msq500"],
     )
     parser.add_argument("--seed", type=int, default=1, help="Inference generation seed for reproducibility.")
     return parser

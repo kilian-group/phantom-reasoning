@@ -99,13 +99,13 @@ def evaluate(prediction_instances: list[dict], ground_truth_instances: list[dict
 
 
 def get_preds(
-    output_dir: str, data_dir: str, split: str, use_musique_full: bool, method: str
+    output_dir: str, data_dir: str, dataset: str, split: str, use_musique_full: bool, method: str
 ) -> pd.DataFrame:
     """
     Get predictions for a given output directory and method.
     """
     suffix = "full" if use_musique_full else "ans"
-    gold_path = os.path.join(data_dir, f"musique_{suffix}_v1.0_{split}.jsonl")
+    gold_path = os.path.join(data_dir, dataset, f"musique_{suffix}_v1.0_{split}.jsonl")
     print(f"Loading answers from {gold_path}...")
     ground_truth_instances = read_jsonl(gold_path)
 
@@ -117,7 +117,7 @@ def get_preds(
     df_gold["answer"] = df_gold.apply(update_gold_with_aliases, axis=1)
 
     df_preds = _get_preds(output_dir, method)
-    df_preds = df_preds[df_preds["_dataset"] == "msq"]
+    df_preds = df_preds[df_preds["_dataset"] == dataset]
 
     df_preds = df_preds.merge(df_gold, on="id", how="left")
 

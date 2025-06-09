@@ -1,6 +1,7 @@
 """Evaluation utils for HotpotQA."""
 
 import json
+import os
 
 import pandas as pd
 from phantom_eval.evaluate_utils import _get_preds
@@ -59,12 +60,14 @@ def eval(prediction, gold):
     return metrics
 
 
-def get_preds(output_dir: str, data_dir: str, split: str, setting: str, method: str) -> pd.DataFrame:
+def get_preds(
+    output_dir: str, data_dir: str, dataset: str, split: str, setting: str, method: str
+) -> pd.DataFrame:
     """
     Get predictions for a given output directory and method.
     """
     # save preds to a temporary json file
-    gold_path = get_hp_data_path(data_dir, split, setting)
+    gold_path = get_hp_data_path(os.path.join(data_dir, dataset), split, setting)
     print(f"Loading answers from {gold_path}...")
     with open(gold_path) as f:
         gold = json.load(f)
@@ -73,7 +76,7 @@ def get_preds(output_dir: str, data_dir: str, split: str, setting: str, method: 
 
     print(f"Loading predictions from {output_dir}...")
     df_preds = _get_preds(output_dir, method)
-    df_preds = df_preds[df_preds["_dataset"] == "hp"]
+    df_preds = df_preds[df_preds["_dataset"] == dataset]
 
     df_preds = df_preds.merge(df_gold, left_on="id", right_on="_id", how="left")
 

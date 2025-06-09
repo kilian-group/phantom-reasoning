@@ -280,18 +280,18 @@ def eval(prediction, gold, alias_file):
     return metrics
 
 
-def get_preds(output_dir: str, data_dir: str, split: str, method: str) -> pd.DataFrame:
+def get_preds(output_dir: str, data_dir: str, dataset: str, split: str, method: str) -> pd.DataFrame:
     """
     Get predictions for a given output directory and method.
     """
-    gold_path = os.path.join(data_dir, f"{split}.json")
+    gold_path = os.path.join(data_dir, dataset, f"{split}.json")
     print(f"Loading answers from {gold_path}...")
     with open(gold_path) as f:
         gold = json.load(f)
     df_gold = pd.DataFrame(gold)
 
     # apply aliases to gold
-    alias_path = os.path.join(data_dir, "id_aliases.json")
+    alias_path = os.path.join(data_dir, dataset, "id_aliases.json")
     with open(alias_path) as f:
         aliases = {}
         for json_line in map(json.loads, f):
@@ -307,7 +307,7 @@ def get_preds(output_dir: str, data_dir: str, split: str, method: str) -> pd.Dat
 
     print(f"Loading predictions from {output_dir}...")
     df_preds = _get_preds(output_dir, method)
-    df_preds = df_preds[df_preds["_dataset"] == "2wiki"]
+    df_preds = df_preds[df_preds["_dataset"] == dataset]
     df_preds = df_preds.merge(df_gold, left_on="id", right_on="_id", how="left")
 
     # score the preds
