@@ -14,7 +14,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 
 import pandas as pd
-from few_shot_examples import COT_EXAMPLES_2WIKI, COT_EXAMPLES_HP, COT_EXAMPLES_MSQ
+from cot_examples import COT_EXAMPLES_2WIKI, COT_EXAMPLES_HP, COT_EXAMPLES_MSQ
 from phantom_eval.agents import Agent
 from phantom_eval.llm import Conversation, InferenceGenerationConfig, LLMChat, get_llm
 
