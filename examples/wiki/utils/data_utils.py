@@ -250,7 +250,13 @@ def get_parser():
         default="/share/nikola/phantom-reasoning/data",
         help="Path to dataset directory",
     )
-    parser.add_argument("--split", type=str, required=True, help="The split to evaluate on.")
+    parser.add_argument(
+        "--split",
+        type=str,
+        required=True,
+        help="The split to evaluate on.",
+        choices=["dev", "train", "minitrain", "minidev"],
+    )
     parser.add_argument(
         "--dataset",
         type=str,
