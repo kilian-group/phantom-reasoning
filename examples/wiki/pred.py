@@ -83,19 +83,6 @@ async def main(args: ArgumentParser) -> None:
     llm_prompt: LLMPrompt = get_llm_prompt(args.method, args.model_name)
     logger.info(f"LLM prompt: {llm_prompt}")
 
-    logger.info("Loading inference generation config")
-    inf_gen_config: InferenceGenerationConfig = InferenceGenerationConfig(
-        max_tokens=args.inf_max_tokens,
-        temperature=args.inf_temperature,
-        top_k=args.inf_top_k,
-        top_p=args.inf_top_p,
-        repetition_penalty=args.inf_repetition_penalty,
-        max_retries=args.inf_max_retries,
-        wait_seconds=args.inf_wait_seconds,
-        seed=args.seed,
-    )
-    logger.info(f"Inference generation config: {inf_gen_config}")
-
     logger.info("Loading agent kwargs")
     corpora: list[pd.DataFrame] = []
     for i, row in df_qa_pairs.iterrows():
@@ -112,98 +99,111 @@ async def main(args: ArgumentParser) -> None:
 
     # Get the split, seed, and batch size
     split = args.split
-    seed = args.seed
     # Use one batch for offline inference
     batch_size = num_df_qa_pairs = len(df_qa_pairs)
 
-    logger.info(f"Running inference for method='{args.method}' with {seed=}")
-    for batch_number in range(1, math.ceil(num_df_qa_pairs / batch_size) + 1):
-        run_name = (
-            f"dataset={args.dataset}"
-            + f"__split={split}"
-            + f"__model_name={args.model_name.replace('/', '--')}"
-            + f"__bs={batch_size}"
-            + f"__bn={batch_number:03d}"
-            + f"__seed={seed}"
+    for seed in args.inf_seed_list:
+        logger.info("Loading inference generation config")
+        inf_gen_config: InferenceGenerationConfig = InferenceGenerationConfig(
+            max_tokens=args.inf_max_tokens,
+            temperature=args.inf_temperature,
+            top_k=args.inf_top_k,
+            top_p=args.inf_top_p,
+            repetition_penalty=args.inf_repetition_penalty,
+            max_retries=args.inf_max_retries,
+            wait_seconds=args.inf_wait_seconds,
+            seed=seed,
         )
-        pred_path = Path(args.output_dir) / "preds" / args.method / f"{run_name}.json"
+        logger.info(f"Inference generation config: {inf_gen_config}")
 
-        # Skip if the batch number is not the one specified
-        if (args.batch_number is not None) and (batch_number != args.batch_number):
-            continue
-        # Skip if the output file already exists and --force is not set
-        if pred_path.exists() and not args.force:
-            logger.info(f"Skipping {pred_path} as it already exists. Use --force to overwrite.")
-            continue
+        logger.info(f"Running inference for method='{args.method}' with {seed=}")
+        for batch_number in range(1, math.ceil(num_df_qa_pairs / batch_size) + 1):
+            run_name = (
+                f"dataset={args.dataset}"
+                + f"__split={split}"
+                + f"__model_name={args.model_name.replace('/', '--')}"
+                + f"__bs={batch_size}"
+                + f"__bn={batch_number:03d}"
+                + f"__seed={seed}"
+            )
+            pred_path = Path(args.output_dir) / "preds" / args.method / f"{run_name}.json"
 
-        # Get batch
-        batch_start_idx = (batch_number - 1) * batch_size
-        batch_end_idx = batch_start_idx + batch_size
-        logger.info(
-            f"Getting predictions for questions [{batch_start_idx}, {batch_end_idx})"
-            f" out of {num_df_qa_pairs}"
-        )
-        batch_df_qa_pairs = df_qa_pairs.iloc[batch_start_idx:batch_end_idx]
-        batch_corpora = corpora[batch_start_idx:batch_end_idx]
+            # Skip if the batch number is not the one specified
+            if (args.batch_number is not None) and (batch_number != args.batch_number):
+                continue
+            # Skip if the output file already exists and --force is not set
+            if pred_path.exists() and not args.force:
+                logger.info(f"Skipping {pred_path} as it already exists. Use --force to overwrite.")
+                continue
 
-        # Construct agent
-        agent_kwargs: dict = get_agent_kwargs(args=args, llm_prompt=llm_prompt)
-        agent: Agent = CoTWikiAgent(**agent_kwargs)
+            # Get batch
+            batch_start_idx = (batch_number - 1) * batch_size
+            batch_end_idx = batch_start_idx + batch_size
+            logger.info(
+                f"Getting predictions for questions [{batch_start_idx}, {batch_end_idx})"
+                f" out of {num_df_qa_pairs}"
+            )
+            batch_df_qa_pairs = df_qa_pairs.iloc[batch_start_idx:batch_end_idx]
+            batch_corpora = corpora[batch_start_idx:batch_end_idx]
 
-        # Run predictions in parallel
-        match args.method:
-            case "cot":
-                responses = await agent.batch_run(
-                    llm_chat=llm_chat,
-                    questions=batch_df_qa_pairs["question"].tolist(),
-                    inf_gen_config=inf_gen_config,
-                    corpora=batch_corpora,
-                    parse_thinking_output=args.inf_is_deepseek_r1_model,
-                )
-                agent_interactions: list[Conversation] = agent.agent_interactions
-            case "zeroshot" | "fewshot":
-                raise NotImplementedError("Zeroshot and fewshot are not implemented")
-            case _:
-                raise ValueError(f"Invalid method: {args.method}")
+            # Construct agent
+            agent_kwargs: dict = get_agent_kwargs(args=args, llm_prompt=llm_prompt)
+            agent: Agent = CoTWikiAgent(**agent_kwargs)
 
-        # Collect predictions for this batch
-        preds = {}
-        for i, (_, instance) in enumerate(batch_df_qa_pairs.iterrows()):
-            uid = instance.id
-            interaction = agent_interactions[i].model_dump()
-            preds[uid] = {
-                "true": instance.answer,
-                "pred": responses[i].pred,
-                "error": responses[i].error,
-                "interaction": interaction,
-                "metadata": {
-                    "model": args.model_name,
-                    "dataset": args.dataset,
-                    "split": split,
-                    "batch_size": batch_size,
-                    "batch_number": batch_number,
-                    "type": instance.type,
-                },
-                "inference_params": inf_gen_config.model_dump(),
-                "model_kwargs": model_kwargs,
-                # HACK: remove entries from agent_kwargs that are not JSON serializable
-                "agent_kwargs": {
-                    k: v
-                    for k, v in agent_kwargs.items()
-                    if k
-                    not in [
-                        "llm_prompt",
-                    ]
-                },
-                "usage": responses[i].usage,
-            }
+            # Run predictions in parallel
+            match args.method:
+                case "cot":
+                    responses = await agent.batch_run(
+                        llm_chat=llm_chat,
+                        questions=batch_df_qa_pairs["question"].tolist(),
+                        inf_gen_config=inf_gen_config,
+                        corpora=batch_corpora,
+                        parse_thinking_output=args.inf_is_deepseek_r1_model,
+                    )
+                    agent_interactions: list[Conversation] = agent.agent_interactions
+                case "zeroshot" | "fewshot":
+                    raise NotImplementedError("Zeroshot and fewshot are not implemented")
+                case _:
+                    raise ValueError(f"Invalid method: {args.method}")
 
-        # Save all predictions after processing completes
-        pred_path.parent.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Saving all predictions to {pred_path}")
-        with open(pred_path, "w") as f:
-            json.dump(preds, f, indent=4)
-            f.flush()
+            # Collect predictions for this batch
+            preds = {}
+            for i, (_, instance) in enumerate(batch_df_qa_pairs.iterrows()):
+                uid = instance.id
+                interaction = agent_interactions[i].model_dump()
+                preds[uid] = {
+                    "true": instance.answer,
+                    "pred": responses[i].pred,
+                    "error": responses[i].error,
+                    "interaction": interaction,
+                    "metadata": {
+                        "model": args.model_name,
+                        "dataset": args.dataset,
+                        "split": split,
+                        "batch_size": batch_size,
+                        "batch_number": batch_number,
+                        "type": instance.type,
+                    },
+                    "inference_params": inf_gen_config.model_dump(),
+                    "model_kwargs": model_kwargs,
+                    # HACK: remove entries from agent_kwargs that are not JSON serializable
+                    "agent_kwargs": {
+                        k: v
+                        for k, v in agent_kwargs.items()
+                        if k
+                        not in [
+                            "llm_prompt",
+                        ]
+                    },
+                    "usage": responses[i].usage,
+                }
+
+            # Save all predictions after processing completes
+            pred_path.parent.mkdir(parents=True, exist_ok=True)
+            logger.info(f"Saving all predictions to {pred_path}")
+            with open(pred_path, "w") as f:
+                json.dump(preds, f, indent=4)
+                f.flush()
 
     logger.info("Agent loop complete")
 

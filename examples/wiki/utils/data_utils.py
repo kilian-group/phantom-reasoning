@@ -39,7 +39,16 @@ def load_data(data_dir: str, dataset: str, split: str) -> dict:
 # HotpotQA
 # ------------------------------------------------------------------------------------------------
 def get_hp_data_path(data_path: str, split: str, setting: str) -> str:
-    """Get the path to the HotpotQA dataset."""
+    """Get the path to the HotpotQA dataset
+
+    Args:
+        data_path: Path to the dataset directory
+        split: Dataset split ('dev', 'train', 'minitrain', 'minidev')
+        setting: Either 'distractor' or 'fullwiki'
+
+    Returns:
+        str: Path to the dataset file
+    """
     if split in ["train", "minitrain"]:
         return Path(data_path) / f"hotpot_{split}_v1.1.json"
     else:
@@ -51,7 +60,7 @@ def load_hp_data(data_path: str, split: str, setting: str) -> dict:
 
     Args:
         data_path: Path to the dataset directory
-        split: Dataset split (e.g., 'dev', 'train')
+        split: Dataset split ('dev', 'train', 'minitrain', 'minidev')
         setting: Either 'distractor' or 'fullwiki'
 
     Returns:
@@ -249,5 +258,4 @@ def get_parser():
         help="The dataset to evaluate on.",
         choices=["hp", "hp500", "2wiki", "2wiki500", "msq", "msq500"],
     )
-    parser.add_argument("--seed", type=int, default=1, help="Inference generation seed for reproducibility.")
     return parser
