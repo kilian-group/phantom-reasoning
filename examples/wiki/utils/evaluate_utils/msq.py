@@ -6,15 +6,15 @@ from collections import Counter
 import pandas as pd
 from phantom_eval.evaluate_utils import _get_preds
 
-from .metrics.answer import (
+from .msq_metrics.answer import (
     AnswerMetric,
     compute_exact,
     compute_f1,
     metric_max_over_ground_truths,
 )
-from .metrics.group_answer_sufficiency import GroupAnswerSufficiencyMetric
-from .metrics.group_support_sufficiency import GroupSupportSufficiencyMetric
-from .metrics.support import SupportMetric
+from .msq_metrics.group_answer_sufficiency import GroupAnswerSufficiencyMetric
+from .msq_metrics.group_support_sufficiency import GroupSupportSufficiencyMetric
+from .msq_metrics.support import SupportMetric
 
 
 def read_jsonl(file_path: str) -> list[dict]:
