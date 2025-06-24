@@ -1,3 +1,4 @@
+# Source: https://github.com/Alab-NII/2wikimultihop/blob/main/2wikimultihop_evaluate_v1.1.py
 """
     2Wiki-Multihop QA evaluation script
     Adapted from HotpotQA evaluation at https://github.com/hotpotqa/hotpot
