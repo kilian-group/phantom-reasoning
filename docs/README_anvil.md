@@ -37,11 +37,15 @@ pre-commit install
 
 2. Set environment vars in the conda environment.
 
+> \[!NOTE\]
+> Home paths `~/` only have 25GB on Anvil, so it's extremely important that you set huggingface datasets, models, checkpoints to scratch. If anything needs to be shared (e.g. datasets), we save them to the shared directory. The conda and pip environments (folders `~/.conda/` and `~/.cache/pip`) will take up 10GB or so with just this 1 project.
+
 ```bash
 conda env config vars set ANVIL_PROJECT_ID="ai250102"
 conda env config vars set RUN_BASE_DIR="$SCRATCH/phantom-reasoning/"
 conda env config vars set WANDB_ENTITY="mlcore"
 conda env config vars set WANDB_PROJECT="phantom-reasoning"
+conda env config vars set HF_HOME="$SCRATCH/huggingface"
 
 conda deactivate
 conda activate $CONDA_ENV_NAME

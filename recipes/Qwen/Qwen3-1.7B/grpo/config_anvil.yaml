@@ -38,7 +38,7 @@ max_prompt_length: 4096
 # one for evaluation.
 num_generations: 6
 # TODO: potentially increase this for longer outputs (needed for higher diff questions)
-max_completion_length: 128
+max_completion_length: 512
 
 # Evaluation config
 bf16_full_eval: true
