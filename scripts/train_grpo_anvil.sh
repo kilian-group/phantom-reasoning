@@ -37,7 +37,7 @@ MODEL_NAME=$(grep "model_name_or_path" $GRPO_CONFIG_FILE_PATH | cut -d '"' -f 2)
 #     --tensor-parallel-size 1 &
 
 # Get CUDA visible devices as 0,...,NUM_GPUS-2 (0 indexing, and last one is reserved for vllm)
-CUDA_DEVICES_TRAINING=$(seq -s, 0 $((NUM_GPUS - 2)))
+CUDA_DEVICES_TRAINING=$(seq -s, 1 $((NUM_GPUS - 1)))
 
 # Get additional arguments
 shift 2

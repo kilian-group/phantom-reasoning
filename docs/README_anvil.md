@@ -74,5 +74,5 @@ conda activate $CONDA_ENV_NAME
 
 ./scripts/train_grpo_anvil.sh \
     recipes/accelerate_configs/zero1.yaml \
-	recipes/Qwen/Qwen3-1.7B/grpo/config_anvil.yaml
+    recipes/Qwen/Qwen3-1.7B/grpo/config_anvil.yaml
 ```

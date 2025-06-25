@@ -13,6 +13,7 @@ Usage:
 import logging
 import os
 import shutil
+import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal
@@ -27,8 +28,15 @@ from phantom_eval.constants import answer_sep
 from phantom_eval.prompts import COT_EXAMPLES, CoTLLMPrompt, ZeroshotLLMPrompt
 from phantom_eval.score import exact_match, f1, precision, recall
 from phantom_eval.utils import load_data, setup_logging
-from transformers import AutoModelForCausalLM, AutoTokenizer, set_seed
-from transformers.trainer_utils import get_last_checkpoint
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    TrainerCallback,
+    TrainerControl,
+    TrainerState,
+    set_seed,
+)
+from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR, get_last_checkpoint
 from trl import (
     GRPOTrainer,
     ModelConfig,
@@ -274,6 +282,68 @@ def get_pw_dataset(script_args: GRPOScriptArguments, is_eval: bool) -> Dataset:
     return dataset
 
 
+class PhantomEvalCallback(TrainerCallback):
+    """Callback to run phantom_eval on saving a checkpoint."""
+
+    def __init__(self, script_args: GRPOScriptArguments):
+        """
+        Args:
+            script_args (GRPOScriptArguments): Script arguments containing evaluation parameters.
+        """
+        self.script_args = script_args
+
+    def on_save(self, args: GRPOConfig, state: TrainerState, control: TrainerControl, **kwargs):
+        checkpoint_folder = os.path.join(args.output_dir, f"{PREFIX_CHECKPOINT_DIR}-{state.global_step}")
+        eval_out_dir = os.path.join(args.output_dir, "out")
+
+        # Run phantom_eval on the saved checkpoint ONLY on the last GPU (n-1).
+        # Get the number of available GPUs
+        # num_gpus = torch.cuda.device_count()
+        env = os.environ.copy()
+        env["CUDA_VISIBLE_DEVICES"] = "0"
+
+        # Run phantom_eval as a subprocess
+        cmd = [
+            "python",
+            "-m",
+            "phantom_eval",
+            "--method",
+            self.script_args.prompt_method,
+            "--server",
+            "vllm",
+            "--inf_vllm_offline",
+            "--model_name",
+            checkpoint_folder,
+            "--dataset",
+            self.script_args.eval_dataset_name,
+            "--split_list",
+            *self.script_args.eval_split_list,
+            "--inf_vllm_tensor_parallel_size",
+            "1",
+            "-od",
+            eval_out_dir,
+        ]
+        if self.script_args.eval_from_local:
+            cmd.append("--from_local")
+
+        if self.script_args.ignore_think_tags_in_outputs:
+            # NOTE: in phantom_eval, this flag is used to ignore <think> tags in outputs
+            cmd.append("--inf_is_deepseek_r1_model")
+
+        if args.should_save:
+            # In multi-GPU training, we only run phantom_eval from the main process
+            # that was trying to save the checkpoint.
+            _ = subprocess.run(cmd, env=env, check=True)
+        # try:
+        #     result = subprocess.run(cmd, env=env, check=True, capture_output=True, text=True)
+        #     logger.info(f"PhantomEval output:\n{result.stdout}")
+        # except subprocess.CalledProcessError as e:
+        #     logger.error(f"PhantomEval failed with error:\n{e.stderr}")
+        #     raise e
+
+        return control
+
+
 def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, model_args: ModelConfig) -> None:
     """Training script for the GRPO model using Zeroshot prompt from PhantomEval.
 
@@ -352,6 +422,7 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         model = get_peft_model(model, lora_config)
 
     # Instantiate the trainer
+    callbacks: list[TrainerCallback] = [PhantomEvalCallback(script_args)]
     trainer = GRPOTrainer(
         model=model,
         args=training_args,
@@ -359,6 +430,7 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         eval_dataset=eval_dataset,
         processing_class=tokenizer,
         reward_funcs=reward_funcs,
+        callbacks=callbacks,
     )
     logger.info(f"*** Instantiated GRPO trainer for model {model_args.model_name_or_path}")
 
