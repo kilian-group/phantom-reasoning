@@ -244,6 +244,8 @@ def get_pw_dataset(dataset_name: str, split_list: list[str], from_local: bool) -
                 "prompt_method": script_args.prompt_method,
             }
         )
+        if "depth_10" not in dataset_name:
+            dataset = dataset.filter(lambda x: x["is_aggregation_question"])
         all_datasets.append(dataset)
     return concatenate_datasets(all_datasets)
 

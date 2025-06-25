@@ -130,6 +130,11 @@ Checkpoints are saved at `runs/grpo/username/qwen1.5b__MMDD__flags/checkpoint-XX
 	--output_dir runs/grpo/<SET_YOUR_USERNAME_HERE>/qwen1.5b__MMDD__flags
 ```
 
+For Katie:
+```bash
+./scripts/train_grpo.sh recipes/accelerate_configs/zero1.yaml recipes/qwen2.5-1.5b-instruct/grpo/config_base.yaml --prompt_method cot --output_dir /anvil/projects/ai250102/phantom-reasoning/runs/grpo/kluo5/qwen1.5b__0625__flags
+```
+
 ## PhantomWiki evaluation
 
 Since `phantom-wiki[eval]` is installed from github source, run the evaluation module like so:
