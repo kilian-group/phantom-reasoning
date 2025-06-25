@@ -1,21 +1,21 @@
 # Script config
-dataset_name: "data/wiki-v1-easy-no-agg"
+dataset_name: "data/wiki-v1-easy-depth_20_size_25"
 split_list:
   [
-    "depth_10_size_25_seed_11",
-    "depth_10_size_25_seed_12",
-    "depth_10_size_25_seed_13",
-    "depth_10_size_25_seed_14",
-    "depth_10_size_25_seed_15",
-    "depth_10_size_25_seed_16",
-    "depth_10_size_25_seed_17",
-    "depth_10_size_25_seed_18",
-    "depth_10_size_25_seed_19",
-    "depth_10_size_25_seed_20",
+    "depth_20_size_25_seed_11",
+    "depth_20_size_25_seed_12",
+    "depth_20_size_25_seed_13",
+    "depth_20_size_25_seed_14",
+    "depth_20_size_25_seed_15",
+    "depth_20_size_25_seed_16",
+    "depth_20_size_25_seed_17",
+    "depth_20_size_25_seed_18",
+    "depth_20_size_25_seed_19",
+    "depth_20_size_25_seed_20",
   ]
 from_local: true
-eval_dataset_name: "data/wiki-v1-easy-no-agg"
-eval_split_list: ["depth_10_size_25_seed_1"]
+eval_dataset_name: "data/wiki-v1-easy-depth_20_size_25"
+eval_split_list: ["depth_20_size_25_seed_1"]
 eval_from_local: true
 reward_func_names: ["f1"]
 data_curriculum: "random"
@@ -56,3 +56,4 @@ save_strategy: "steps"
 save_steps: 50
 save_total_limit: 5
 log_completions: true
+num_completions_to_print: 0 # don't print completions to stdout

@@ -26,7 +26,11 @@ from phantom_eval.agents.nshot import NshotAgent
 from phantom_eval.constants import answer_sep
 from phantom_eval.prompts import COT_EXAMPLES, CoTLLMPrompt, ZeroshotLLMPrompt
 from phantom_eval.score import exact_match, f1, precision, recall
-from phantom_eval.utils import load_data, setup_logging
+from phantom_eval.utils import (
+    dataset_entry_is_not_aggregation_question,
+    load_data,
+    setup_logging,
+)
 from transformers import AutoModelForCausalLM, AutoTokenizer, set_seed
 from transformers.trainer_utils import get_last_checkpoint
 from trl import (
@@ -50,10 +54,10 @@ logger = logging.getLogger(__name__)
 # TODO refactor reward functions to a separate python module
 def format_pred(pred: str, prompt_method: str) -> str:
     # TODO: use script_arguments.ignore_think_tags_in_outputs
-    # HACK: check if pred contains </think> tag
+    # HACK: check if pred contains <think> tag
     match prompt_method:
         case "zeroshot":
-            if "</think>" in pred:
+            if "<think>" in pred:
                 # Zeroshot prompt does not use thinking tags, so we remove them
                 return NshotAgent.parse_thinking_answer(pred)
             else:
@@ -61,7 +65,7 @@ def format_pred(pred: str, prompt_method: str) -> str:
         case "cot":
             try:
                 # TODO partial reward for correct parsing but wrong values?
-                if "</think>" in pred:
+                if "<think>" in pred:
                     return CoTAgent.parse_thinking_answer(pred)
                 else:
                     return CoTAgent.parse_answer(pred)
@@ -182,6 +186,7 @@ class GRPOScriptArguments(ScriptArguments):
     ] = "random"
     prompt_method: Literal["zeroshot", "cot"] = "cot"
     ignore_think_tags_in_outputs: bool = False
+    exclude_aggregation_questions: bool = True
 
 
 def arrange_dataset(dataset: Dataset, data_curriculum: str, seed: int) -> Dataset:
@@ -234,7 +239,16 @@ def get_prompt_for_sample(sample: dict[str, Any], evidence: str, prompt_method: 
             raise ValueError(f"Invalid {prompt_method=}")
 
 
-def get_pw_dataset(dataset_name: str, split_list: list[str], from_local: bool) -> Dataset:
+def get_pw_dataset(script_args: GRPOScriptArguments, is_eval: bool) -> Dataset:
+    if is_eval:
+        dataset_name = script_args.eval_dataset_name
+        split_list = script_args.eval_split_list
+        from_local = script_args.eval_from_local
+    else:
+        dataset_name = script_args.dataset_name
+        split_list = script_args.split_list
+        from_local = script_args.from_local
+
     all_datasets: list[Dataset] = []
     for split_name in split_list:
         dataset: dict[str, Dataset] = load_data(dataset_name, split=split_name, from_local=from_local)
@@ -249,8 +263,17 @@ def get_pw_dataset(dataset_name: str, split_list: list[str], from_local: bool) -
                 "prompt_method": script_args.prompt_method,
             }
         )
+        if script_args.exclude_aggregation_questions:
+            dataset = dataset.filter(dataset_entry_is_not_aggregation_question)
+
         all_datasets.append(dataset)
-    return concatenate_datasets(all_datasets)
+
+    dataset = concatenate_datasets(all_datasets)
+    logger.info(
+        f"*** Loaded {is_eval=} dataset {script_args.dataset_name}::{script_args.split_list} "
+        f"with {len(dataset)} samples."
+    )
+    return dataset
 
 
 def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, model_args: ModelConfig) -> None:
@@ -262,31 +285,22 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         model_args: Model arguments.
     """
     # Get train dataset and use a curriculum
-    train_dataset = get_pw_dataset(script_args.dataset_name, script_args.split_list, script_args.from_local)
+    train_dataset = get_pw_dataset(script_args, is_eval=False)
     train_dataset = arrange_dataset(train_dataset, script_args.data_curriculum, training_args.seed)
+    logger.info(f"*** Arranged in curriculum={script_args.data_curriculum}.")
 
-    if script_args.data_curriculum in ["difficulty_asc_stage_on", "difficulty_desc_stage_on"]:
-        # Repeat each dataset entry num_train_epochs times and reduce num_train_epochs to 1
-        # This creates a curriculum where the easy questions are processed num_train_epochs times
-        # before the harder questions are processed
-        train_dataset = train_dataset.select(
-            [i for i in range(len(train_dataset)) for _ in range(training_args.num_train_epochs)]
-        )
-        training_args.num_train_epochs = 1
-
-    logger.info(
-        f"*** Loaded train dataset {script_args.dataset_name}::{script_args.split_list} "
-        f"with {len(train_dataset)} samples, and arranged in curriculum={script_args.data_curriculum}."
-    )
+    # NOTE: getting rid of stage now, only sorting
+    # if script_args.data_curriculum in ["difficulty_asc_stage_on", "difficulty_desc_stage_on"]:
+    #     # Repeat each dataset entry num_train_epochs times and reduce num_train_epochs to 1
+    #     # This creates a curriculum where the easy questions are processed num_train_epochs times
+    #     # before the harder questions are processed
+    #     train_dataset = train_dataset.select(
+    #         [i for i in range(len(train_dataset)) for _ in range(training_args.num_train_epochs)]
+    #     )
+    #     training_args.num_train_epochs = 1
 
     # Get eval dataset
-    eval_dataset = get_pw_dataset(
-        script_args.eval_dataset_name, script_args.eval_split_list, script_args.eval_from_local
-    )
-    logger.info(
-        f"*** Loaded eval dataset {script_args.eval_dataset_name}::{script_args.eval_split_list} "
-        f"with {len(eval_dataset)} samples."
-    )
+    eval_dataset = get_pw_dataset(script_args, is_eval=True)
     # Count number of tokens in train dataset
     # NOTE: depth_20_size_50_seed_1 prompts have num_tokens ~ 4k
     # logger.info(
@@ -402,7 +416,8 @@ if __name__ == "__main__":
         run_flags_str=run_flags_str,
     )
     training_args.run_name = run_name
-    training_args.output_dir = run_name
-    os.makedirs(run_name, exist_ok=True)
+    # output_dir = RUN_BASE_DIR environment variable + run_name
+    training_args.output_dir = os.path.join(os.environ.get("RUN_BASE_DIR", "."), run_name)
+    os.makedirs(training_args.output_dir, exist_ok=True)
 
     train_grpo(script_args, training_args, model_args)
