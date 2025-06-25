@@ -18,7 +18,7 @@ def get_run_name(training_algo_name: str, script_args, model_args, run_flags_str
     today = datetime.now().strftime("%m%d")
     run_name = (
         f"{script_args.run_dir}/{script_args.dataset_name}/{model_args.model_name_or_path}/"
-        + f"{training_algo_name}/{user}/{model_args.model_name_or_path}/{today}"
+        + f"{training_algo_name}/{user}/{today}"
     )
     if run_flags_str:
         run_name += f"__{run_flags_str}"
