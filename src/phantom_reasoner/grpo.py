@@ -26,11 +26,7 @@ from phantom_eval.agents.nshot import NshotAgent
 from phantom_eval.constants import answer_sep
 from phantom_eval.prompts import COT_EXAMPLES, CoTLLMPrompt, ZeroshotLLMPrompt
 from phantom_eval.score import exact_match, f1, precision, recall
-from phantom_eval.utils import (
-    dataset_entry_is_not_aggregation_question,
-    load_data,
-    setup_logging,
-)
+from phantom_eval.utils import load_data, setup_logging
 from transformers import AutoModelForCausalLM, AutoTokenizer, set_seed
 from transformers.trainer_utils import get_last_checkpoint
 from trl import (
@@ -251,7 +247,12 @@ def get_pw_dataset(script_args: GRPOScriptArguments, is_eval: bool) -> Dataset:
 
     all_datasets: list[Dataset] = []
     for split_name in split_list:
-        dataset: dict[str, Dataset] = load_data(dataset_name, split=split_name, from_local=from_local)
+        dataset: dict[str, Dataset] = load_data(
+            dataset_name,
+            split=split_name,
+            from_local=from_local,
+            exclude_aggregation_questions=script_args.exclude_aggregation_questions,
+        )
         text_corpus: Dataset = dataset["text"]
         qa_pairs: Dataset = dataset["qa_pairs"]
         evidence: str = get_all_evidence(text_corpus)
@@ -263,9 +264,6 @@ def get_pw_dataset(script_args: GRPOScriptArguments, is_eval: bool) -> Dataset:
                 "prompt_method": script_args.prompt_method,
             }
         )
-        if script_args.exclude_aggregation_questions:
-            dataset = dataset.filter(dataset_entry_is_not_aggregation_question)
-
         all_datasets.append(dataset)
 
     dataset = concatenate_datasets(all_datasets)
@@ -284,6 +282,9 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         training_args: Training arguments.
         model_args: Model arguments.
     """
+    # Ensure GRPO does not shuffle dataset by itself
+    training_args.shuffle_dataset = False
+
     # Get train dataset and use a curriculum
     train_dataset = get_pw_dataset(script_args, is_eval=False)
     train_dataset = arrange_dataset(train_dataset, script_args.data_curriculum, training_args.seed)
