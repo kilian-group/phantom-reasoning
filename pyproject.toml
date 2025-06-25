@@ -24,12 +24,12 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
-# vllm 0.8.1 is required, o.w. trl vllm-serve is buggy: https://github.com/huggingface/trl/issues/3142
 dependencies = [
     "torch",
-    "vllm==0.8.1",
+    "vllm",
     "deepspeed",
     "trl[vllm]",
+    "transformers",
     "accelerate",
     "datasets",
     "peft",
@@ -37,6 +37,7 @@ dependencies = [
     "phantom-wiki[eval]",
     "lighteval[math]",
     "wandb",
+    "ujson", # needed for HotPotQA evaluation
 ]
 
 [project.optional-dependencies]
