@@ -27,15 +27,11 @@ git clone git@github.com:anmolkabra/phantom-reasoning.git
 cd phantom-reasoning
 pip install -e ".[dev]"
 
-pip install flash-attn --no-build-isolation
-
 pre-commit install
 ```
 
 > \[!NOTE\]
-> The `flash-attn` dependency restricts the system requirements to Linux with CUDA/ROCm toolkit support.
-
-For reference, see [example-environment.yml](./example-environment.yml) for exact package versions.
+> Albert: For reference, see [example-environment.yml](./example-environment.yml) for exact package versions.
 
 ## PhantomWiki data
 
