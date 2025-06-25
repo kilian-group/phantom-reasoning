@@ -53,7 +53,6 @@ echo "- training config=$GRPO_CONFIG_FILE_PATH"
 echo "- on GPUs $CUDA_DEVICES_TRAINING"
 echo "-------------------------------"
 
-export WANDB_PROJECT="grpo"
 CUDA_VISIBLE_DEVICES=$CUDA_DEVICES_TRAINING ACCELERATE_LOG_LEVEL=info accelerate launch \
     --num_processes=$NUM_PROCESSES \
     --config_file $ACCELERATE_CONFIG_FILE_PATH \
