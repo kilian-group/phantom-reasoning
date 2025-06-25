@@ -59,7 +59,7 @@ cd ..
 ## Training on PhantomWiki data
 
 > \[!NOTE\]
-> If you are in multiple teams, you will also need to set the `WANDB_ENTITY` environment variable (e.g., `conda env config vars set WANDB_ENTITY=phantom-reasoner`)
+> If you are in multiple projects in the `mlcore` org, you will also need to set the `WANDB_PROJECT` environment variable (e.g., `conda env config vars set WANDB_PROJECT=phantom-reasoning`)
 
 ### SFT on traces settings
 
@@ -68,7 +68,7 @@ From https://github.com/huggingface/open-r1?tab=readme-ov-file#sft:
 ```bash
 ACCELERATE_LOG_LEVEL=info accelerate launch --num_processes 3 --config_file recipes/accelerate_configs/zero3.yaml \
 	src/phantom_reasoner/sft_on_traces.py \
-	--config recipes/qwen2.5-1.5b-instruct/sft/config_demo.yaml
+	--config recipes/Qwen/Qwen2.5-1.5B-Instruct/sft/config_demo.yaml
 ```
 
 > \[!NOTE\]
@@ -84,25 +84,24 @@ ACCELERATE_LOG_LEVEL=info accelerate launch --num_processes 3 --config_file reci
 ```bash
 ./scripts/train_sft_on_docs.sh \
 	/path/to/accelerate/config/file.yaml \
-	/path/to/training/config/file.yaml \
-	--output_dir /path/to/output_dir/
+	/path/to/training/config/file.yaml
 ```
 
 For example, running the following command full-finetunes a 1.5B model using SFT on PhantomWiki documents with Zeroshot prompt.
 The multi-gpu config distributes model and data across all GPUs.
-Checkpoints are saved at `runs/sft_on_docs/username/qwen1.5b__MMDD__flags/checkpoint-XX`.
+Checkpoints are saved at `runs/Qwen/Qwen2.5-1.5B-Instruct/sft_on_docs/$USER/MMDD__<flags>/checkpoint-XX`.
 
 ```bash
 ./scripts/train_sft_on_docs.sh \
 	recipes/accelerate_configs/multi_gpu.yaml \
-	recipes/qwen2.5-1.5b-instruct/sft_on_docs/config_base.yaml \
-	--output_dir runs/sft_on_docs/<SET_YOUR_USERNAME_HERE>/qwen1.5b__MMDD__flags
+	recipes/Qwen/Qwen2.5-1.5B-Instruct/sft_on_docs/config_base.yaml
 ```
 
 ### GRPO settings
 
 - Anmol's settings for full-finetuning https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct model:
   - `--gres=gpu:a100:4` on AIDA cluster. 4 A6000s on G2 should suffice. At bf16, accelerate-zero1, 1.5B model with the default settings uses ~70GB GPU memory.
+  - `--gres=gpu:4` on Anvil cluster. At bf16, accelerate-zero1, 1.5B model with the default settings uses ~70GB GPU memory.
   - `--mem=100GB` memory
   - `-n 8` cores
 
@@ -110,20 +109,18 @@ Checkpoints are saved at `runs/sft_on_docs/username/qwen1.5b__MMDD__flags/checkp
 ./scripts/train_grpo.sh \
 	/path/to/accelerate/config/file.yaml \
 	/path/to/training/config/file.yaml \
-	--prompt_method cot \
-	--output_dir /path/to/output_dir/
+	--prompt_method cot
 ```
 
 For example, running the following command full-finetunes a 1.5B model using GRPO.
-The multi-gpu config distributes model and data across all but last GPU---the last GPU in your allocation is reserved for generating with vllm.
-Checkpoints are saved at `runs/grpo/username/qwen1.5b__MMDD__flags/checkpoint-XX`.
+The configs distribute the model and data across all but last GPU---the last GPU in your allocation is reserved for generating with vllm.
+Checkpoints are saved at `runs/Qwen/Qwen2.5-1.5B-Instruct/grpo/$USER/MMDD__<flags>/checkpoint-XX`.
 
 ```bash
 ./scripts/train_grpo.sh \
 	recipes/accelerate_configs/zero1.yaml \
-	recipes/qwen2.5-1.5b-instruct/grpo/config_base.yaml \
-	--prompt_method cot \
-	--output_dir runs/grpo/<SET_YOUR_USERNAME_HERE>/qwen1.5b__MMDD__flags
+	recipes/Qwen/Qwen2.5-1.5B-Instruct/grpo/config_base.yaml \
+	--prompt_method cot
 ```
 
 ## PhantomWiki evaluation
@@ -134,9 +131,10 @@ Since `phantom-wiki[eval]` is installed from github source, run the evaluation m
 CUDA_VISIBLE_DEVICES=0 python -m phantom_eval \
 	--method cot \
 	--server vllm \
+	--inf_vllm_offline \
 	--model_name /path/to/model/checkpoint \
 	--dataset data/wiki-v1-easy-no-agg \
-	--split_list depth_10_size_25_seed_1 depth_10_size_25_seed_2 depth_10_size_25_seed_3 depth_10_size_25_seed_4 depth_10_size_25_seed_5 \
+	--split_list depth_10_size_25_seed_1 depth_10_size_25_seed_2 depth_10_size_25_seed_3 \
 	--from_local \
 	--inf_vllm_tensor_parallel_size 1 \
 	-od /path/to/output_for_preds/
@@ -164,4 +162,3 @@ python -m phantom_reasoner.utils.benchmarks \
 	-t "leaderboard|arc:challenge|2|0,lighteval|arc:easy|2|0" \
 	-od ./out-lighteval
 ```
-

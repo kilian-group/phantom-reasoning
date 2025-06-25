@@ -5,13 +5,14 @@ Usage:
 ```bash
 ./scripts/train_grpo.sh \
     recipes/accelerate_configs/zero1.yaml \
-    recipes/qwen2.5-1.5b-instruct/grpo/config_base.yaml \
+    recipes/Qwen/Qwen2.5-1.5B-Instruct/grpo/config_base.yaml \
     --prompt_method cot \
-    --output_dir runs/grpo/<YOUR_USERNAME_HERE>/qwen1.5b__MMDD__flags
 ```
 """
+
 import logging
 import os
+import shutil
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal
@@ -21,9 +22,12 @@ from datasets import Dataset, concatenate_datasets
 from peft import get_peft_model, prepare_model_for_kbit_training
 from phantom_eval.agents.common import get_all_evidence
 from phantom_eval.agents.cot import CoTAgent
+from phantom_eval.agents.nshot import NshotAgent
+from phantom_eval.constants import answer_sep
 from phantom_eval.prompts import COT_EXAMPLES, CoTLLMPrompt, ZeroshotLLMPrompt
+from phantom_eval.score import exact_match, f1, precision, recall
 from phantom_eval.utils import load_data, setup_logging
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, set_seed
 from transformers.trainer_utils import get_last_checkpoint
 from trl import (
     GRPOTrainer,
@@ -35,7 +39,7 @@ from trl import (
 )
 
 from phantom_reasoner.configs import GRPOConfig
-from phantom_reasoner.utils.score import answer_sep, exact_match, f1, precision, recall
+from phantom_reasoner.utils import exp_utils
 
 logger = logging.getLogger(__name__)
 
@@ -45,13 +49,22 @@ logger = logging.getLogger(__name__)
 ############################################
 # TODO refactor reward functions to a separate python module
 def format_pred(pred: str, prompt_method: str) -> str:
+    # TODO: use script_arguments.ignore_think_tags_in_outputs
+    # HACK: check if pred contains </think> tag
     match prompt_method:
         case "zeroshot":
-            return pred
+            if "</think>" in pred:
+                # Zeroshot prompt does not use thinking tags, so we remove them
+                return NshotAgent.parse_thinking_answer(pred)
+            else:
+                return pred
         case "cot":
             try:
                 # TODO partial reward for correct parsing but wrong values?
-                return CoTAgent.parse_answer(pred)
+                if "</think>" in pred:
+                    return CoTAgent.parse_thinking_answer(pred)
+                else:
+                    return CoTAgent.parse_answer(pred)
             except ValueError:
                 return ""
         case _:
@@ -160,32 +173,24 @@ class GRPOScriptArguments(ScriptArguments):
     eval_split_list: str = field(default_factory=lambda: ["depth_20_size_50_seed_3"])
     eval_from_local: bool = False
     # Script arguments
+    run_dir: str = "runs"
     reward_func_names: list[str] = field(default_factory=lambda: ["f1"])
     data_curriculum: Literal[
         "random",
-        "difficulty_asc_stage_off",
-        "difficulty_desc_stage_off",
-        "difficulty_asc_stage_on",
-        "difficulty_asc_stage_off",
+        "difficulty_asc",
+        "difficulty_desc",
     ] = "random"
-    prompt_method: Literal["zeroshot", "cot"] = "zeroshot"
-
-
-# TODO move to utils.py or something
-def get_checkpoint(training_args: GRPOConfig):
-    last_checkpoint = None
-    if os.path.isdir(training_args.output_dir):
-        last_checkpoint = get_last_checkpoint(training_args.output_dir)
-    return last_checkpoint
+    prompt_method: Literal["zeroshot", "cot"] = "cot"
+    ignore_think_tags_in_outputs: bool = False
 
 
 def arrange_dataset(dataset: Dataset, data_curriculum: str, seed: int) -> Dataset:
     match data_curriculum:
         case "random":
             return dataset.shuffle(seed=seed)
-        case "difficulty_asc_stage_off" | "difficulty_asc_stage_on":
+        case "difficulty_asc":
             return dataset.sort("difficulty")
-        case "difficulty_desc_stage_off" | "difficulty_desc_stage_on":
+        case "difficulty_desc":
             return dataset.sort("difficulty", reverse=True)
         case _:
             raise ValueError(f"Invalid {data_curriculum=}")
@@ -344,9 +349,10 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
 
     # Training loop
     # Check for last checkpoint
-    last_checkpoint = get_checkpoint(training_args)
+    last_checkpoint = get_last_checkpoint(training_args.output_dir)
     if last_checkpoint is not None and training_args.resume_from_checkpoint is None:
         logger.info(f"Checkpoint detected, resuming training at {last_checkpoint}.")
+
     # Training loop
     logger.info(
         f"*** Starting training {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} "
@@ -375,18 +381,28 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
     tokenizer.save_pretrained(training_args.output_dir)
     logger.info(f"*** Tokenizer saved to {training_args.output_dir}")
 
-    # Save everything else on main process
-    if trainer.accelerator.is_main_process:
-        trainer.create_model_card({"tags": ["rl", "grpo", "phantom-wiki"]})
-    # push to hub if needed
-    if training_args.push_to_hub:
-        logger.info("*** Pushing to hub...")
-        trainer.push_to_hub()
+    # Delete the last checkpoint to save space
+    last_checkpoint = get_last_checkpoint(training_args.output_dir)
+    if last_checkpoint is not None:
+        logger.info(f"Removing checkpoint {last_checkpoint}")
+        shutil.rmtree(last_checkpoint, ignore_errors=True)
 
 
 if __name__ == "__main__":
     parser = TrlParser((GRPOScriptArguments, GRPOConfig, ModelConfig))
     script_args, training_args, model_args = parser.parse_args_and_config()
     setup_logging(training_args.log_level.upper())
+    set_seed(training_args.seed)
+
+    run_flags_str = f"curr={script_args.data_curriculum}__prompt={script_args.prompt_method}"
+    run_name: str = exp_utils.get_run_name(
+        training_algo_name="grpo",
+        script_args=script_args,
+        model_args=model_args,
+        run_flags_str=run_flags_str,
+    )
+    training_args.run_name = run_name
+    training_args.output_dir = run_name
+    os.makedirs(run_name, exist_ok=True)
 
     train_grpo(script_args, training_args, model_args)
