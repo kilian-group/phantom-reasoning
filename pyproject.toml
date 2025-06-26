@@ -34,7 +34,6 @@ dependencies = [
     "datasets",
     "peft",
     "huggingface_hub[cli]",
-    "phantom-wiki[eval]",
     "lighteval[math]",
     "wandb",
     "ujson", # needed for HotPotQA evaluation
