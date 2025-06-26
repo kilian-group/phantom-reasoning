@@ -296,13 +296,7 @@ class PhantomEvalCallback(TrainerCallback):
         checkpoint_folder = os.path.join(args.output_dir, f"{PREFIX_CHECKPOINT_DIR}-{state.global_step}")
         eval_out_dir = os.path.join(args.output_dir, "out")
 
-        # Run phantom_eval on the saved checkpoint ONLY on the last GPU (n-1).
-        # Get the number of available GPUs
-        # num_gpus = torch.cuda.device_count()
-        env = os.environ.copy()
-        env["CUDA_VISIBLE_DEVICES"] = "0"
-
-        # Run phantom_eval as a subprocess
+        # Run phantom_eval on the saved checkpoint ONLY on the first GPU
         cmd = [
             "python",
             "-m",
@@ -330,10 +324,19 @@ class PhantomEvalCallback(TrainerCallback):
             # NOTE: in phantom_eval, this flag is used to ignore <think> tags in outputs
             cmd.append("--inf_is_deepseek_r1_model")
 
+        if self.script_args.exclude_aggregation_questions:
+            # NOTE: in phantom_eval, this flag is used to exclude aggregation questions
+            cmd.append("--exclude_aggregation_questions")
+
         if args.should_save:
             # In multi-GPU training, we only run phantom_eval from the main process
             # that was trying to save the checkpoint.
-            _ = subprocess.run(cmd, env=env, check=True)
+            p = subprocess.Popen(cmd, env=self.script_args.env_vars_for_vllm, 
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            stdout, stderr = p.communicate()
+            logger.info(f"PhantomEval output:\n{stdout}")
+            if stderr:
+                logger.error(f"PhantomEval error:\n{stderr}")
         # try:
         #     result = subprocess.run(cmd, env=env, check=True, capture_output=True, text=True)
         #     logger.info(f"PhantomEval output:\n{result.stdout}")
@@ -478,6 +481,12 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
 if __name__ == "__main__":
     parser = TrlParser((GRPOScriptArguments, GRPOConfig, ModelConfig))
     script_args, training_args, model_args = parser.parse_args_and_config()
+
+    # Make a copy of the original environment variables
+    # Set vllm visible devices to the first GPU
+    script_args.env_vars_for_vllm = os.environ.copy()
+    script_args.env_vars_for_vllm["CUDA_VISIBLE_DEVICES"] = "0"
+
     setup_logging(training_args.log_level.upper())
     set_seed(training_args.seed)
 
