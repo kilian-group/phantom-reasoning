@@ -53,10 +53,12 @@ conda activate $CONDA_ENV_NAME
 
 3. Setup wandb login: `wandb login` and paste the API key from the `mlcore` organization. Contact Anmol if you don't have access to the `mlcore` org.
 
-4. Create a symlink to the data repository and set up the output directory.
+4. Create a symlink to the data, runs, and eval repositories and set up the output directory.
 
 ```bash
 ln -s /anvil/projects/$ANVIL_PROJECT_ID/phantom-reasoning/data .
+ln -s /anvil/projects/$ANVIL_PROJECT_ID/phantom-reasoning/runs .
+ln -s /anvil/projects/$ANVIL_PROJECT_ID/phantom-reasoning/eval .
 mkdir $RUN_BASE_DIR
 ```
 
@@ -66,13 +68,19 @@ mkdir $RUN_BASE_DIR
 module load conda
 conda activate $CONDA_ENV # to get ANVIL_PROJECT_ID variable
 
+# Option 1: Interactive
 salloc -A $ANVIL_PROJECT_ID-ai -p ai --gres=gpu:4 -n 16 -N 1 --mem=100GB -t 12:00:00
 # After getting an allocation:
 module load conda
 ./scripts/anvil/load_modules_cuda.sh
 conda activate $CONDA_ENV_NAME
 
-./scripts/train_grpo_anvil.sh \
+./scripts/anvil/train_grpo.sh \
+    recipes/accelerate_configs/zero1.yaml \
+    recipes/Qwen/Qwen3-1.7B/grpo/config_anvil.yaml
+
+# Option 2: Batch job
+sbatch -A $ANVIL_PROJECT_ID-ai scripts/anvil/train_grpo.sh \
     recipes/accelerate_configs/zero1.yaml \
     recipes/Qwen/Qwen3-1.7B/grpo/config_anvil.yaml
 ```
