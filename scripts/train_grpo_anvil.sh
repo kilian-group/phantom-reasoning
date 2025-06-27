@@ -2,12 +2,25 @@
 #SBATCH --job-name=grpo
 #SBATCH --output=logs/grpo-%j.out
 #SBATCH --error=logs/grpo-%j.err
-#SBATCH -p full
+#SBATCH -p ai
 #SBATCH -N 1
-#SBATCH -n 8
-#SBATCH --gres=gpu:a100:4
+#SBATCH -n 16
+#SBATCH --gres=gpu:4
 #SBATCH --mem=100GB
 #SBATCH --time=24:00:00
+
+module load conda
+echo $pwd
+source $(pwd)/scripts/anvil/load_modules_cuda.sh
+
+# Set CONDA_ENV_NAME to default if not set
+if [ -z "$CONDA_ENV_NAME" ]; then
+    CONDA_ENV_NAME="phantom-reasoning"
+fi
+
+conda activate $CONDA_ENV_NAME
+
+echo $(which python)
 
 # First argument should be path to the accelerate config file
 # Second argument should be the path to the training config file
@@ -45,11 +58,9 @@ echo "- training config=$GRPO_CONFIG_FILE_PATH"
 echo "- on GPUs $CUDA_DEVICES_TRAINING"
 echo "-------------------------------"
 
-CUDA_VISIBLE_DEVICES=$CUDA_DEVICES_TRAINING \
-  ACCELERATE_LOG_LEVEL=info \
-  accelerate launch \
+CUDA_VISIBLE_DEVICES=$CUDA_DEVICES_TRAINING ACCELERATE_LOG_LEVEL=info accelerate launch \
     --num_processes=$NUM_PROCESSES \
     --config_file $ACCELERATE_CONFIG_FILE_PATH \
-	src/phantom_reasoner/grpo.py \
-	--config $GRPO_CONFIG_FILE_PATH \
+    src/phantom_reasoner/grpo.py \
+    --config $GRPO_CONFIG_FILE_PATH \
     $@
