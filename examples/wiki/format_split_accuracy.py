@@ -10,6 +10,8 @@ python format_split_accuracy.py -dd DATA_DIR -od OUTPUT_DIR --split SPLIT --data
 By default, DATA_DIR is `/share/nikola/phantom-reasoning/data`.
 """
 
+import os
+
 from tabulate import tabulate
 from utils.data_utils import get_parser
 
@@ -32,7 +34,7 @@ match dataset:
             "distractor",
             method,
         )
-        acc = df_preds.groupby(["_model", "_split", "_seed"])[["em", "f1", "prec", "recall"]].agg("mean")
+        metrics = ["em", "f1", "prec", "recall"]
     case "2wiki" | "2wiki500":
         from utils.evaluate_utils.evaluate_2wiki import get_preds
 
@@ -43,7 +45,7 @@ match dataset:
             split,
             method,
         )
-        acc = df_preds.groupby(["_model", "_split", "_seed"])[["em", "f1", "prec", "recall"]].agg("mean")
+        metrics = ["em", "f1", "prec", "recall"]
     case "msq" | "msq500":
         from utils.evaluate_utils.msq import get_preds
 
@@ -55,8 +57,41 @@ match dataset:
             False,
             method,
         )
-        acc = df_preds.groupby(["_model", "_split", "_seed"])[["em", "f1"]].agg("mean")
+        metrics = ["em", "f1"]
     case _:
         raise ValueError(f"Invalid dataset: {args.dataset}")
 
+df_preds["completion_tokens"] = df_preds["usage"].apply(lambda x: x["completion_tokens"])
+
+# Define aggregation functions
+agg_dict = {
+    **{metric: "mean" for metric in metrics},
+    "completion_tokens": [
+        "mean",
+        lambda x: x.quantile(0.5),
+        lambda x: x.quantile(0.75),
+        lambda x: x.quantile(0.90),
+        lambda x: x.quantile(0.95),
+        lambda x: x.quantile(0.99),
+    ],
+}
+
+acc = df_preds.groupby(["_model", "_split", "_seed"]).agg(agg_dict)
+
+# Flatten column names
+acc.columns = metrics + [
+    "completion_tokens_mean",
+    "completion_tokens_median",
+    "completion_tokens_75",
+    "completion_tokens_90",
+    "completion_tokens_95",
+    "completion_tokens_99",
+]
+
 print(tabulate(acc, headers="keys", tablefmt="github"))
+# save to csv
+scores_dir = os.path.join(output_dir, "scores")
+os.makedirs(scores_dir, exist_ok=True)
+scores_path = os.path.join(scores_dir, f"{dataset}_{split}_{method}.csv")
+acc.to_csv(scores_path)
+print(f"Saved scores to {scores_path}")
