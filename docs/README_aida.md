@@ -32,9 +32,6 @@ pre-commit install
 
 2. Set environment vars in the conda environment.
 
-> \[!NOTE\]
-> Home paths `~/` only have 25GB on Anvil, so it's extremely important that you set huggingface datasets, models, checkpoints to scratch. If anything needs to be shared (e.g. datasets), we save them to the shared directory. The conda and pip environments (folders `~/.conda/` and `~/.cache/pip`) will take up 10GB or so with just this 1 project.
-
 ```bash
 conda env config vars set WANDB_ENTITY="mlcore"
 conda env config vars set WANDB_ENTITY="mlcore"
@@ -53,7 +50,7 @@ conda activate $CONDA_ENV_NAME
 conda activate $CONDA_ENV # for sbatch to pull in user-defined env vars
 
 # Option 1: Interactive
-salloc -p ai --gres=gpu:a100:4 -n 16 -N 1 --mem=100GB -t 12:00:00
+salloc -p full --gres=gpu:a100:4 -n 16 -N 1 --mem=100GB -t 12:00:00
 # After getting an allocation:
 conda activate $CONDA_ENV_NAME
 
