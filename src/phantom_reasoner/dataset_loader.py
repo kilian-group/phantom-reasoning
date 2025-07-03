@@ -69,58 +69,82 @@ def get_openthoughts_dataset(skip_null_answers: bool = True, cache_dir: str = "c
     logger.info("Loading OpenThoughts dataset from source...")
     ds = load_dataset("open-thoughts/OpenThoughts3-1.2M", split="train")
     
-    def format_sample(sample: dict[str, Any]) -> dict[str, Any]:
-        """Format a single sample from the OpenThoughts dataset."""
-        conversations = sample["conversations"]
+    def format_sample_batch(batch: dict[str, Any]) -> dict[str, Any]:
+        """Format a batch of samples from the OpenThoughts dataset for better performance."""
+        conversations_list = batch["conversations"]
+        difficulties = batch["difficulty"]
         
-        # Convert conversations list to a single string
-        conversation_text = ""
-        for conv in conversations:
-            if isinstance(conv, dict):
-                # Handle dict format: {"from": "human", "value": "..."}
-                role = conv.get("from", "unknown")
-                value = conv.get("value", "")
-                conversation_text += f"{role}: {value}\n"
-            elif isinstance(conv, str):
-                # Handle string format directly
-                conversation_text += conv + "\n"
+        prompts = []
+        answers = []
+        responses = []
+        has_answers = []
+        prompt_methods = []
         
-        # Extract the answer (everything between "**Final Answer**" and "</think>")
-        answer = extract_text_between_markers(conversation_text, "**Final Answer**", "</think>")
-        
-        # Extract the prompt (everything between "human:" and "gpt:")
-        prompt_text = extract_text_between_markers(conversation_text, "human:", "gpt:")
-        
-        # Extract the response (everything after "gpt:")
-        gpt_idx = conversation_text.find("gpt:")
-        if gpt_idx != -1:
-            response = conversation_text[gpt_idx + 4:].strip()
-        else:
-            response = ""
-        
-        # Format as conversational messages
-        prompt = [
-            {
-                "role": "user",
-                "content": prompt_text,
-            }
-        ]
+        for conversations, difficulty in zip(conversations_list, difficulties):
+            # Convert conversations list to a single string
+            conversation_text = ""
+            for conv in conversations:
+                if isinstance(conv, dict):
+                    # Handle dict format: {"from": "human", "value": "..."}
+                    role = conv.get("from", "unknown")
+                    value = conv.get("value", "")
+                    conversation_text += f"{role}: {value}\n"
+                elif isinstance(conv, str):
+                    # Handle string format directly
+                    conversation_text += conv + "\n"
+            
+            # Extract the answer (everything between "**Final Answer**" and "</think>")
+            answer = extract_text_between_markers(conversation_text, "**Final Answer**", "</think>")
+            
+            # Extract the prompt (everything between "human:" and "gpt:")
+            prompt_text = extract_text_between_markers(conversation_text, "human:", "gpt:")
+            
+            # Extract the response (everything after "gpt:")
+            gpt_idx = conversation_text.find("gpt:")
+            if gpt_idx != -1:
+                response = conversation_text[gpt_idx + 4:].strip()
+            else:
+                response = ""
+            
+            # Format as conversational messages
+            prompt = [
+                {
+                    "role": "user",
+                    "content": prompt_text,
+                }
+            ]
+            
+            prompts.append(prompt)
+            answers.append([answer])  # Wrap in list to match get_pw_dataset format
+            responses.append(response)
+            has_answers.append(bool(answer))
+            prompt_methods.append("zershot")  # placeholder
         
         return {
-            "prompt": prompt,
-            "answer": [answer],  # Wrap in list to match get_pw_dataset format
-            "prompt_method": "zershot",  # placeholder
-            "difficulty": sample["difficulty"],
-            "response": response,
-            "has_answer": bool(answer),  # Flag to indicate if answer was found
+            "prompt": prompts,
+            "answer": answers,
+            "prompt_method": prompt_methods,
+            "difficulty": difficulties,
+            "response": responses,
+            "has_answer": has_answers,
         }
     
-    # Apply formatting to all samples
-    formatted_dataset = ds.map(format_sample)
+    # Apply formatting to all samples with batched processing for better performance
+    formatted_dataset = ds.map(
+        format_sample_batch,
+        batched=True,  # Process in batches for better performance
+        batch_size=1000,  # Process 1000 samples at a time
+        num_proc=4,  # Use 4 processes for parallel processing
+        desc="Formatting OpenThoughts samples"
+    )
     
     # Filter out samples without answers only if skip_null_answers is True
     if skip_null_answers:
-        formatted_dataset = formatted_dataset.filter(lambda x: x["has_answer"], desc="Filtering samples without answers")
+        formatted_dataset = formatted_dataset.filter(
+            lambda x: x["has_answer"], 
+            desc="Filtering samples without answers",
+            num_proc=4  # Use multiprocessing for filtering too
+        )
         # Remove the has_answer field since it's no longer needed
         formatted_dataset = formatted_dataset.remove_columns(["has_answer"])
     
