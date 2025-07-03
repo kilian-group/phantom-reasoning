@@ -48,6 +48,7 @@ from trl import (
 
 from phantom_reasoner.configs import GRPOConfig
 from phantom_reasoner.utils import exp_utils
+from phantom_reasoner.dataset_loader import get_openthoughts_dataset
 
 logger = logging.getLogger(__name__)
 
