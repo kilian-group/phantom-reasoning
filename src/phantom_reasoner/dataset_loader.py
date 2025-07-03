@@ -39,9 +39,12 @@ def extract_text_between_markers(text: str, start_marker: str, end_marker: str) 
     return text[start_idx:end_idx].strip()
 
 
-def get_openthoughts_dataset() -> Dataset:
+def get_openthoughts_dataset(skip_null_answers: bool = True) -> Dataset:
     """
     Load and format the OpenThoughts dataset to match the format expected by GRPO training.
+    
+    Args:
+        skip_null_answers: If True, skip samples that don't have answers. If False, include all samples.
     
     Returns:
         Dataset with fields: prompt, answer, prompt_method, difficulty
@@ -56,8 +59,8 @@ def get_openthoughts_dataset() -> Dataset:
         # Extract the answer (everything between "**Final Answer**" and "</think>")
         answer = extract_text_between_markers(conversation, "**Final Answer**", "</think>")
         
-        # Skip samples where no answer is found
-        if not answer:
+        # Skip samples where no answer is found (if skip_null_answers is True)
+        if skip_null_answers and not answer:
             return None
         # https://huggingface.co/datasets/open-thoughts/OpenThoughts3-1.2M/discussions/3
         
@@ -87,8 +90,12 @@ def get_openthoughts_dataset() -> Dataset:
             "response": response,
         }
     
-    # Apply formatting to all samples and filter out None values
-    formatted_dataset = ds.map(format_sample).filter(lambda x: x is not None)
+    # Apply formatting to all samples
+    formatted_dataset = ds.map(format_sample)
+    
+    # Filter out None values only if skip_null_answers is True
+    if skip_null_answers:
+        formatted_dataset = formatted_dataset.filter(lambda x: x is not None)
     
     logger.info(f"Loaded OpenThoughts dataset with {len(formatted_dataset)} samples")
     
