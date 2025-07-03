@@ -52,25 +52,32 @@ def get_openthoughts_dataset(skip_null_answers: bool = True) -> Dataset:
     logger.info("Loading OpenThoughts dataset...")
     ds = load_dataset("open-thoughts/OpenThoughts3-1.2M", split="train")
     
-    def format_sample(sample: dict[str, Any]) -> dict[str, Any] | None:
+    def format_sample(sample: dict[str, Any]) -> dict[str, Any]:
         """Format a single sample from the OpenThoughts dataset."""
-        conversation = sample["conversations"]
+        conversations = sample["conversations"]
+        
+        # Convert conversations list to a single string
+        conversation_text = ""
+        for conv in conversations:
+            if isinstance(conv, dict):
+                # Handle dict format: {"from": "human", "value": "..."}
+                role = conv.get("from", "unknown")
+                value = conv.get("value", "")
+                conversation_text += f"{role}: {value}\n"
+            elif isinstance(conv, str):
+                # Handle string format directly
+                conversation_text += conv + "\n"
         
         # Extract the answer (everything between "**Final Answer**" and "</think>")
-        answer = extract_text_between_markers(conversation, "**Final Answer**", "</think>")
-        
-        # Skip samples where no answer is found (if skip_null_answers is True)
-        if skip_null_answers and not answer:
-            return None
-        # https://huggingface.co/datasets/open-thoughts/OpenThoughts3-1.2M/discussions/3
+        answer = extract_text_between_markers(conversation_text, "**Final Answer**", "</think>")
         
         # Extract the prompt (everything between "human:" and "gpt:")
-        prompt_text = extract_text_between_markers(conversation, "human:", "gpt:")
+        prompt_text = extract_text_between_markers(conversation_text, "human:", "gpt:")
         
         # Extract the response (everything after "gpt:")
-        gpt_idx = conversation.find("gpt:")
+        gpt_idx = conversation_text.find("gpt:")
         if gpt_idx != -1:
-            response = conversation[gpt_idx + 4:].strip()
+            response = conversation_text[gpt_idx + 4:].strip()
         else:
             response = ""
         
@@ -88,14 +95,17 @@ def get_openthoughts_dataset(skip_null_answers: bool = True) -> Dataset:
             "prompt_method": "zershot",  # placeholder
             "difficulty": sample["difficulty"],
             "response": response,
+            "has_answer": bool(answer),  # Flag to indicate if answer was found
         }
     
     # Apply formatting to all samples
     formatted_dataset = ds.map(format_sample)
     
-    # Filter out None values only if skip_null_answers is True
+    # Filter out samples without answers only if skip_null_answers is True
     if skip_null_answers:
-        formatted_dataset = formatted_dataset.filter(lambda x: x is not None)
+        formatted_dataset = formatted_dataset.filter(lambda x: x["has_answer"], desc="Filtering samples without answers")
+        # Remove the has_answer field since it's no longer needed
+        formatted_dataset = formatted_dataset.remove_columns(["has_answer"])
     
     logger.info(f"Loaded OpenThoughts dataset with {len(formatted_dataset)} samples")
     
