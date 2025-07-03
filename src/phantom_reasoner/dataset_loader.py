@@ -6,6 +6,8 @@ to be compatible with the GRPO training pipeline.
 """
 
 import logging
+import os
+import pickle
 import re
 from typing import Any
 
@@ -39,17 +41,32 @@ def extract_text_between_markers(text: str, start_marker: str, end_marker: str) 
     return text[start_idx:end_idx].strip()
 
 
-def get_openthoughts_dataset(skip_null_answers: bool = True) -> Dataset:
+def get_openthoughts_dataset(skip_null_answers: bool = True, cache_dir: str = "cache") -> Dataset:
     """
     Load and format the OpenThoughts dataset to match the format expected by GRPO training.
     
     Args:
         skip_null_answers: If True, skip samples that don't have answers. If False, include all samples.
+        cache_dir: Directory to store cached datasets. If None, no caching is used.
     
     Returns:
         Dataset with fields: prompt, answer, prompt_method, difficulty
     """
-    logger.info("Loading OpenThoughts dataset...")
+    # Create cache directory if it doesn't exist
+    if cache_dir:
+        os.makedirs(cache_dir, exist_ok=True)
+        cache_file = os.path.join(cache_dir, f"openthoughts_skip_null_{skip_null_answers}.pkl")
+        
+        # Try to load from cache first
+        if os.path.exists(cache_file):
+            logger.info(f"Loading OpenThoughts dataset from cache: {cache_file}")
+            try:
+                with open(cache_file, 'rb') as f:
+                    return pickle.load(f)
+            except Exception as e:
+                logger.warning(f"Failed to load from cache: {e}. Rebuilding dataset...")
+    
+    logger.info("Loading OpenThoughts dataset from source...")
     ds = load_dataset("open-thoughts/OpenThoughts3-1.2M", split="train")
     
     def format_sample(sample: dict[str, Any]) -> dict[str, Any]:
@@ -108,5 +125,15 @@ def get_openthoughts_dataset(skip_null_answers: bool = True) -> Dataset:
         formatted_dataset = formatted_dataset.remove_columns(["has_answer"])
     
     logger.info(f"Loaded OpenThoughts dataset with {len(formatted_dataset)} samples")
+    
+    # Save to cache if cache_dir is specified
+    if cache_dir:
+        logger.info(f"Saving OpenThoughts dataset to cache: {cache_file}")
+        try:
+            with open(cache_file, 'wb') as f:
+                pickle.dump(formatted_dataset, f)
+            logger.info("Dataset cached successfully")
+        except Exception as e:
+            logger.warning(f"Failed to save to cache: {e}")
     
     return formatted_dataset 
