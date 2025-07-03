@@ -49,12 +49,17 @@ def get_openthoughts_dataset() -> Dataset:
     logger.info("Loading OpenThoughts dataset...")
     ds = load_dataset("open-thoughts/OpenThoughts3-1.2M", split="train")
     
-    def format_sample(sample: dict[str, Any]) -> dict[str, Any]:
+    def format_sample(sample: dict[str, Any]) -> dict[str, Any] | None:
         """Format a single sample from the OpenThoughts dataset."""
         conversation = sample["conversations"]
         
         # Extract the answer (everything between "**Final Answer**" and "</think>")
         answer = extract_text_between_markers(conversation, "**Final Answer**", "</think>")
+        
+        # Skip samples where no answer is found
+        if not answer:
+            return None
+        # https://huggingface.co/datasets/open-thoughts/OpenThoughts3-1.2M/discussions/3
         
         # Extract the prompt (everything between "human:" and "gpt:")
         prompt_text = extract_text_between_markers(conversation, "human:", "gpt:")
@@ -82,8 +87,8 @@ def get_openthoughts_dataset() -> Dataset:
             "response": response,
         }
     
-    # Apply formatting to all samples
-    formatted_dataset = ds.map(format_sample)
+    # Apply formatting to all samples and filter out None values
+    formatted_dataset = ds.map(format_sample).filter(lambda x: x is not None)
     
     logger.info(f"Loaded OpenThoughts dataset with {len(formatted_dataset)} samples")
     
