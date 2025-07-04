@@ -6,15 +6,24 @@ To understand the lighteval CLI, please run:
 lighteval vllm --help
 ```
 
+**Relevant vLLM parameters:**
+
+- `--output-dir`: Output directory for evaluation results. \[default: results\]
+- `--save-details`: save a parquet file containing sample-by-sample details.
+
 ## GSM8K
 
-To run GSM8K with 4 few-shot examples, please use the following command:
+To evaluate Qwen3 on GSM8K with 4 few-shot examples, please use the following command:
 
 ```bash
-lighteval vllm model_configs/qwen3.yaml "lighteval|gsm8k|4|0" --save-details --use-chat-template
+# 0.6B model
+lighteval vllm model_configs/qwen3-0.6b.yaml "lighteval|gsm8k|4|0" --use-chat-template --save-details
+# 1.7B model
+lighteval vllm model_configs/qwen3-1.7b.yaml "lighteval|gsm8k|4|0" --use-chat-template --save-details
 ```
 
 > \[!IMPORTANT\]
 > The `--use-chat-template` flag is essential for eliciting normal behavior from instruction-tuned models.
 
-The `--save-details` flag tells lighteval to save a parquet file containing sample-by-sample details.
+> \[!IMPORTANT\]
+> When using a local model with vLLM, "model_name" in the yaml config must be an absolute path.
