@@ -14,9 +14,7 @@ if [ -z "$CONDA_ENV_NAME" ]; then
     CONDA_ENV_NAME="phantom-reasoning"
 fi
 
-conda activate $CONDA_ENV_NAME
-
-echo $(which python)
+source $HOME/.bashrc
 
 # First argument should be path to the accelerate config file
 # Second argument should be the path to the training config file
@@ -36,6 +34,36 @@ NUM_PROCESSES=$((NUM_GPUS - 1))
 
 # Get the model name from config file
 MODEL_NAME=$(grep "model_name_or_path" $GRPO_CONFIG_FILE_PATH | cut -d '"' -f 2)
+MAX_PROMPT_LEN=$(grep "max_prompt_length" $GRPO_CONFIG_FILE_PATH | cut -d ':' -f 2 | tr -d ' ')
+MAX_COMPLETION_LEN=$(grep "max_completion_length" $GRPO_CONFIG_FILE_PATH | cut -d ':' -f 2 | tr -d ' ')
+MAX_MODEL_LEN=$(($MAX_PROMPT_LEN + $MAX_COMPLETION_LEN))
+
+# Add "--enable_reasoning" and "--reasoning_parser deepseek-r1" flags if model name starts with:
+# - Qwen/Qwen3
+if [[ "$MODEL_NAME" == Qwen/Qwen3* ]]; then
+    echo "-------------------------------"
+    echo "Enabling reasoning for model $MODEL_NAME"
+    echo "-------------------------------"
+    # Set reasoning_parser to deepseek-r1
+    vllm_serve_reasoning_flags="--enable_reasoning --reasoning_parser deepseek_r1"
+else
+    echo "-------------------------------"
+    echo "Not enabling reasoning for model $MODEL_NAME"
+    echo "-------------------------------"
+    vllm_serve_reasoning_flags=""
+fi
+
+echo "-------------------------------"
+echo "Starting VLLM server of model $MODEL_NAME on GPU 0"
+echo "-------------------------------"
+# Route the stdout and stderr to /dev/null to avoid cluttering the logs
+# src/phantom_reasoner/scripts/custom_trl_vllm_serve.py is a copy of trl vllm-serve
+# but allows us to pass the reasoning flags
+CUDA_VISIBLE_DEVICES=0 python src/phantom_reasoner/scripts/custom_trl_vllm_serve.py \
+    --model "$MODEL_NAME" \
+    --max_model_len $MAX_MODEL_LEN \
+    $vllm_serve_reasoning_flags \
+    > /dev/null 2>&1 &
 
 # Get CUDA visible devices as 1,...,NUM_GPUS-1 (0 indexing, and first one is reserved for vllm)
 CUDA_DEVICES_TRAINING=$(seq -s, 1 $((NUM_GPUS - 1)))
@@ -60,3 +88,8 @@ CUDA_VISIBLE_DEVICES=$CUDA_DEVICES_TRAINING ACCELERATE_LOG_LEVEL=info accelerate
     src/phantom_reasoner/grpo.py \
     --config $GRPO_CONFIG_FILE_PATH \
     $@
+
+echo "-------------------------------"
+echo "Killing VLLM server"
+echo "-------------------------------"
+pkill -e -f vllm

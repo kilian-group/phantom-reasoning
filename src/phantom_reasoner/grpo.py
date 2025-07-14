@@ -38,7 +38,6 @@ from transformers import (
 )
 from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR, get_last_checkpoint
 from trl import (
-    GRPOTrainer,
     ModelConfig,
     ScriptArguments,
     TrlParser,
@@ -47,6 +46,7 @@ from trl import (
 )
 
 from phantom_reasoner.configs import GRPOConfig
+from phantom_reasoner.trainers.custom_grpo_trainer import CustomGRPOTrainer
 from phantom_reasoner.utils import exp_utils
 
 logger = logging.getLogger(__name__)
@@ -314,6 +314,10 @@ class PhantomEvalCallback(TrainerCallback):
             *self.script_args.eval_split_list,
             "--inf_vllm_tensor_parallel_size",
             "1",
+            "--inf_vllm_max_model_len",
+            str(
+                args.max_prompt_length + args.max_completion_length
+            ),  # eval should use the same max prompt length as training
             "-od",
             eval_out_dir,
         ]
@@ -421,7 +425,7 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         quantization_config=get_quantization_config(model_args) if model_args.use_peft else None,
     )
     logger.info(f"*** Model kwargs: {model_kwargs} ***")
-    # NOTE: GRPOTrainer does not prepare model for kbit training,
+    # NOTE: CustomGRPOTrainer does not prepare model for kbit training,
     # so we do it outside of the trainer manually
     # Reference: https://huggingface.co/docs/peft/en/developer_guides/quantization
     model = AutoModelForCausalLM.from_pretrained(
@@ -437,8 +441,10 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         model = get_peft_model(model, lora_config)
 
     # Instantiate the trainer
-    callbacks: list[TrainerCallback] = [PhantomEvalCallback(script_args)]
-    trainer = GRPOTrainer(
+    # TODO: disable PhantomEvalCallback for now, since it slows down training
+    # callbacks: list[TrainerCallback] = [PhantomEvalCallback(script_args)]
+    callbacks: list[TrainerCallback] = []
+    trainer = CustomGRPOTrainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
