@@ -1,4 +1,4 @@
-# Setup instructions for Anvil Purdue
+# Setup instructions for AIDA
 
 We run all these commands from the root of this repository `./phantom-reasoning/` (and not `./docs/` for instance).
 
@@ -54,14 +54,12 @@ salloc -p full --gres=gpu:a100:4 -n 16 -N 1 --mem=100GB -t 12:00:00
 # After getting an allocation:
 conda activate $CONDA_ENV_NAME
 
-# the anvil config scripts should also work on aida
-
-./scripts/aida/train_grpo.sh \
+./scripts/aida/train_grpo__vllm_server.sh \
     recipes/accelerate_configs/zero1.yaml \
-    recipes/Qwen/Qwen3-1.7B/grpo/config_anvil.yaml
+    recipes/Qwen/Qwen3-1.7B/grpo/config_4gpu__vllm_server.yaml
 
 # Option 2: Batch job
-sbatch scripts/anvil/train_grpo.sh \
+sbatch scripts/aida/train_grpo__vllm_server.sh \
     recipes/accelerate_configs/zero1.yaml \
-    recipes/Qwen/Qwen3-1.7B/grpo/config_anvil.yaml
+    recipes/Qwen/Qwen3-1.7B/grpo/config_4gpu__vllm_server.yaml
 ```

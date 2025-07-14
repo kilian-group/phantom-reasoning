@@ -76,12 +76,12 @@ module load conda
 ./scripts/anvil/load_modules_cuda.sh
 conda activate $CONDA_ENV_NAME
 
-./scripts/anvil/train_grpo.sh \
+./scripts/anvil/train_grpo__vllm_server.sh \
     recipes/accelerate_configs/zero1.yaml \
-    recipes/Qwen/Qwen3-1.7B/grpo/config_anvil.yaml
+    recipes/Qwen/Qwen3-1.7B/grpo/config_4gpu__vllm_server.yaml
 
 # Option 2: Batch job
-sbatch -A $ANVIL_PROJECT_ID-ai scripts/anvil/train_grpo.sh \
+sbatch -A $ANVIL_PROJECT_ID-ai scripts/anvil/train_grpo__vllm_server.sh \
     recipes/accelerate_configs/zero1.yaml \
-    recipes/Qwen/Qwen3-1.7B/grpo/config_anvil.yaml
+    recipes/Qwen/Qwen3-1.7B/grpo/config_4gpu__vllm_server.yaml
 ```

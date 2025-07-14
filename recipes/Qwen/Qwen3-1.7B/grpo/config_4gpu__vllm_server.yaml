@@ -36,8 +36,8 @@ vllm_mode: "server"
 
 # size_25 universe is about 5000 tokens, so we set the max length to 6000
 max_prompt_length: 6000
-# Should be divisble by number of GPUs. AIDA has 4 GPUs on a node, and we use 3 for training to reserve
-# one for evaluation.
+# Should be divisble by number of GPUs. 4 GPUs on a node, and we use 3 for training to reserve
+# one for vllm generation.
 num_generations: 3
 max_completion_length: 4096
 
