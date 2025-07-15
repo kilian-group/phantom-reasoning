@@ -25,6 +25,11 @@ from phantom_eval.prompts import COT_EXAMPLES, CoTLLMPrompt, ZeroshotLLMPrompt
 from phantom_eval.utils import load_data, setup_logging
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.trainer_utils import get_last_checkpoint
+
+# Fix for GRPOTrainer._get_train_sampler
+# def _fixed_get_train_sampler(self, train_dataset, _=None):
+#     from transformers.trainer import Trainer
+#     return Trainer._get_train_sampler(self, train_dataset)
 from trl import (
     GRPOTrainer,
     ModelConfig,
@@ -36,6 +41,9 @@ from trl import (
 
 from phantom_reasoner.configs import GRPOConfig
 from phantom_reasoner.utils.score import answer_sep, exact_match, f1, precision, recall
+
+# GRPOTrainer._get_train_sampler = _fixed_get_train_sampler
+
 
 logger = logging.getLogger(__name__)
 

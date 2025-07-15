@@ -42,3 +42,4 @@ report_to:
 save_strategy: "no"
 seed: 42
 warmup_ratio: 0.1
+dataset_test_split: "test"

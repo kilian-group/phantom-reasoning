@@ -24,10 +24,10 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
-# vllm 0.8.1 is required, o.w. trl vllm-serve is buggy: https://github.com/huggingface/trl/issues/3142
+# vllm 0.8.2 is required, o.w. trl vllm-serve is buggy: https://github.com/huggingface/trl/issues/3142
 dependencies = [
     "torch",
-    "vllm==0.8.1",
+    "vllm==0.8.2",
     "deepspeed",
     "trl[vllm]",
     "accelerate",

@@ -53,6 +53,7 @@ class ScriptArguments:
     method: str  # method to filter by
     split: str  # split to filter by
     model_name: str  # model_name to filter by
+    dataset_test_split: str = "test"
 
 
 def get_data_by_split_model(data_dir: str, method: str, split: str, model_name: str):
@@ -207,7 +208,7 @@ def main(script_args, training_args, model_args):
         # HACK: currently we use the train set from train_test_split() as the train split
         train_dataset=dataset["train"],
         # HACK: currently we use the test set from train_test_split() as the eval set
-        eval_dataset=dataset["test"],
+        # eval_dataset=dataset["test"],
         # train_dataset=dataset[script_args.dataset_train_split],
         eval_dataset=(
             dataset[script_args.dataset_test_split] if training_args.eval_strategy != "no" else None

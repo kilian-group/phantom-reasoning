@@ -180,4 +180,7 @@ out*
 logs/
 runs/
 data/
+evals/
 nohup.out
+logs/
+models/
