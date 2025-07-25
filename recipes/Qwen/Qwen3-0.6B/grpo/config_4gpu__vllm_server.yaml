@@ -56,6 +56,5 @@ logging_steps: 100
 # save_steps is also when PW eval is run on the saved ckpt
 save_strategy: "steps"
 save_steps: 100
-save_total_limit: 5
 log_completions: true
 num_completions_to_print: 0 # don't print completions to stdout

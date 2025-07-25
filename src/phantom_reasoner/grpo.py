@@ -16,6 +16,7 @@ import shutil
 import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Literal
 
 import torch
@@ -363,6 +364,26 @@ class PhantomEvalCallback(TrainerCallback):
         return env
 
 
+class DeleteAllButLastOptimizerCheckpointCallback(TrainerCallback):
+    """Callback to delete all optimizer states except the last checkpoint."""
+
+    def on_save(self, args: GRPOConfig, state: TrainerState, control: TrainerControl, **kwargs):
+        # Delete all optimizer checkpoints except the last one
+        glob_checkpoints = [
+            str(x) for x in Path(args.output_dir).glob(f"{PREFIX_CHECKPOINT_DIR}-*") if os.path.isdir(x)
+        ]
+        last_checkpoint = str(Path(args.output_dir).joinpath(f"{PREFIX_CHECKPOINT_DIR}-{state.global_step}"))
+        for checkpoint in glob_checkpoints:
+            if checkpoint != last_checkpoint:
+                # Delete optimizer state in directory checkpoint/global_step*
+                glob_optimizer_states = [str(x) for x in Path(checkpoint).glob("global_step*")]
+                for optimizer_state in glob_optimizer_states:
+                    logger.info(f"Deleting optimizer state {optimizer_state}")
+                    shutil.rmtree(optimizer_state, ignore_errors=True)
+
+        return control
+
+
 def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, model_args: ModelConfig) -> None:
     """Training script for the GRPO model using Zeroshot prompt from PhantomEval.
 
@@ -441,9 +462,7 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         model = get_peft_model(model, lora_config)
 
     # Instantiate the trainer
-    # TODO: disable PhantomEvalCallback for now, since it slows down training
-    # callbacks: list[TrainerCallback] = [PhantomEvalCallback(script_args)]
-    callbacks: list[TrainerCallback] = []
+    callbacks: list[TrainerCallback] = [DeleteAllButLastOptimizerCheckpointCallback()]
     trainer = CustomGRPOTrainer(
         model=model,
         args=training_args,

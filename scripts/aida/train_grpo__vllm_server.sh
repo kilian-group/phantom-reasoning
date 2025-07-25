@@ -87,7 +87,7 @@ CUDA_VISIBLE_DEVICES=$CUDA_DEVICES_TRAINING ACCELERATE_LOG_LEVEL=info accelerate
     --config_file $ACCELERATE_CONFIG_FILE_PATH \
     src/phantom_reasoner/grpo.py \
     --config $GRPO_CONFIG_FILE_PATH \
-    $@
+    $cmd_args
 
 echo "-------------------------------"
 echo "Killing VLLM server"
