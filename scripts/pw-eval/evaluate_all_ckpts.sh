@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Script to run PW evaluation on all checkpoints of the specified directory
-# Usage: ./scripts/pw_eval/evaluate_all_ckpts.sh <path_to_checkpoint_parent_dir>
+# Usage: ./scripts/pw-eval/evaluate_all_ckpts.sh <path_to_checkpoint_parent_dir>
 
 if [ "$#" -ne 1 ]; then
     echo "Usage: $0 <path_to_checkpoint_parent_dir>"

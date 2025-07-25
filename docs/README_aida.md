@@ -34,7 +34,6 @@ pre-commit install
 
 ```bash
 conda env config vars set WANDB_ENTITY="mlcore"
-conda env config vars set WANDB_ENTITY="mlcore"
 conda env config vars set WANDB_PROJECT="phantom-reasoning"
 conda env config vars set CONDA_ENV_NAME=$CONDA_ENV_NAME # so the env name is available automatically when activated
 

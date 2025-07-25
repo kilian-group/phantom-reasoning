@@ -32,13 +32,13 @@ num_train_epochs: 1
 per_device_train_batch_size: 1
 gradient_accumulation_steps: 1
 use_vllm: true
-vllm_mode: "server"
+vllm_mode: "colocate"
+vllm_gpu_memory_utilization: 0.15
 
 # size_25 universe is about 5000 tokens, so we set the max length to 6000
 max_prompt_length: 6000
-# Should be divisble by number of GPUs. 4 GPUs on a node, and we use 3 for training to reserve
-# one for vllm generation.
-num_generations: 3
+# Should be divisble by number of GPUs.
+num_generations: 4
 max_completion_length: 4096
 
 # Evaluation config
