@@ -175,10 +175,11 @@ cython_debug/
 .editorconfig
 
 # Custom
-cachedir/
+cachedir
 out*
-logs/
-runs/
+logs
+runs
 data
-data/
+eval
 nohup.out
+*.zip
