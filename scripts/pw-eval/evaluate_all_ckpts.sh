@@ -22,7 +22,7 @@ do
     if [ -d "$ckpt" ]; then
         echo "Evaluating checkpoint: $ckpt"
         # Run the evaluation script, assuming it is named evaluate.py and takes the checkpoint path as an argument
-        CUDA_VISIBLE_DEVICES=0 python -m phantom_eval \
+        CUDA_VISIBLE_DEVICES=1 python -m phantom_eval \
             --method cot \
             --server vllm \
             --inf_vllm_offline \
