@@ -420,8 +420,13 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
     # )
 
     # Load tokenizer
+    # Set padding side to left for GRPO. If we don't create tokenizer here, the GRPOTrainer will create it
+    # and set padding_side="left". So we do it here with other kwargs.
     tokenizer = AutoTokenizer.from_pretrained(
-        model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code, use_fast=True
+        model_args.model_name_or_path,
+        trust_remote_code=model_args.trust_remote_code,
+        use_fast=True,
+        padding_side="left",
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token

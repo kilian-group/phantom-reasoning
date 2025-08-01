@@ -29,6 +29,8 @@ git clone git@github.com:anmolkabra/phantom-reasoning.git
 cd phantom-reasoning
 pip install -e ".[dev]"
 
+pip install flash-attn --no-build-isolation
+
 pre-commit install
 ```
 
