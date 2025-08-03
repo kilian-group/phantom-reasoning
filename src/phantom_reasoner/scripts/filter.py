@@ -4,20 +4,24 @@ Notes:
   - Make sure to not add a slash at the end of `traces-path`
   - Ensure that `traces-path` folder starts with "out-v"
 Example usage:
-  - python -m phantom_reasoner.scripts.filter --metric f1 --threshold 0.9 --traces-path "/share/nikola/phantom-wiki/eval/out-v05-0222"
-  - This will filter traces based on the given metric and threshold, e.g. f1>=0.9, and will save the results to
-  the output path, in this case "/share/nikola/phantom-wiki/eval/out-v05-0222-filtered-f1-above-0.9", and mimic the json file structure.
+```bash
+python -m phantom_reasoner.scripts.filter \
+    --metric f1 \
+    --threshold 0.9 \
+    --traces-path "/share/nikola/phantom-wiki/eval/out-v05-0222"
+```
+This will filter traces based on the given metric and threshold, e.g. f1>=0.9,
+and will save the results to the output path, in this case
+"/share/nikola/phantom-wiki/eval/out-v05-0222-filtered-f1-above-0.9",
+and mimic the json file structure.
 """
 
 import argparse
 import json
-
-# Importing all libraries
 import os
 
+from phantom_eval.score import exact_match, f1, precision, recall
 from tqdm import tqdm
-
-from phantom_reasoner.utils.score import exact_match, f1, precision, recall
 
 
 def filter_traces(prediction_dir, metric, threshold=1):
@@ -38,7 +42,8 @@ def filter_traces(prediction_dir, metric, threshold=1):
         The evaluation metric to use. Must be one of:
         - "f1": F1 score (harmonic mean of precision and recall)
         - "recall": Recall score (ratio of correctly predicted positive observations to all actual positives)
-        - "precision": Precision score (ratio of correctly predicted positive observations to total predicted positives)
+        - "precision": Precision score (ratio of correctly predicted positive observations to total predicted
+            positives)
         - "em": Exact match (binary score: 1 if prediction exactly matches ground truth, 0 otherwise)
 
     threshold : float, default=1

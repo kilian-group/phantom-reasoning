@@ -21,35 +21,56 @@ fi
 ACCELERATE_CONFIG_FILE_PATH=$1
 GRPO_CONFIG_FILE_PATH=$2
 
+
 source /share/apps/anaconda3/2021.05/etc/profile.d/conda.sh
 conda activate phantom-reasoning
 
-export WANDB_DISABLED=true
-
 # export WANDB_ENTITY=yilunyin
-# export WANDB_PROJECT=grpo1
-# export WANDB_MODE=online
+export WANDB_PROJECT=grpo_gsm
+export WANDB_MODE=online
 
+# export PYTHONPATH=/home/yy958/phantom-wiki/phantom-reasoning/src:$PYTHONPATH
 # Get NUM_GPUS from nvidia-smi. It repeats the number of GPUs a few times, take the first one.
 NUM_GPUS=$(nvidia-smi --query-gpu=count --format=csv,noheader,nounits | head -n 1)
 
 # --use_vllm reserves 1 GPU for generation, so then set NUM_PROCESSES=NUM_GPUS-1
-NUM_PROCESSES=$((NUM_GPUS))
+NUM_PROCESSES=$((NUM_GPUS-1))
 
 # Get the model name from config file
 MODEL_NAME=$(grep "model_name_or_path" $GRPO_CONFIG_FILE_PATH | cut -d '"' -f 2)
 
-# echo "-------------------------------"
-# echo "Starting VLLM server of model $MODEL_NAME on GPU $((NUM_GPUS - 1))"
-# echo "-------------------------------"
-# # Route the stdout in the background with nohup running in the background
-# CUDA_VISIBLE_DEVICES=$((NUM_GPUS - 1)) nohup \
-#     trl vllm-serve \
-#     --model "$MODEL_NAME" \
-#     --tensor-parallel-size 1 &
+echo "-------------------------------"
+echo "Starting VLLM server of model $MODEL_NAME on GPU $((NUM_GPUS - 1))"
+echo "-------------------------------"
+# Route the stdout in the background with nohup running in the background
+# export OPENAI_API_KEY="EMPTY"
+
+
+# echo "Detecting available network interfaces..."
+
+# AVAILABLE_IFNAME=$(ip -o link show | awk -F': ' '{print $2}' | grep -Ev 'lo|docker|virbr|br-|veth' | head -n 1)
+
+# if [ -z "$AVAILABLE_IFNAME" ]; then
+#     echo "❌ No valid network interface found. Exiting."
+#     exit 1
+# else
+#     echo "✅ Detected interface: $AVAILABLE_IFNAME"
+#     export NCCL_SOCKET_IFNAME=$AVAILABLE_IFNAME
+# fi
+
+# export NCCL_DEBUG=WARN
+# export NCCL_PORTS="50000-50010"
+# export NCCL_P2P_DISABLE=1
+
+# activate vLLM server
+CUDA_VISIBLE_DEVICES=$((NUM_GPUS - 1)) nohup \
+    trl vllm-serve \
+    --model Qwen/Qwen3-0.6B \
+    --tensor-parallel-size 1 \
+    &> logs/vllm_qwen3-0.6b.log &
 
 # Get CUDA visible devices as 0,...,NUM_GPUS-2 (0 indexing, and last one is reserved for vllm)
-CUDA_DEVICES_TRAINING=$(seq -s, 0 $((NUM_GPUS - 1)))
+CUDA_DEVICES_TRAINING=$(seq -s, 0 $((NUM_GPUS - 2)))
 
 # Get additional arguments
 shift 2
@@ -65,14 +86,13 @@ echo "- training config=$GRPO_CONFIG_FILE_PATH"
 echo "- on GPUs $CUDA_DEVICES_TRAINING"
 echo "-------------------------------"
 
-
-# export WANDB_PROJECT="grpo1"
 CUDA_VISIBLE_DEVICES=$CUDA_DEVICES_TRAINING ACCELERATE_LOG_LEVEL=info accelerate launch \
     --num_processes=$NUM_PROCESSES \
     --config_file $ACCELERATE_CONFIG_FILE_PATH \
 	src/phantom_reasoner/grpo_gsm.py \
 	--config $GRPO_CONFIG_FILE_PATH \
-    $@
+    $@ \
+    2>&1 | tee logs/train-$SLURM_JOB_ID.log
 
 echo "-------------------------------"
 echo "Killing VLLM server"

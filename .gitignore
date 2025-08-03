@@ -179,6 +179,7 @@ cachedir/
 out*
 logs/
 runs/
+data
 data/
 evals/
 nohup.out

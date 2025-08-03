@@ -6,6 +6,11 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal
 
+# from peft import get_peft_model, prepare_model_for_kbit_training
+from phantom_eval.constants import answer_sep
+from phantom_eval.score import exact_match, f1, precision
+from phantom_eval.utils import setup_logging
+
 PRINT_SAMPLE_PROB = 0.01  # Probability to print sample prompts for debugging
 
 import torch
@@ -15,10 +20,8 @@ from datasets import (  # For loading and combining JSONL datasets
     load_dataset,
 )
 from peft import get_peft_model, prepare_model_for_kbit_training
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, set_seed
 from transformers.trainer_utils import get_last_checkpoint
-
-# Import GRPOTrainer and related classes from TRL (TRL library for RL fine-tuning)
 from trl import (
     GRPOTrainer,
     ModelConfig,
@@ -30,7 +33,7 @@ from trl import (
 
 # Optionally import Phantom-Reasoner metrics if available (for reward calculation)
 from phantom_reasoner.configs import GRPOConfig
-from phantom_reasoner.utils.score import answer_sep, exact_match, f1, precision
+from phantom_reasoner.utils import exp_utils
 
 # Removed phantom_eval imports, since we will handle prompts and parsing manually for GSM-Infinite
 # from phantom_eval.agents.common import get_all_evidence
@@ -311,6 +314,7 @@ class GRPOScriptArguments(ScriptArguments):
     eval_dataset_path: str = (
         ""  # Path for evaluation dataset (could be same as train path or a different subset)
     )
+    run_dir: str = ""
     eval_difficulty_list: list[str] = field(default_factory=lambda: [])
     # Reward and prompting settings
     reward_func_names: list[str] = field(default_factory=lambda: ["f1"])
@@ -496,12 +500,22 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         trainer.push_to_hub()
 
 
-# Entry point: parse arguments and start training
 if __name__ == "__main__":
     parser = TrlParser((GRPOScriptArguments, GRPOConfig, ModelConfig))
     script_args, training_args, model_args = parser.parse_args_and_config()
-    # Setup logging level
-    logging_level = training_args.log_level.upper() if hasattr(training_args, "log_level") else "INFO"
-    logging.basicConfig(level=logging_level)
-    # Begin training
+    setup_logging(training_args.log_level.upper())
+    set_seed(training_args.seed)
+
+    run_flags_str = f"curr={script_args.data_curriculum}__prompt={script_args.prompt_method}"
+    run_name: str = exp_utils.get_run_name(
+        training_algo_name="grpo",
+        script_args=script_args,
+        model_args=model_args,
+        run_flags_str=run_flags_str,
+    )
+    training_args.run_name = run_name
+    # output_dir = RUN_BASE_DIR environment variable + run_name
+    training_args.output_dir = os.path.join(os.environ.get("RUN_BASE_DIR", "."), run_name)
+    os.makedirs(training_args.output_dir, exist_ok=True)
+
     train_grpo(script_args, training_args, model_args)

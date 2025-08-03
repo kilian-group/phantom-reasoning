@@ -32,8 +32,6 @@ packing: true
 max_seq_length: 4096
 max_steps: -1
 num_train_epochs: 1
-output_dir: data/qwen2.5-1.5b-instruct-PR-distill
-overwrite_output_dir: true
 per_device_eval_batch_size: 2
 per_device_train_batch_size: 2
 push_to_hub: false

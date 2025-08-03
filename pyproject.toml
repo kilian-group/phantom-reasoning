@@ -28,15 +28,17 @@ classifiers = [
 dependencies = [
     "torch",
     "vllm==0.8.2",
+    "vllm",
     "deepspeed",
     "trl[vllm]",
+    "transformers",
     "accelerate",
     "datasets",
     "peft",
     "huggingface_hub[cli]",
-    "phantom-wiki[eval]",
     "lighteval[math]",
     "wandb",
+    "ujson", # needed for HotPotQA evaluation
 ]
 
 [project.optional-dependencies]
