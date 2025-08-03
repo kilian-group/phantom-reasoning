@@ -1,0 +1,63 @@
+# Script config
+dataset_name: "data/wiki-v1-easy-depth_20_size_25"
+split_list:
+  [
+    "depth_20_size_25_seed_11",
+    "depth_20_size_25_seed_12",
+    "depth_20_size_25_seed_13",
+    "depth_20_size_25_seed_14",
+    "depth_20_size_25_seed_15",
+    "depth_20_size_25_seed_16",
+    "depth_20_size_25_seed_17",
+    "depth_20_size_25_seed_18",
+    "depth_20_size_25_seed_19",
+    "depth_20_size_25_seed_20",
+  ]
+from_local: true
+eval_dataset_name: "data/wiki-v1-easy-depth_20_size_25"
+eval_split_list: ["depth_20_size_25_seed_2"]
+eval_from_local: true
+reward_func_names: ["f1"]
+data_curriculum: "random"
+prompt_method: "cot"
+
+# Model arguments
+model_name_or_path: "Qwen/Qwen3-1.7B"
+ignore_think_tags_in_outputs: true
+bf16: true
+torch_dtype: bfloat16
+attn_implementation: "flash_attention_2" # Use flash attention for better performance
+gradient_checkpointing: true # Enable gradient checkpointing for memory efficiency, automatically sets `use_cache=False`
+
+# Trainer arguments
+num_train_epochs: 1
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 1
+use_vllm: true
+vllm_mode: "colocate"
+vllm_gpu_memory_utilization: 0.20
+generation_kwargs: {}
+
+# size_25 universe is about 5000 tokens, so we set the max length to 6000
+max_prompt_length: 6000
+# Should be divisble by number of GPUs.
+num_generations: 4
+max_completion_length: 4096
+
+# Evaluation config
+bf16_full_eval: true
+eval_on_start: false
+eval_strategy: "steps"
+eval_steps: 100
+per_device_eval_batch_size: 8
+
+# Logging config
+log_level: "info"
+logging_strategy: "steps"
+logging_first_step: true
+logging_steps: 100
+# save_steps is also when PW eval is run on the saved ckpt
+save_strategy: "steps"
+save_steps: 100
+log_completions: true
+num_completions_to_print: 0 # don't print completions to stdout

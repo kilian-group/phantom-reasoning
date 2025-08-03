@@ -15,34 +15,35 @@ split_list:
   ]
 from_local: true
 eval_dataset_name: "data/wiki-v1-easy-depth_20_size_25"
-eval_split_list: ["depth_20_size_25_seed_1"]
+eval_split_list: ["depth_20_size_25_seed_2"]
 eval_from_local: true
 reward_func_names: ["f1"]
 data_curriculum: "random"
 prompt_method: "cot"
 
 # Model arguments
-model_name_or_path: "Qwen/Qwen3-1.7B"
-ignore_think_tags_in_outputs: true # Qwen3 models produce <think> tags in outputs, which we ignore for reward
+model_name_or_path: "Qwen/Qwen2.5-0.5B-Instruct"
+ignore_think_tags_in_outputs: false # Qwen2.5 models do not produce <think> tags in outputs, so no need to ignore
 bf16: true
 torch_dtype: bfloat16
 
 # Trainer arguments
 num_train_epochs: 1
-per_device_train_batch_size: 4
+per_device_train_batch_size: 1
 gradient_accumulation_steps: 1
-use_vllm: false
-# size_25 universe is about 2500 tokens, so we set the max length to 4096
-max_prompt_length: 4096
-# Should be divisble by number of GPUs. Anvil has 4 GPUs on a node, and we use 3 for training to reserve
-# one for evaluation.
-num_generations: 6
-# TODO: potentially increase this for longer outputs (needed for higher diff questions)
-max_completion_length: 512
+use_vllm: true
+vllm_mode: "server"
+
+# size_25 universe is about 5000 tokens, so we set the max length to 6000
+max_prompt_length: 6000
+# Should be divisble by number of GPUs. 4 GPUs on a node, and we use 3 for training to reserve
+# one for vllm generation.
+num_generations: 3
+max_completion_length: 4096
 
 # Evaluation config
 bf16_full_eval: true
-eval_on_start: false
+eval_on_start: true
 eval_strategy: "steps"
 eval_steps: 100
 per_device_eval_batch_size: 8

@@ -175,10 +175,10 @@ cython_debug/
 .editorconfig
 
 # Custom
-cachedir/
+cachedir
 out*
-logs/
-runs/
+logs
+runs
 data
 data/
 evals/
