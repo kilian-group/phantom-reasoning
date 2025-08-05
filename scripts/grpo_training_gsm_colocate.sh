@@ -62,7 +62,7 @@ echo "-------------------------------"
 CUDA_VISIBLE_DEVICES=$CUDA_DEVICES_TRAINING ACCELERATE_LOG_LEVEL=info accelerate launch \
     --num_processes=$NUM_PROCESSES \
     --config_file $ACCELERATE_CONFIG_FILE_PATH \
-	src/phantom_reasoner/grpo_gsm.py \
+	src/phantom_reasoner/grpo.py \
 	--config $GRPO_CONFIG_FILE_PATH \
     $@ \
     2>&1 | tee logs/train-$SLURM_JOB_ID.log
