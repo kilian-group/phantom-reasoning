@@ -1,12 +1,24 @@
 # Setup instructions for Anvil Purdue
 
-We run all these commands from the root of this repository `./phantom-reasoning/` (and not `./docs/` for instance).
+We run all these commands from the root of this repository `./phantom-reasoning/` (and not `./docs/` for 
+instance).
 
-1. First, install the conda environment. The Anvil cluster provides shared conda installation, which we recommend over installing your own personal conda (Anmol: there were issues with python paths with personal conda installations).
+## Installing Conda environment and dependencies 
+
+The Anvil cluster provides shared conda installation, which we recommend over installing your own personal 
+conda (Anmol: there were issues with python paths with personal conda installations).
 
 ```bash
 module load conda
 ./scripts/anvil/load_modules_cuda.sh
+```
+Since these need to be run on every startup and on getting a node allocation, these could also be added to 
+`.bashrc`:
+
+```bash
+echo "module load conda" >> ~/.bashrc
+echo "module load modtree/gpu" >> ~/.bashrc
+echo "module load cuda/12.0.1" >> ~/.bashrc
 ```
 
 Now follow the instructions in [README.md] to install the repository in development mode.
@@ -22,14 +34,10 @@ conda activate $CONDA_ENV_NAME
 
 conda install conda-forge::swi-prolog
 
-# Install phantom-wiki and phantom-reasoning in editable modes
-git clone git@github.com:kilian-group/phantom-wiki.git
-cd phantom-wiki
-pip install -e ".[eval]"
+# If need an editable version add as a submodule
+pip install phantom-wiki[eval]
 
-cd ..
-git clone git@github.com:anmolkabra/phantom-reasoning.git
-cd phantom-reasoning
+# Install phantom-reasoning in editable mode
 pip install -e ".[dev]"
 
 pip install flash-attn --no-build-isolation
@@ -37,13 +45,16 @@ pip install flash-attn --no-build-isolation
 pre-commit install
 ```
 
-2. Set environment vars in the conda environment.
+## Setting environment variables
 
 > \[!NOTE\]
-> Home paths `~/` only have 25GB on Anvil, so it's extremely important that you set huggingface datasets, models, checkpoints to scratch. If anything needs to be shared (e.g. datasets), we save them to the shared directory. The conda and pip environments (folders `~/.conda/` and `~/.cache/pip`) will take up 10GB or so with just this 1 project.
+> Home paths `~/` only have 25GB on Anvil, so it's extremely important that you set huggingface datasets, 
+> models, checkpoints to scratch. If anything needs to be shared (e.g. datasets), we save them to the shared 
+> directory. The conda and pip environments (folders `~/.conda/` and `~/.cache/pip`) will take up 10GB or so 
+> with just this 1 project.
 
 ```bash
-conda env config vars set ANVIL_PROJECT_ID="ai250102"
+conda env config vars set ANVIL_PROJECT_ID="nairr250102"
 conda env config vars set RUN_BASE_DIR="$SCRATCH/phantom-reasoning/"
 conda env config vars set WANDB_ENTITY="mlcore"
 conda env config vars set WANDB_PROJECT="phantom-reasoning"
@@ -54,18 +65,23 @@ conda deactivate
 conda activate $CONDA_ENV_NAME
 ```
 
-3. Setup wandb login: `wandb login` and paste the API key from the `mlcore` organization. Contact Anmol if you don't have access to the `mlcore` org.
+## Setting up Weights&Biases
 
-4. Create a symlink to the data, runs, and eval repositories and set up the output directory.
+Setup wandb login: `wandb login` and paste the API key from the `mlcore` organization. 
+Contact Anmol if you don't have access to the `mlcore` org.
+
+## Creating symlinks to the data and output folders
 
 ```bash
-ln -s /anvil/projects/$ANVIL_PROJECT_ID/phantom-reasoning/data .
-ln -s /anvil/projects/$ANVIL_PROJECT_ID/phantom-reasoning/runs .
-ln -s /anvil/projects/$ANVIL_PROJECT_ID/phantom-reasoning/eval .
+ln -s /anvil/projects/x-$ANVIL_PROJECT_ID/phantom-reasoning/data .
+ln -s /anvil/projects/x-$ANVIL_PROJECT_ID/phantom-reasoning/runs .
+ln -s /anvil/projects/x-$ANVIL_PROJECT_ID/phantom-reasoning/eval .
 mkdir $RUN_BASE_DIR
 ```
 
-5. Run a GRPO experiment on Qwen3-1.7B model:
+## Running experiments
+
+For a GRPO experiment on Qwen3-1.7B model:
 
 ```bash
 module load conda
