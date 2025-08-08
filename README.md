@@ -19,14 +19,9 @@ conda install conda-forge::swi-prolog
 # or on mac:
 brew install swi-prolog
 
-# Install phantom-wiki and phantom-reasoning in editable modes
-git clone git@github.com:kilian-group/phantom-wiki.git
-cd phantom-wiki
-pip install -e ".[eval]"
+# If need an editable version add as a submodule
+pip install phantom-wiki[eval]
 
-cd ..
-git clone git@github.com:anmolkabra/phantom-reasoning.git
-cd phantom-reasoning
 pip install -e ".[dev]"
 
 pip install flash-attn --no-build-isolation
@@ -41,8 +36,10 @@ pre-commit install
 
 PhantomWiki paper used 3\*3 evaluation splits on Huggingface at `"kilian-group/phantom-wiki-v1"`: `depth_20_size_{50,500,5000}_seed_{1,2,3}`.
 
-**NOTE**: For this project, we are using smaller universes, easy mode, no aggregation questions.
-These are the easiest settings, due to small context length requirements for LLMs and easy questions, hence low GPU loads.
+> \[!NOTE\]
+> For this project, we are using smaller universes, easy mode, no aggregation questions.
+> These are the easiest settings, due to small context length requirements for LLMs and easy questions,
+> hence low GPU loads.
 
 Concretely, we will use splits `depth_20_size_25_seed_*` created with `--easy-mode`.
 We reserve seeds 1 through 10 for evaluation.
@@ -63,7 +60,9 @@ cd ..
 ## Training on PhantomWiki data
 
 > \[!NOTE\]
-> If you are in multiple projects in the `mlcore` org, you will also need to set the `WANDB_PROJECT` environment variable. You can automatically load environment variables when your conda environment activates:
+> If you are in multiple projects in the `mlcore` org, you will also need to set the `WANDB_PROJECT`
+> environment variable. You can automatically load environment variables when your conda environment
+> activates:
 >
 > ```bash
 > conda env config vars set WANDB_ENTITY="mlcore"
@@ -142,7 +141,7 @@ Checkpoints are saved at `runs/Qwen/Qwen2.5-1.5B-Instruct/sft_on_docs/$USER/MMDD
 
 ## PhantomWiki evaluation
 
-Since `phantom-wiki[eval]` is installed from github source, run the evaluation module like so:
+Since `phantom-wiki[eval]` is installed from GitHub source, run the evaluation module like so:
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python -m phantom_eval \
