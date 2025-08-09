@@ -85,7 +85,7 @@ For a GRPO experiment on Qwen3-1.7B model:
 
 ```bash
 module load conda
-conda activate $CONDA_ENV # to get ANVIL_PROJECT_ID variable
+conda activate $CONDA_ENV_NAME # to get ANVIL_PROJECT_ID variable
 
 # Option 1: Interactive
 salloc -A $ANVIL_PROJECT_ID-ai -p ai --gres=gpu:4 -n 16 -N 1 --mem=100GB -t 12:00:00
@@ -103,3 +103,12 @@ sbatch -A $ANVIL_PROJECT_ID-ai scripts/anvil/train_grpo__vllm_server.sh \
     recipes/accelerate_configs/zero1.yaml \
     recipes/Qwen/Qwen3-1.7B/grpo/config_4gpu__vllm_server.yaml
 ```
+
+Script for running the Llama model with the colocate setup
+
+```bash
+./scripts/anvil/train_grpo__vllm_colocate.sh \
+    recipes/accelerate_configs/zero1.yaml \
+    recipes/meta-llama/Llama-3.2-1B-Instruct/grpo/config_4gpu__vllm_colocate.yaml
+```
+
