@@ -38,13 +38,7 @@ from transformers import (
     set_seed,
 )
 from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR, get_last_checkpoint
-from trl import (
-    ModelConfig,
-    ScriptArguments,
-    TrlParser,
-    get_peft_config,
-    get_quantization_config,
-)
+from trl import ModelConfig, ScriptArguments, TrlParser, get_peft_config, get_quantization_config
 
 from phantom_reasoner.configs import GRPOConfig
 from phantom_reasoner.trainers.custom_grpo_trainer import CustomGRPOTrainer
@@ -260,7 +254,8 @@ def get_pw_dataset(script_args: GRPOScriptArguments, is_eval: bool) -> Dataset:
             dataset_name,
             split=split_name,
             from_local=from_local,
-            exclude_aggregation_questions=script_args.exclude_aggregation_questions,
+            # TODO handle unsupported flag
+            # exclude_aggregation_questions=script_args.exclude_aggregation_questions,
         )
         text_corpus: Dataset = dataset["text"]
         qa_pairs: Dataset = dataset["qa_pairs"]
