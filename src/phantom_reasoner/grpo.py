@@ -442,6 +442,13 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         if model_args.torch_dtype in ["auto", None]
         else getattr(torch, model_args.torch_dtype)
     )
+
+    # NOTE: If HOSTNAME is anvil, set attn_implemention to None
+    # This is because flash-attn==2.8.2 requires GLIBC 2.32, and Anvil has GLIBC 2.82
+    if "anvil" in os.environ.get("HOSTNAME", ""):
+        logger.info("*** Setting attn_implementation to None on Anvil ***")
+        model_args.attn_implementation = None
+
     model_kwargs = dict(
         revision=model_args.model_revision,
         trust_remote_code=model_args.trust_remote_code,
