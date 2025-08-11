@@ -183,3 +183,4 @@ data
 eval
 nohup.out
 *.zip
+*.sub

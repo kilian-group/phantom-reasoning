@@ -88,12 +88,15 @@ module load conda
 ./scripts/anvil/load_modules_cuda.sh
 conda activate $CONDA_ENV_NAME
 
-./scripts/aida/train_grpo__vllm_colocate.sh \
+./scripts/create_train_grpo__vlm_colocate.sh anvil
+
+./scripts/train_grpo__vllm_colocate.sub \
     recipes/accelerate_configs/zero1.yaml \
     recipes/Qwen/Qwen3-1.7B/grpo/config_4gpu__vllm_colocate.yaml
 
 # Option 2: Batch job
-sbatch -A nairr$ANVIL_PROJECT_ID-ai --mail-type=all --mail-user=$USER_EMAIL scripts/anvil/train_grpo__vllm_colocate.sh \
+./scripts/create_train_grpo__vlm_colocate.sh anvil
+sbatch scripts/train_grpo__vllm_colocate.sub \
     recipes/accelerate_configs/zero1.yaml \
     recipes/Qwen/Qwen3-1.7B/grpo/config_4gpu__vllm_colocate.yaml
 ```
