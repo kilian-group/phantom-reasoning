@@ -443,11 +443,19 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         else getattr(torch, model_args.torch_dtype)
     )
 
-    # NOTE: If HOSTNAME is anvil, set attn_implemention to None
+    # Get glibc version from ldd --version. If less than 2.32, set attn_implementation to None
     # This is because flash-attn==2.8.2 requires GLIBC 2.32, and Anvil has GLIBC 2.82
-    if "anvil" in os.environ.get("HOSTNAME", ""):
-        logger.info("*** Setting attn_implementation to None on Anvil ***")
-        model_args.attn_implementation = None
+    try:
+        glibc_version = (
+            subprocess.check_output(["ldd", "--version"]).decode("utf-8").split("\n")[0].split(" ")[-1]
+        )
+        logger.info(f"*** Available GLIBC version: {glibc_version}, required: 2.32 ***")
+        # glibc_version is like "2.28"
+        if float(glibc_version) < 2.32:
+            logger.info("*** Setting attn_implementation to None***")
+            model_args.attn_implementation = None
+    except Exception as e:
+        logger.warning(f"*** Error getting glibc version: {e} ***")
 
     model_kwargs = dict(
         revision=model_args.model_revision,
