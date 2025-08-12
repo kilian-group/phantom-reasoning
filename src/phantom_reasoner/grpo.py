@@ -12,6 +12,7 @@ Usage:
 
 import logging
 import os
+import re
 import shutil
 import subprocess
 from dataclasses import dataclass, field
@@ -20,7 +21,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import torch
-from datasets import Dataset, concatenate_datasets
+from datasets import Dataset, concatenate_datasets, load_dataset
 from peft import get_peft_model, prepare_model_for_kbit_training
 from phantom_eval.agents.common import get_all_evidence
 from phantom_eval.agents.cot import CoTAgent
@@ -172,6 +173,7 @@ def get_reward_func(reward_type_name: str) -> callable:
 @dataclass
 class GRPOScriptArguments(ScriptArguments):
     # Train dataset arguments
+    training_mode: Literal["pw", "gsminfinite"] = "pw"
     dataset_name: str = "kilian-group/phantom-wiki-v1"
     split_list: list[str] = field(
         default_factory=lambda: ["depth_20_size_50_seed_1", "depth_20_size_50_seed_2"]
@@ -181,6 +183,12 @@ class GRPOScriptArguments(ScriptArguments):
     eval_dataset_name: str = "kilian-group/phantom-wiki-v1"
     eval_split_list: str = field(default_factory=lambda: ["depth_20_size_50_seed_3"])
     eval_from_local: bool = False
+    # For GSM-Infinite training
+    train_dataset_path: str = "./data/gsm-infinite-train/zero_context/realistic"
+    difficulty_list: list[str] = field(default_factory=lambda: ["medium"])
+
+    eval_dataset_path: str = "./data/gsm-infinite-eval/zero_context/realistic"
+    eval_difficulty_list: list[str] = field(default_factory=lambda: ["medium"])
     # Script arguments
     run_dir: str = "runs"
     reward_func_names: list[str] = field(default_factory=lambda: ["f1"])
@@ -245,6 +253,18 @@ def get_prompt_for_sample(sample: dict[str, Any], evidence: str, prompt_method: 
 
 
 def get_pw_dataset(script_args: GRPOScriptArguments, is_eval: bool) -> Dataset:
+    if script_args.training_mode == "gsminfinite":
+        if is_eval:
+            base_path = script_args.eval_dataset_path
+            diff_list = script_args.eval_difficulty_list
+        else:
+            base_path = script_args.train_dataset_path
+            diff_list = script_args.difficulty_list
+        return get_gsminfinite_dataset(
+            base_path=base_path,
+            difficulty_list=diff_list,
+            prompt_method=script_args.prompt_method,
+        )
     if is_eval:
         dataset_name = script_args.eval_dataset_name
         split_list = script_args.eval_split_list
@@ -281,6 +301,74 @@ def get_pw_dataset(script_args: GRPOScriptArguments, is_eval: bool) -> Dataset:
         f"with {len(dataset)} samples."
     )
     return dataset
+
+
+def get_gsminfinite_dataset(
+    base_path: str, difficulty_list: list[str] = None, prompt_method: str = "cot"
+) -> Dataset:
+    if difficulty_list is None:
+        difficulty_list = [d for d in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, d))]
+
+    all_datasets = []
+    for diff in difficulty_list:
+        diff_dir = os.path.join(base_path, diff)
+        if not os.path.isdir(diff_dir):
+            continue
+
+        for op_subdir in os.listdir(diff_dir):
+            sub_dir_path = os.path.join(diff_dir, op_subdir)
+            if not os.path.isdir(sub_dir_path):
+                continue
+
+            for filename in os.listdir(sub_dir_path):
+                if not filename.endswith(".jsonl"):
+                    continue
+                jsonl_path = os.path.join(sub_dir_path, filename)
+                ds = load_dataset("json", data_files=jsonl_path, split="train")
+                ds = ds.map(
+                    lambda x: {
+                        "prompt": get_gsm_prompt_for_sample(x, prompt_method),
+                        "answer": extract_gsm_final_answer(x["solution"]),
+                        "answers": [extract_gsm_final_answer(x["solution"])],
+                        "prompt_method": prompt_method,
+                        "op": x.get("op", None),
+                        "template": x.get("template", None),
+                        "id": x.get("id", None),
+                    }
+                )
+                all_datasets.append(ds)
+
+    if len(all_datasets) == 0:
+        raise RuntimeError(
+            "No data loaded from GSM-Infinite. Please check the base_path and difficulty_list."
+        )
+
+    combined_dataset = concatenate_datasets(all_datasets)
+    return combined_dataset
+
+
+def extract_gsm_final_answer(solution: str) -> str:
+    match = re.search(r"Answer:\s*([^\n\.]*)", solution)
+    if match:
+        return match.group(1).strip()
+    return solution.strip()
+
+
+def get_gsm_prompt_for_sample(sample: dict[str, Any], prompt_method: str) -> list[dict[str, str]]:
+    problem = sample["problem"]
+    question = sample["question"]
+    if prompt_method == "zeroshot":
+        prompt_text = f"{problem}\nQuestion: {question}"
+    elif prompt_method == "cot":
+        prompt_text = (
+            f"{problem}\n"
+            f"Question: {question}\n"
+            f'Let\'s think step by step. Please conclude your answer in the form: "The answer is ...".'
+        )
+    else:
+        raise ValueError(f"Invalid prompt_method: {prompt_method}")
+
+    return [{"role": "user", "content": prompt_text}]
 
 
 class PhantomEvalCallback(TrainerCallback):
