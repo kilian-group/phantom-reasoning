@@ -37,7 +37,9 @@ pre-commit install
 > \[!NOTE\]
 > Albert: For reference, see [example-environment.yml](./example-environment.yml) for exact package versions.
 
-## PhantomWiki data
+## Training datasets
+
+### PhantomWiki data
 
 PhantomWiki paper used 3\*3 evaluation splits on Huggingface at `"kilian-group/phantom-wiki-v1"`: `depth_20_size_{50,500,5000}_seed_{1,2,3}`.
 
@@ -57,6 +59,19 @@ cp /share/nikola/phantom-wiki/data/wiki-v1-easy-depth_20_size_25.zip data/
 # To transfer to another cluster: scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-wiki/data/wiki-v1-easy-depth_20_size_25.zip data/
 cd data/
 unzip wiki-v1-easy-depth_20_size_25.zip
+cd ..
+```
+
+### GSM-infinite data
+
+We have generated GSM-infinite data and stored on G2. See `gsm_realistic/README.md` for instructions to generate your own data.
+
+```bash
+mkdir -p data/
+cp /share/nikola/phantom-reasoning/data/gsm-infinite.zip data/
+# To transfer to another cluster: scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/gsm-infinite.zip data/
+cd data/
+unzip gsm-infinite.zip
 cd ..
 ```
 
