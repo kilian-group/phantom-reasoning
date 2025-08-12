@@ -23,7 +23,7 @@ uv pip install -r requirements.txt
 And then we want to move the text into a specific location in `data/`.
 
 ```bash
-bash test_generate3.sh
+bash generate_data.sh
 
 mkdir -p data/gsm-infinite/zero_context/realistic
 cp -r gsm_realistic/Igsm/zero_context/medium/ data/gsm-infinite/zero_context/realistic/
