@@ -35,6 +35,7 @@ conda activate $CONDA_ENV_NAME
 conda install conda-forge::swi-prolog
 
 # If need an editable version add as a submodule
+# TODO this should be moved to pyproject.toml
 pip install phantom-wiki[eval]
 
 # Install phantom-reasoning in editable mode
@@ -110,5 +111,13 @@ Script for running the Llama model with the colocate setup
 ./scripts/anvil/train_grpo__vllm_colocate.sh \
     recipes/accelerate_configs/zero1.yaml \
     recipes/meta-llama/Llama-3.2-1B-Instruct/grpo/config_4gpu__vllm_colocate.yaml
+```
+
+For Gemma:
+
+```bash
+./scripts/anvil/train_grpo__vllm_colocate.sh \
+    recipes/accelerate_configs/zero1.yaml \
+    recipes/google/gemma-3-1b-it/grpo/config_4gpu__vllm_colocate.yaml
 ```
 

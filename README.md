@@ -11,8 +11,10 @@ From the root directory of this package:
 
 ```bash
 # Create new environment
-conda create -n phantom-reasoning python=3.12
-conda activate phantom-reasoning
+export CONDA_ENV_NAME="phantom-reasoning" # or whatever the name of your conda environment is
+
+conda create -n $CONDA_ENV_NAME python=3.12
+conda activate $CONDA_ENV_NAME
 
 # Install SWI-prolog. On linux:
 conda install conda-forge::swi-prolog
@@ -20,6 +22,7 @@ conda install conda-forge::swi-prolog
 brew install swi-prolog
 
 # If need an editable version add as a submodule
+# TODO otherwise this should be moved to pyproject.toml of phantom-reasoning
 pip install phantom-wiki[eval]
 
 pip install -e ".[dev]"
