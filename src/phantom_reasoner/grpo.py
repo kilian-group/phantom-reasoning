@@ -254,8 +254,7 @@ def get_pw_dataset(script_args: GRPOScriptArguments, is_eval: bool) -> Dataset:
             dataset_name,
             split=split_name,
             from_local=from_local,
-            # TODO handle unsupported flag
-            # exclude_aggregation_questions=script_args.exclude_aggregation_questions,
+            exclude_aggregation_questions=script_args.exclude_aggregation_questions,
         )
         text_corpus: Dataset = dataset["text"]
         qa_pairs: Dataset = dataset["qa_pairs"]
