@@ -180,7 +180,6 @@ out*
 logs
 runs
 data
-eval
 nohup.out
 *.zip
 *.sub

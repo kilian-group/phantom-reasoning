@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # NOTE: hacked together
 # Script to run the Qwen3 family of models on the PhantomWiki datasets
-# Usage: ./eval_grpo_on_pw.sh <output_dir>
+# Usage: ./scripts/eval/pw_eval_grpo.sh <output_dir>
 
 OUTPUT_DIR="out-0804"
 
