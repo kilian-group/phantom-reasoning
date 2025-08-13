@@ -2,7 +2,7 @@
 
 ## Setup instructions
 
-For cluster-specific instructions on AIDA and Anvil, please refer to \[docs/README_aida.md\] and \[docs/README_anvil.md\].
+Refer to cluster-specific instructions on [AIDA](docs/README_aida.md) and [Anvil](docs/README_anvil.md) and [Empire](docs/README_empire.md).
 
 ### Install `phantom-reasoning` in development mode
 
@@ -10,32 +10,32 @@ This repo uses external dependencies like SWI-Prolog.
 From the root directory of this package:
 
 ```bash
-# Create new environment
-conda create -n phantom-reasoning python=3.12
-conda activate phantom-reasoning
+# Assuming you are in ./phantom-reasoning git root repository
 
-# Install SWI-prolog. On linux:
+export CONDA_ENV_NAME="phantom-reasoning" # or whatever the name of your conda environment is
+
+conda create -n $CONDA_ENV_NAME
+conda activate $CONDA_ENV_NAME
+
+# Install SWI-prolog
 conda install conda-forge::swi-prolog
-# or on mac:
-brew install swi-prolog
+conda activate python=3.12
+pip install uv
 
 # Install phantom-wiki and phantom-reasoning in editable modes
 git clone git@github.com:kilian-group/phantom-wiki.git
 cd phantom-wiki
-pip install -e ".[eval]"
+uv pip install -e ".[eval]"
 
 cd ..
 git clone git@github.com:anmolkabra/phantom-reasoning.git
 cd phantom-reasoning
-pip install -e ".[dev]"
+uv pip install -e ".[dev]"
 
-pip install flash-attn --no-build-isolation
+uv pip install flash-attn --no-build-isolation
 
 pre-commit install
 ```
-
-> \[!NOTE\]
-> Albert: For reference, see [example-environment.yml](./example-environment.yml) for exact package versions.
 
 ## PhantomWiki data
 
@@ -78,13 +78,18 @@ Recommendations for GRPO fine-tuning a Qwen3-1.7B model:
   - `--gres=gpu:a100:4` on AIDA cluster.
   - `--gres=gpu:4` on Anvil cluster.
   - `--gres=gpu:a6000:4` on G2 cluster.
+  - `--gres=gpu:4` on Empire cluster.
 - `--mem=100GB` memory
 - `-n 8` cores
 - `-N 1` node
 - `-t 24:00:00` hours
 
 ```bash
-./scripts/aida/train_grpo__vllm_colocate.sh \
+conda activate $CONDA_ENV_NAME
+
+./scripts/create_train_grpo__vllm_colocate.sh <cluster_name>
+
+./scripts/train_grpo__vllm_colocate.sub \
 	/path/to/accelerate/config/file.yaml \
 	/path/to/training/config/file.yaml
 ```
@@ -93,7 +98,11 @@ For example, running the following command full-finetunes a Qwen/Qwen3-1.7B mode
 Checkpoints are saved at `runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags>/checkpoint-XX/`, and the final model is saved at `runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags>/`
 
 ```bash
-./scripts/aida/train_grpo__vllm_colocate.sh \
+conda activate $CONDA_ENV_NAME
+
+./scripts/create_train_grpo__vllm_colocate.sh anvil
+
+./scripts/train_grpo__vllm_colocate.sub \
 	recipes/accelerate_configs/zero1.yaml \
 	recipes/Qwen/Qwen3-1.7B/grpo/config_4gpu__vllm_colocate.yaml
 ```
