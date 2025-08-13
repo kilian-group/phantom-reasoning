@@ -88,7 +88,7 @@ module load conda
 ./scripts/anvil/load_modules_cuda.sh
 conda activate $CONDA_ENV_NAME
 
-./scripts/create_train_grpo__vlm_colocate.sh anvil
+./scripts/create_train_grpo__vllm_colocate.sh anvil
 
 ./scripts/train_grpo__vllm_colocate.sub \
     recipes/accelerate_configs/zero1.yaml \
