@@ -52,7 +52,7 @@ conda activate $CONDA_ENV_NAME
 4. Run a GRPO experiment on Qwen3-1.7B model:
 
 ```bash
-conda activate $CONDA_ENV # for sbatch to pull in user-defined env vars
+conda activate $CONDA_ENV_NAME # for sbatch to pull in user-defined env vars
 
 # Option 1: Interactive
 srun -A cornell -p cornell,priority --gres=gpu:4 -n 16 -N 1 --mem=100GB -t 12:00:00 --mail-type=all --mail-user=$USER_EMAIL --pty bash

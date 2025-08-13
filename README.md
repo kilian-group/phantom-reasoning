@@ -19,7 +19,7 @@ conda activate $CONDA_ENV_NAME
 
 # Install SWI-prolog
 conda install conda-forge::swi-prolog
-conda activate python=3.12
+conda install python=3.12
 pip install uv
 
 # Install phantom-wiki and phantom-reasoning in editable modes
@@ -186,9 +186,9 @@ python /path/to/phantom-wiki-installation/eval/format_leaderboard.py \
 Evaluate all training checkpoints on an evaluation split of PhantomWiki with:
 
 ```bash
-./scripts/eval/pw_eval_all_checkpoints.sh /path/to/checkpoint/parent
+./scripts/eval/pw_eval_all_ckpts.sh /path/to/checkpoint/parent
 # for example, for this Qwen3-0.6B trained model:
-./scripts/eval/pw_eval_all_checkpoints.sh runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot/
+./scripts/eval/pw_eval_all_ckpts.sh runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot
 ```
 
 Then we can produce how the model performance evolves as training progresses:
