@@ -67,9 +67,9 @@ if [[ "$CLUSTER_NAME" == "aida" ]]; then
     # If aida, no need to add anything
     echo "No sbatch -A information needed for AIDA"
 elif [[ "$CLUSTER_NAME" == "anvil" ]]; then
-    # If anvil, add SBATCH -A nairr$ANVIL_PROJECT_ID-ai
+    # If anvil, add SBATCH -A $ANVIL_PROJECT_ID-ai
     cat >> "$OUTPUT_FILE" << EOT
-#SBATCH -A nairr$ANVIL_PROJECT_ID-ai
+#SBATCH -A $ANVIL_PROJECT_ID-ai
 EOT
 elif [[ "$CLUSTER_NAME" == "empire" ]]; then
     # If empire, add SBATCH -A cornell
