@@ -183,12 +183,7 @@ class GRPOScriptArguments(ScriptArguments):
     eval_dataset_name: str = "kilian-group/phantom-wiki-v1"
     eval_split_list: str = field(default_factory=lambda: ["depth_20_size_50_seed_3"])
     eval_from_local: bool = False
-    # For GSM-Infinite training
-    train_dataset_path: str = "./data/gsm-infinite-train/zero_context/realistic"
-    difficulty_list: list[str] = field(default_factory=lambda: ["medium"])
 
-    eval_dataset_path: str = "./data/gsm-infinite-eval/zero_context/realistic"
-    eval_difficulty_list: list[str] = field(default_factory=lambda: ["medium"])
     # Script arguments
     run_dir: str = "runs"
     reward_func_names: list[str] = field(default_factory=lambda: ["f1"])
@@ -255,11 +250,11 @@ def get_prompt_for_sample(sample: dict[str, Any], evidence: str, prompt_method: 
 def get_pw_dataset(script_args: GRPOScriptArguments, is_eval: bool) -> Dataset:
     if script_args.training_mode == "gsminfinite":
         if is_eval:
-            base_path = script_args.eval_dataset_path
-            diff_list = script_args.eval_difficulty_list
+            base_path = script_args.eval_dataset_name
+            diff_list = script_args.eval_split_list
         else:
-            base_path = script_args.train_dataset_path
-            diff_list = script_args.difficulty_list
+            base_path = script_args.dataset_name
+            diff_list = script_args.split_list
         return get_gsminfinite_dataset(
             base_path=base_path,
             difficulty_list=diff_list,
