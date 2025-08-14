@@ -326,7 +326,7 @@ def get_gsminfinite_dataset(
                         "answer": extract_gsm_final_answer(x["solution"]),
                         "answers": [extract_gsm_final_answer(x["solution"])],
                         "prompt_method": prompt_method,
-                        "op": x.get("op", None),
+                        "difficulty": x.get("op", None),
                         "template": x.get("template", None),
                         "id": x.get("id", None),
                     }
