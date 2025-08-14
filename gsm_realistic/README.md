@@ -20,11 +20,20 @@ uv pip install -r requirements.txt
 ```
 
 3. Run data generation script. This will output the json files in `./Igsm/zero_context/medium/{op}/*.jsonl`.
-And then we want to move the text into a specific location in `data/`.
+   And then we want to move the text into a specific location in `data/`.
 
 ```bash
 bash generate_data.sh
 
 mkdir -p data/gsm-infinite/zero_context/realistic
 cp -r gsm_realistic/Igsm/zero_context/medium/ data/gsm-infinite/zero_context/realistic/
+```
+
+4. Copy the data splitting script to `data/` and run it.
+   This will split the generated data into training and evaluating dataset.
+
+```bash
+cp gsm_realistic/split_datasets.py data/
+cd data/
+python split_datasets.py
 ```
