@@ -298,9 +298,15 @@ def get_pw_dataset(script_args: GRPOScriptArguments, is_eval: bool) -> Dataset:
     return dataset
 
 
-def get_gsminfinite_dataset(
-    base_path: str, difficulty_list: list[str] = None, prompt_method: str = "cot"
-) -> Dataset:
+def get_gsminfinite_dataset(script_args: GRPOScriptArguments, is_eval: bool) -> Dataset:
+    if is_eval:
+        base_path = script_args.eval_dataset_name
+        difficulty_list = script_args.eval_split_list
+    else:
+        base_path = script_args.dataset_name
+        difficulty_list = script_args.split_list
+    prompt_method = script_args.prompt_method
+
     if difficulty_list is None:
         difficulty_list = [d for d in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, d))]
 
@@ -324,7 +330,6 @@ def get_gsminfinite_dataset(
                     lambda x: {
                         "prompt": get_gsm_prompt_for_sample(x, prompt_method),
                         "answer": extract_gsm_final_answer(x["solution"]),
-                        "answers": [extract_gsm_final_answer(x["solution"])],
                         "prompt_method": prompt_method,
                         "difficulty": x.get("op", None),
                         "template": x.get("template", None),
@@ -479,7 +484,11 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
     training_args.shuffle_dataset = False
 
     # Get train dataset and use a curriculum
-    train_dataset = get_pw_dataset(script_args, is_eval=False)
+    train_dataset = (
+        get_gsminfinite_dataset(script_args, is_eval=False)
+        if script_args.training_mode == "gsminfinite"
+        else get_pw_dataset(script_args, is_eval=False)
+    )
     train_dataset = arrange_dataset(train_dataset, script_args.data_curriculum, training_args.seed)
     logger.info(f"*** Arranged in curriculum={script_args.data_curriculum}.")
 
@@ -494,7 +503,11 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
     #     training_args.num_train_epochs = 1
 
     # Get eval dataset
-    eval_dataset = get_pw_dataset(script_args, is_eval=True)
+    eval_dataset = (
+        get_gsminfinite_dataset(script_args, is_eval=True)
+        if script_args.training_mode == "gsminfinite"
+        else get_pw_dataset(script_args, is_eval=True)
+    )
     # Count number of tokens in train dataset
     # NOTE: depth_20_size_50_seed_1 prompts have num_tokens ~ 4k
     # logger.info(
