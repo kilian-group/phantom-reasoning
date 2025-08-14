@@ -12,22 +12,24 @@ For convenience, we write them down here.
 
 export CONDA_ENV_NAME="phantom-reasoning" # or whatever the name of your conda environment is
 
-conda create -n $CONDA_ENV_NAME python=3.12
+conda create -n $CONDA_ENV_NAME
 conda activate $CONDA_ENV_NAME
 
 conda install conda-forge::swi-prolog
+conda install python=3.12
+pip install uv
 
 # Install phantom-wiki and phantom-reasoning in editable modes
 git clone git@github.com:kilian-group/phantom-wiki.git
 cd phantom-wiki
-pip install -e ".[eval]"
+uv pip install -e ".[eval]"
 
 cd ..
 git clone git@github.com:anmolkabra/phantom-reasoning.git
 cd phantom-reasoning
-pip install -e ".[dev]"
+uv pip install -e ".[dev]"
 
-pip install flash-attn --no-build-isolation
+uv pip install flash-attn --no-build-isolation
 
 pre-commit install
 ```
@@ -38,6 +40,7 @@ pre-commit install
 conda env config vars set WANDB_ENTITY="mlcore"
 conda env config vars set WANDB_PROJECT="phantom-reasoning"
 conda env config vars set CONDA_ENV_NAME=$CONDA_ENV_NAME # so the env name is available automatically when activated
+conda env config vars set USER_EMAIL="user@email.com" # for emailing when allocations become available
 
 conda deactivate
 conda activate $CONDA_ENV_NAME
@@ -48,19 +51,22 @@ conda activate $CONDA_ENV_NAME
 4. Run a GRPO experiment on Qwen3-1.7B model:
 
 ```bash
-conda activate $CONDA_ENV # for sbatch to pull in user-defined env vars
+conda activate $CONDA_ENV_NAME # for sbatch to pull in user-defined env vars
 
 # Option 1: Interactive
-salloc -p full --gres=gpu:a100:4 -n 16 -N 1 --mem=100GB -t 12:00:00
+salloc -p full --gres=gpu:a100:4 -n 16 -N 1 --mem=100GB -t 12:00:00 --mail-type=all --mail-user=$USER_EMAIL
+
 # After getting an allocation:
 conda activate $CONDA_ENV_NAME
 
-./scripts/aida/train_grpo__vllm_server.sh \
+./scripts/create_train_grpo__vllm_colocate.sh aida
+
+./scripts/train_grpo__vllm_colocate.sub \
     recipes/accelerate_configs/zero1.yaml \
-    recipes/Qwen/Qwen3-1.7B/grpo/config_4gpu__vllm_server.yaml
+    recipes/Qwen/Qwen3-1.7B/grpo/config_4gpu__vllm_colocate.yaml
 
 # Option 2: Batch job
-sbatch scripts/aida/train_grpo__vllm_server.sh \
+sbatch scripts/train_grpo__vllm_colocate.sub \
     recipes/accelerate_configs/zero1.yaml \
-    recipes/Qwen/Qwen3-1.7B/grpo/config_4gpu__vllm_server.yaml
+    recipes/Qwen/Qwen3-1.7B/grpo/config_4gpu__vllm_colocate.yaml
 ```
