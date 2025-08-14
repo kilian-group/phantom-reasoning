@@ -315,7 +315,7 @@ def get_gsminfinite_dataset(script_args: GRPOScriptArguments, is_eval: bool) -> 
                 ds = ds.map(
                     lambda x: {
                         "prompt": get_gsm_prompt_for_sample(x, prompt_method),
-                        "answer": extract_gsm_final_answer(x["solution"]),
+                        "answer": extract_gsm_final_answer_from_ground_truth(x["solution"]),
                         "prompt_method": prompt_method,
                         "difficulty": x.get("op", None),
                         "id": x.get("id", None),
@@ -332,11 +332,11 @@ def get_gsminfinite_dataset(script_args: GRPOScriptArguments, is_eval: bool) -> 
     return combined_dataset
 
 
-def extract_gsm_final_answer(solution: str) -> str:
+def extract_gsm_final_answer_from_ground_truth(solution: str) -> str:
     match = re.search(r"Answer:\s*([^\n\.]*)", solution)
     if match:
         return match.group(1).strip()
-    return solution.strip()
+    raise ValueError(f"No final answer found in solution: {solution}")
 
 
 def get_gsm_prompt_for_sample(sample: dict[str, Any], prompt_method: str) -> list[dict[str, str]]:
