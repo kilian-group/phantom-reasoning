@@ -10,6 +10,7 @@ Usage:
 ```
 """
 
+import glob
 import logging
 import os
 import re
@@ -248,18 +249,6 @@ def get_prompt_for_sample(sample: dict[str, Any], evidence: str, prompt_method: 
 
 
 def get_pw_dataset(script_args: GRPOScriptArguments, is_eval: bool) -> Dataset:
-    if script_args.training_mode == "gsminfinite":
-        if is_eval:
-            base_path = script_args.eval_dataset_name
-            diff_list = script_args.eval_split_list
-        else:
-            base_path = script_args.dataset_name
-            diff_list = script_args.split_list
-        return get_gsminfinite_dataset(
-            base_path=base_path,
-            difficulty_list=diff_list,
-            prompt_method=script_args.prompt_method,
-        )
     if is_eval:
         dataset_name = script_args.eval_dataset_name
         split_list = script_args.eval_split_list
@@ -321,18 +310,14 @@ def get_gsminfinite_dataset(script_args: GRPOScriptArguments, is_eval: bool) -> 
             if not os.path.isdir(sub_dir_path):
                 continue
 
-            for filename in os.listdir(sub_dir_path):
-                if not filename.endswith(".jsonl"):
-                    continue
-                jsonl_path = os.path.join(sub_dir_path, filename)
-                ds = load_dataset("json", data_files=jsonl_path, split="train")
+            for filename in glob.glob(os.path.join(sub_dir_path, "*.jsonl")):
+                ds = load_dataset("json", data_files=filename, split="train")
                 ds = ds.map(
                     lambda x: {
                         "prompt": get_gsm_prompt_for_sample(x, prompt_method),
                         "answer": extract_gsm_final_answer(x["solution"]),
                         "prompt_method": prompt_method,
                         "difficulty": x.get("op", None),
-                        "template": x.get("template", None),
                         "id": x.get("id", None),
                     }
                 )
