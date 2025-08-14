@@ -348,7 +348,7 @@ def get_gsm_prompt_for_sample(sample: dict[str, Any], prompt_method: str) -> lis
         prompt_text = (
             f"{problem}\n"
             f"Question: {question}\n"
-            f'Let\'s think step by step. Please conclude your answer in the form: "The answer is ...".'
+            f'Let\'s think step by step. Please conclude your answer in the form: "The answer is ".'
         )
     else:
         raise ValueError(f"Invalid prompt_method: {prompt_method}")
