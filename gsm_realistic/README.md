@@ -29,11 +29,9 @@ mkdir -p data/gsm-infinite/zero_context/realistic
 cp -r gsm_realistic/Igsm/zero_context/medium/ data/gsm-infinite/zero_context/realistic/
 ```
 
-4. Copy the data splitting script to `data/` and run it.
-   This will split the generated data into training and evaluating dataset.
+4. Run the data splitting script.
+   This will split the generated data in `data/gsm-infinite` into training and evaluating dataset.
 
 ```bash
-cp gsm_realistic/split_datasets.py data/
-cd data/
-python split_datasets.py
+python gsm_realistic/split_datasets.py --data_dir /data --seed 42
 ```
