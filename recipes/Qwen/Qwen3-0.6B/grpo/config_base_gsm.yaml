@@ -1,10 +1,10 @@
 # Script config
-train_dataset_path: "./data/gsm-infinite-train/zero_context/realistic"
+dataset_name: "./data/gsm-infinite-train/zero_context/realistic"
 training_mode: "gsminfinite"
-difficulty_list:
+split_list:
   - medium
-eval_dataset_path: "./data/gsm-infinite-eval/zero_context/realistic"
-eval_difficulty_list:
+eval_dataset_name: "./data/gsm-infinite-eval/zero_context/realistic"
+eval_split_list:
   - medium
 reward_func_names:
   - f1
