@@ -69,11 +69,12 @@ def format_pred(pred: str, prompt_method: str) -> str:
                 return pred
         case "cot":
             try:
-                # TODO partial reward for correct parsing but wrong values?
-                if "<think>" in pred:
-                    return CoTAgent.parse_thinking_answer(pred)
-                else:
-                    return CoTAgent.parse_answer(pred)
+                return CoTAgent.parse_answer(pred)
+                # # TODO partial reward for correct parsing but wrong values?
+                # if "<think>" in pred:
+                #     return CoTAgent.parse_thinking_answer(pred)
+                # else:
+                #     return CoTAgent.parse_answer(pred)
             except ValueError:
                 return ""
         case _:
