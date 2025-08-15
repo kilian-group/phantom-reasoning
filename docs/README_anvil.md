@@ -12,7 +12,7 @@ conda (Anmol: there were issues with python paths with personal conda installati
 module load conda
 ./scripts/anvil/load_modules_cuda.sh
 ```
-Since these need to be run on every startup and on getting a node allocation, these could also be added to 
+Since these need to be run on every startup and on getting a node allocation, consider adding them to 
 `.bashrc`:
 
 ```bash
@@ -33,15 +33,19 @@ conda create -n $CONDA_ENV_NAME python=3.12
 conda activate $CONDA_ENV_NAME
 
 conda install conda-forge::swi-prolog
+pip install uv
 
-# If need an editable version add as a submodule
 # TODO this should be moved to pyproject.toml
-pip install phantom-wiki[eval]
+uv pip install -e "/path/to/local/phantom-wiki[eval]"
 
-# Install phantom-reasoning in editable mode
-pip install -e ".[dev]"
+# Install phantom-reasoning in editable mode (assuming it's already cloned)
+uv pip install -e ".[dev]"
 
-pip install flash-attn --no-build-isolation
+# NOTE as of 2025-08-11: flash-attn does not seem to work on Anvil because of old GLIBC version 2.28
+# (flash-attn==2.8.2 requires GLIBC 2.32 or higher)
+# NOTE: installing flash-attn will require a GPU allocation
+# so skip to the end for getting an interactive GPU allocation to install flash-attn
+uv pip install flash-attn --no-build-isolation
 
 pre-commit install
 ```
@@ -56,11 +60,12 @@ pre-commit install
 
 ```bash
 conda env config vars set ANVIL_PROJECT_ID="nairr250102"
-conda env config vars set RUN_BASE_DIR="$SCRATCH/phantom-reasoning/"
+conda env config vars set RUN_BASE_DIR="$SCRATCH/phantom-reasoning"
 conda env config vars set WANDB_ENTITY="mlcore"
 conda env config vars set WANDB_PROJECT="phantom-reasoning"
 conda env config vars set HF_HOME="$SCRATCH/huggingface"
 conda env config vars set CONDA_ENV_NAME=$CONDA_ENV_NAME # so the env name is available automatically when activated
+conda env config vars set USER_EMAIL="user@email.com" # for emailing when allocations become available
 
 conda deactivate
 conda activate $CONDA_ENV_NAME
@@ -74,10 +79,11 @@ Contact Anmol if you don't have access to the `mlcore` org.
 ## Creating symlinks to the data and output folders
 
 ```bash
+# Shared data
 ln -s /anvil/projects/x-$ANVIL_PROJECT_ID/phantom-reasoning/data .
-ln -s /anvil/projects/x-$ANVIL_PROJECT_ID/phantom-reasoning/runs .
-ln -s /anvil/projects/x-$ANVIL_PROJECT_ID/phantom-reasoning/eval .
-mkdir $RUN_BASE_DIR
+# Experiment runs in scratch, not shared
+mkdir -p $RUN_BASE_DIR/runs
+ln -s $RUN_BASE_DIR/runs .
 ```
 
 ## Running experiments
@@ -89,20 +95,24 @@ module load conda
 conda activate $CONDA_ENV_NAME # to get ANVIL_PROJECT_ID variable
 
 # Option 1: Interactive
-salloc -A $ANVIL_PROJECT_ID-ai -p ai --gres=gpu:4 -n 16 -N 1 --mem=100GB -t 12:00:00
+salloc -A $ANVIL_PROJECT_ID-ai -p ai --gres=gpu:4 -n 16 -N 1 --mem=100GB -t 12:00:00 --mail-type=all --mail-user=$USER_EMAIL
+
 # After getting an allocation:
 module load conda
 ./scripts/anvil/load_modules_cuda.sh
 conda activate $CONDA_ENV_NAME
 
-./scripts/anvil/train_grpo__vllm_server.sh \
+./scripts/create_train_grpo__vllm_colocate.sh anvil
+
+./scripts/train_grpo__vllm_colocate.sub \
     recipes/accelerate_configs/zero1.yaml \
-    recipes/Qwen/Qwen3-1.7B/grpo/config_4gpu__vllm_server.yaml
+    recipes/Qwen/Qwen3-1.7B/grpo/config_4gpu__vllm_colocate.yaml
 
 # Option 2: Batch job
-sbatch -A $ANVIL_PROJECT_ID-ai scripts/anvil/train_grpo__vllm_server.sh \
+./scripts/create_train_grpo__vlm_colocate.sh anvil
+sbatch scripts/train_grpo__vllm_colocate.sub \
     recipes/accelerate_configs/zero1.yaml \
-    recipes/Qwen/Qwen3-1.7B/grpo/config_4gpu__vllm_server.yaml
+    recipes/Qwen/Qwen3-1.7B/grpo/config_4gpu__vllm_colocate.yaml
 ```
 
 Script for running the Llama model with the colocate setup

@@ -2,7 +2,7 @@
 
 ## Setup instructions
 
-For cluster-specific instructions on AIDA and Anvil, please refer to \[docs/README_aida.md\] and \[docs/README_anvil.md\].
+Refer to cluster-specific instructions on [AIDA](docs/README_aida.md) and [Anvil](docs/README_anvil.md) and [Empire](docs/README_empire.md).
 
 ### Install `phantom-reasoning` in development mode
 
@@ -10,30 +10,23 @@ This repo uses external dependencies like SWI-Prolog.
 From the root directory of this package:
 
 ```bash
-# Create new environment
 export CONDA_ENV_NAME="phantom-reasoning" # or whatever the name of your conda environment is
 
 conda create -n $CONDA_ENV_NAME python=3.12
 conda activate $CONDA_ENV_NAME
+pip install uv
 
-# Install SWI-prolog. On linux:
+# Install SWI-prolog
 conda install conda-forge::swi-prolog
-# or on mac:
-brew install swi-prolog
 
-# If need an editable version add as a submodule
-# TODO otherwise this should be moved to pyproject.toml of phantom-reasoning
-pip install phantom-wiki[eval]
+# Install phantom-wiki and phantom-reasoning in editable modes
+# TODO track a particular branch via submodule/dependency once stable
+uv pip install -e "/full/path/to/local/phantom-wiki[eval]"
+uv pip install -e ".[dev]"
 
-pip install -e ".[dev]"
-
-pip install flash-attn --no-build-isolation
-
+uv pip install flash-attn --no-build-isolation
 pre-commit install
 ```
-
-> \[!NOTE\]
-> Albert: For reference, see [example-environment.yml](./example-environment.yml) for exact package versions.
 
 ## PhantomWiki data
 
@@ -80,13 +73,18 @@ Recommendations for GRPO fine-tuning a Qwen3-1.7B model:
   - `--gres=gpu:a100:4` on AIDA cluster.
   - `--gres=gpu:4` on Anvil cluster.
   - `--gres=gpu:a6000:4` on G2 cluster.
+  - `--gres=gpu:4` on Empire cluster.
 - `--mem=100GB` memory
 - `-n 8` cores
 - `-N 1` node
 - `-t 24:00:00` hours
 
 ```bash
-./scripts/aida/train_grpo__vllm_colocate.sh \
+conda activate $CONDA_ENV_NAME
+
+./scripts/create_train_grpo__vllm_colocate.sh <cluster_name>
+
+./scripts/train_grpo__vllm_colocate.sub \
 	/path/to/accelerate/config/file.yaml \
 	/path/to/training/config/file.yaml
 ```
@@ -95,7 +93,11 @@ For example, running the following command full-finetunes a Qwen/Qwen3-1.7B mode
 Checkpoints are saved at `runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags>/checkpoint-XX/`, and the final model is saved at `runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags>/`
 
 ```bash
-./scripts/aida/train_grpo__vllm_colocate.sh \
+conda activate $CONDA_ENV_NAME
+
+./scripts/create_train_grpo__vllm_colocate.sh anvil
+
+./scripts/train_grpo__vllm_colocate.sub \
 	recipes/accelerate_configs/zero1.yaml \
 	recipes/Qwen/Qwen3-1.7B/grpo/config_4gpu__vllm_colocate.yaml
 ```
@@ -144,7 +146,7 @@ Checkpoints are saved at `runs/Qwen/Qwen2.5-1.5B-Instruct/sft_on_docs/$USER/MMDD
 
 ## PhantomWiki evaluation
 
-Since `phantom-wiki[eval]` is installed from GitHub source, run the evaluation module like so:
+Using commands from `phantom-wiki[eval]` installation, run the evaluation module like so:
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python -m phantom_eval \
@@ -179,9 +181,9 @@ python /path/to/phantom-wiki-installation/eval/format_leaderboard.py \
 Evaluate all training checkpoints on an evaluation split of PhantomWiki with:
 
 ```bash
-./scripts/pw-eval/evaluate_all_checkpoints.sh /path/to/checkpoint/parent
+./scripts/eval/pw_eval_all_ckpts.sh /path/to/checkpoint/parent
 # for example, for this Qwen3-0.6B trained model:
-./scripts/pw-eval/evaluate_all_checkpoints.sh runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot/
+./scripts/eval/pw_eval_all_ckpts.sh runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot
 ```
 
 Then we can produce how the model performance evolves as training progresses:

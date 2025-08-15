@@ -1,4 +1,4 @@
-# Setup instructions for AIDA
+# Setup instructions for EMPIRE
 
 We run all these commands from the root of this repository `./phantom-reasoning/` (and not `./docs/` for instance).
 
@@ -23,6 +23,7 @@ pip install uv
 git clone git@github.com:kilian-group/phantom-wiki.git
 cd phantom-wiki
 uv pip install -e ".[eval]"
+# NOTE: if pytrec-eval throws an error due to bm25s[full], run `uv pip install bm25s[full]` then install phantom-wiki.
 
 cd ..
 git clone git@github.com:anmolkabra/phantom-reasoning.git
@@ -54,12 +55,12 @@ conda activate $CONDA_ENV_NAME
 conda activate $CONDA_ENV_NAME # for sbatch to pull in user-defined env vars
 
 # Option 1: Interactive
-salloc -p full --gres=gpu:a100:4 -n 16 -N 1 --mem=100GB -t 12:00:00 --mail-type=all --mail-user=$USER_EMAIL
+srun -A cornell -p cornell,priority --gres=gpu:4 -n 16 -N 1 --mem=100GB -t 12:00:00 --mail-type=all --mail-user=$USER_EMAIL --pty bash
 
 # After getting an allocation:
 conda activate $CONDA_ENV_NAME
 
-./scripts/create_train_grpo__vllm_colocate.sh aida
+./scripts/create_train_grpo__vllm_colocate.sh empire
 
 ./scripts/train_grpo__vllm_colocate.sub \
     recipes/accelerate_configs/zero1.yaml \
