@@ -14,53 +14,17 @@ import os
 
 from tabulate import tabulate
 from utils.data_utils import get_parser
+from utils.evaluate_utils import get_preds
 
 parser = get_parser()
 args = parser.parse_args()
 output_dir = args.output_dir
+data_dir = args.data_dir
 method = args.method
 dataset = args.dataset
 split = args.split
 
-match dataset:
-    case "hp" | "hp500":
-        from utils.evaluate_utils.hp import get_preds
-
-        df_preds = get_preds(
-            output_dir,
-            args.data_dir,
-            dataset,
-            split,
-            "distractor",
-            method,
-        )
-        metrics = ["em", "f1", "prec", "recall"]
-    case "2wiki" | "2wiki500":
-        from utils.evaluate_utils.evaluate_2wiki import get_preds
-
-        df_preds = get_preds(
-            output_dir,
-            args.data_dir,
-            dataset,
-            split,
-            method,
-        )
-        metrics = ["em", "f1", "prec", "recall"]
-    case "msq" | "msq500":
-        from utils.evaluate_utils.msq import get_preds
-
-        df_preds = get_preds(
-            output_dir,
-            args.data_dir,
-            dataset,
-            split,
-            False,
-            method,
-        )
-        metrics = ["em", "f1"]
-    case _:
-        raise ValueError(f"Invalid dataset: {args.dataset}")
-
+df_preds, metrics = get_preds(output_dir, data_dir, dataset, split, method)
 df_preds["completion_tokens"] = df_preds["usage"].apply(lambda x: x["completion_tokens"])
 
 # Define aggregation functions
