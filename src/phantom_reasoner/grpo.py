@@ -62,10 +62,7 @@ def format_pred(pred: str, prompt_method: str) -> str:
     match prompt_method:
         case "zeroshot":
             # parse_answer takes care of any <think> tags
-            try:
-                return NshotAgent.parse_answer(pred)
-            except ValueError:
-                return ""
+            return NshotAgent.parse_answer(pred)
         case "cot":
             try:
                 return CoTAgent.parse_answer(pred)
