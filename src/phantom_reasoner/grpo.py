@@ -58,23 +58,17 @@ logger = logging.getLogger(__name__)
 ############################################
 # TODO refactor reward functions to a separate python module
 def format_pred(pred: str, prompt_method: str) -> str:
-    # TODO: use script_arguments.ignore_think_tags_in_outputs
-    # HACK: check if pred contains <think> tag
+    # TODO partial reward for correct parsing but wrong values?
     match prompt_method:
         case "zeroshot":
-            if "<think>" in pred:
-                # Zeroshot prompt does not use thinking tags, so we remove them
-                return NshotAgent.parse_thinking_answer(pred)
-            else:
-                return pred
+            # parse_answer takes care of any <think> tags
+            try:
+                return NshotAgent.parse_answer(pred)
+            except ValueError:
+                return ""
         case "cot":
             try:
                 return CoTAgent.parse_answer(pred)
-                # # TODO partial reward for correct parsing but wrong values?
-                # if "<think>" in pred:
-                #     return CoTAgent.parse_thinking_answer(pred)
-                # else:
-                #     return CoTAgent.parse_answer(pred)
             except ValueError:
                 return ""
         case _:
@@ -191,7 +185,6 @@ class GRPOScriptArguments(ScriptArguments):
         "difficulty_desc",
     ] = "random"
     prompt_method: Literal["zeroshot", "cot"] = "cot"
-    ignore_think_tags_in_outputs: bool = False
     exclude_aggregation_questions: bool = True
 
 
@@ -325,10 +318,6 @@ class PhantomEvalCallback(TrainerCallback):
         ]
         if self.script_args.eval_from_local:
             pw_eval_cmd.append("--from_local")
-
-        if self.script_args.ignore_think_tags_in_outputs:
-            # NOTE: in phantom_eval, this flag is used to ignore <think> tags in outputs
-            pw_eval_cmd.append("--inf_is_deepseek_r1_model")
 
         if self.script_args.exclude_aggregation_questions:
             pw_eval_cmd.append("--exclude_aggregation_questions")
