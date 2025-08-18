@@ -33,5 +33,12 @@ cp -r gsm_realistic/Igsm/zero_context/medium/ data/gsm-infinite/zero_context/rea
    This will split the generated data in `data/gsm-infinite` into training and evaluating dataset.
 
 ```bash
-python gsm_realistic/split_datasets.py --data_dir /data --seed 42
+python gsm_realistic/split_datasets.py --data_dir data/ --seed 1
+```
+
+After splitting, these datasets are zipped at:
+
+```bash
+ls /share/nikola/phantom-reasoning/data/gsm-infinite-train.zip
+ls /share/nikola/phantom-reasoning/data/gsm-infinite-eval.zip
 ```

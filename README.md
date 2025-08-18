@@ -66,10 +66,12 @@ We have generated GSM-infinite data and stored on G2. See `gsm_realistic/README.
 
 ```bash
 mkdir -p data/
-cp /share/nikola/phantom-reasoning/data/gsm-infinite.zip data/
-# To transfer to another cluster: scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/gsm-infinite.zip data/
+cp /share/nikola/phantom-reasoning/data/gsm-infinite-train.zip data/
+cp /share/nikola/phantom-reasoning/data/gsm-infinite-eval.zip data/
+# To transfer to another cluster: scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/gsm-infinite-train.zip data/
 cd data/
-unzip gsm-infinite.zip
+unzip gsm-infinite-train.zip
+unzip gsm-infinite-eval.zip
 cd ..
 ```
 
