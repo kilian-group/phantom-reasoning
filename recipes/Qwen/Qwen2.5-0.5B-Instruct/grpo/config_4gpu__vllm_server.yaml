@@ -23,7 +23,6 @@ prompt_method: "cot"
 
 # Model arguments
 model_name_or_path: "Qwen/Qwen2.5-0.5B-Instruct"
-ignore_think_tags_in_outputs: false # Qwen2.5 models do not produce <think> tags in outputs, so no need to ignore
 bf16: true
 torch_dtype: bfloat16
 

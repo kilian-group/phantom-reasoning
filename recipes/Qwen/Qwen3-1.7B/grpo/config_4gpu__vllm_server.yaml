@@ -23,7 +23,6 @@ prompt_method: "cot"
 
 # Model arguments
 model_name_or_path: "Qwen/Qwen3-1.7B"
-ignore_think_tags_in_outputs: true
 bf16: true
 torch_dtype: bfloat16
 

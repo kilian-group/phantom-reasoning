@@ -23,7 +23,6 @@ prompt_method: "cot"
 
 # Model arguments
 model_name_or_path: "Qwen/Qwen2.5-1.5B-Instruct"
-ignore_think_tags_in_outputs: true
 bf16: true
 torch_dtype: bfloat16
 attn_implementation: "flash_attention_2" # Use flash attention for better performance
