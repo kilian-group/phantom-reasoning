@@ -210,9 +210,11 @@ def arrange_dataset(dataset: Dataset, data_curriculum: str, seed: int) -> Datase
             raise ValueError(f"Invalid {data_curriculum=}")
 
 
-def get_prompt_for_sample(sample: dict[str, Any], evidence: str, prompt_method: str) -> list[dict[str, str]]:
+def get_pw_prompt_for_sample(
+    sample: dict[str, Any], evidence: str, prompt_method: str
+) -> list[dict[str, str]]:
     """
-    Get the prompt for a sample, depending on the prompt method.
+    Get the prompt for a PhantomWiki sample, depending on the prompt method.
 
     Args:
         sample (dict[str, Any]): A sample from the dataset, with key "question".
@@ -272,7 +274,7 @@ def get_pw_dataset(script_args: GRPOScriptArguments, is_eval: bool) -> Dataset:
 
         dataset: Dataset = qa_pairs.map(
             lambda sample: {
-                "prompt": get_prompt_for_sample(sample, evidence, script_args.prompt_method),
+                "prompt": get_pw_prompt_for_sample(sample, evidence, script_args.prompt_method),
                 "answer": sample["answer"],  # x['answer'] is a list of strings
                 "prompt_method": script_args.prompt_method,
             }
@@ -332,6 +334,7 @@ def get_gsminfinite_dataset(script_args: GRPOScriptArguments, is_eval: bool) -> 
     return combined_dataset
 
 
+# TODO is this also being used for extracting answer from prediction?
 def extract_gsm_final_answer_from_ground_truth(solution: str) -> str:
     match = re.search(r"Answer:\s*([^\n\.]*)", solution)
     if match:
@@ -340,6 +343,17 @@ def extract_gsm_final_answer_from_ground_truth(solution: str) -> str:
 
 
 def get_gsm_prompt_for_sample(sample: dict[str, Any], prompt_method: str) -> list[dict[str, str]]:
+    """
+    Get the prompt for a GSM-Infinite sample, depending on the prompt method.
+
+    Args:
+        sample (dict[str, Any]): A sample from the dataset, with key "problem" and "question".
+        prompt_method (str): Either "zeroshot" or "cot".
+
+    Returns:
+        list[dict[str, str]]: A list of messages for the conversational-style prompt.
+            Each message is a dict with keys "role" and "content".
+    """
     problem = sample["problem"]
     question = sample["question"]
     if prompt_method == "zeroshot":
@@ -469,11 +483,13 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
     training_args.shuffle_dataset = False
 
     # Get train dataset and use a curriculum
-    train_dataset = (
-        get_gsminfinite_dataset(script_args, is_eval=False)
-        if script_args.training_mode == "gsminfinite"
-        else get_pw_dataset(script_args, is_eval=False)
-    )
+    match script_args.training_mode:
+        case "pw":
+            train_dataset = get_pw_dataset(script_args, is_eval=False)
+        case "gsminfinite":
+            train_dataset = get_gsminfinite_dataset(script_args, is_eval=False)
+        case _:
+            raise ValueError(f"Invalid {script_args.training_mode=}")
     train_dataset = arrange_dataset(train_dataset, script_args.data_curriculum, training_args.seed)
     logger.info(f"*** Arranged in curriculum={script_args.data_curriculum}.")
 
@@ -488,11 +504,14 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
     #     training_args.num_train_epochs = 1
 
     # Get eval dataset
-    eval_dataset = (
-        get_gsminfinite_dataset(script_args, is_eval=True)
-        if script_args.training_mode == "gsminfinite"
-        else get_pw_dataset(script_args, is_eval=True)
-    )
+    match script_args.training_mode:
+        case "pw":
+            eval_dataset = get_pw_dataset(script_args, is_eval=True)
+        case "gsminfinite":
+            eval_dataset = get_gsminfinite_dataset(script_args, is_eval=True)
+        case _:
+            raise ValueError(f"Invalid {script_args.training_mode=}")
+
     # Count number of tokens in train dataset
     # NOTE: depth_20_size_50_seed_1 prompts have num_tokens ~ 4k
     # logger.info(
