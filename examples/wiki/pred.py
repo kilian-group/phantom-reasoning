@@ -158,7 +158,6 @@ async def main(args: ArgumentParser) -> None:
                         questions=batch_df_qa_pairs["question"].tolist(),
                         inf_gen_config=inf_gen_config,
                         corpora=batch_corpora,
-                        parse_thinking_output=args.inf_is_deepseek_r1_model,
                     )
                     agent_interactions: list[Conversation] = agent.agent_interactions
                 case "zeroshot" | "fewshot":
