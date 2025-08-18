@@ -311,7 +311,7 @@ def get_gsminfinite_dataset(script_args: GRPOScriptArguments, is_eval: bool) -> 
                 continue
 
             for filename in glob.glob(os.path.join(sub_dir_path, "*.jsonl")):
-                ds = load_dataset("json", data_files=filename, split="train")
+                ds: Dataset = load_dataset("json", data_files=filename, split="train")
                 ds = ds.map(
                     lambda x: {
                         "prompt": get_gsm_prompt_for_sample(x, prompt_method),
