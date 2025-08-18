@@ -35,18 +35,12 @@ packing: false
 max_length: 6000 # sufficient for size 50 seeds
 learning_rate: 1e-4
 
-# Evaluation config
-bf16_full_eval: true
-eval_on_start: true
-eval_strategy: "steps"
-eval_steps: 200
-per_device_eval_batch_size: 1
-
 # Logging config
 log_level: "info"
 logging_strategy: "steps"
 logging_first_step: true
-logging_steps: 100
+logging_steps: 500
 save_strategy: "steps"
-save_steps: 100
+save_steps: 500
 save_total_limit: 5
+eval_strategy: "no"
