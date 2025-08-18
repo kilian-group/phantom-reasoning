@@ -55,7 +55,6 @@ def get_model_kwargs(args: ArgumentParser) -> dict:
                 max_model_len=args.inf_vllm_max_model_len,
                 tensor_parallel_size=args.inf_vllm_tensor_parallel_size,
                 use_api=False,  # NOTE: we use offline inference to maximize throughput
-                is_deepseek_r1_model=args.inf_is_deepseek_r1_model,
             )
         case _:
             raise ValueError(f"Invalid server: {args.server}")
