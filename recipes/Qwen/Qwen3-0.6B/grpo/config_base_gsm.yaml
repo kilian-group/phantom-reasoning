@@ -1,31 +1,34 @@
 # Script config
-dataset_name: "./data/gsm-infinite-train/zero_context/realistic"
+dataset_name: "data/gsm-infinite-train/zero_context/realistic"
 training_mode: "gsminfinite"
-split_list:
-  - medium
-eval_dataset_name: "./data/gsm-infinite-eval/zero_context/realistic"
-eval_split_list:
-  - medium
-reward_func_names:
-  - f1
-data_curriculum: random
-prompt_method: cot
+split_list: ["medium"]
+eval_dataset_name: "data/gsm-infinite-eval/zero_context/realistic"
+eval_split_list: ["medium"]
+reward_func_names: ["f1"]
+data_curriculum: "random"
+prompt_method: "cot"
 
 # Model arguments
 model_name_or_path: "Qwen/Qwen3-0.6B"
 bf16: true
 torch_dtype: bfloat16
+attn_implementation: "flash_attention_2" # Use flash attention for better performance
+gradient_checkpointing: true # Enable gradient checkpointing for memory efficiency, automatically sets `use_cache=False`
 
 # Trainer arguments
 num_train_epochs: 1
-per_device_train_batch_size: 2
-gradient_accumulation_steps: 2
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 1
 use_vllm: true
 vllm_mode: "colocate"
-vllm_gpu_memory_utilization: 0.10
+vllm_gpu_memory_utilization: 0.20
+generation_kwargs: {}
+
+# TODO: figure out what max_prompt_length is sufficient to avoid truncation
 max_prompt_length: 3072
-num_generations: 8
-max_completion_length: 3072
+# Should be divisble by number of GPUs.
+num_generations: 4
+max_completion_length: 4096
 
 # Evaluation config
 bf16_full_eval: true
@@ -43,6 +46,3 @@ save_steps: 500
 save_total_limit: 5
 log_completions: true
 num_completions_to_print: 0
-
-# Generation kwargs passed to GRPO for sampling completions
-generation_kwargs: {}
