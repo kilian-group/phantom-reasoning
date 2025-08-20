@@ -71,11 +71,7 @@ def format_pred(pred: str, prompt_method: str) -> str:
                 return pred
         case "cot":
             try:
-                # TODO partial reward for correct parsing but wrong values?
-                if "<think>" in pred:
-                    return CoTAgent.parse_thinking_answer(pred)
-                else:
-                    return CoTAgent.parse_answer(pred)
+                return CoTAgent.parse_answer(pred)
             except ValueError:
                 return ""
         case _:
@@ -334,7 +330,6 @@ def get_gsminfinite_dataset(script_args: GRPOScriptArguments, is_eval: bool) -> 
     return combined_dataset
 
 
-# TODO is this also being used for extracting answer from prediction?
 def extract_gsm_final_answer_from_ground_truth(solution: str) -> str:
     match = re.search(r"Answer:\s*([^\n\.]*)", solution)
     if match:
@@ -362,7 +357,7 @@ def get_gsm_prompt_for_sample(sample: dict[str, Any], prompt_method: str) -> lis
         prompt_text = (
             f"{problem}\n"
             f"Question: {question}\n"
-            f'Let\'s think step by step. Please conclude your answer in the form: "The answer is ".'
+            f"Let's think step by step. Please respond with the final answer enclosed in tags: <answer>FINAL_ANSWER</answer>"
         )
     else:
         raise ValueError(f"Invalid prompt_method: {prompt_method}")

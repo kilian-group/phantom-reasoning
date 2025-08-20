@@ -24,8 +24,8 @@ vllm_mode: "colocate"
 vllm_gpu_memory_utilization: 0.20
 generation_kwargs: {}
 
-# TODO: figure out what max_prompt_length is sufficient to avoid truncation
-max_prompt_length: 3072
+# 1024 is sufficient for gsm-infinite zero-context-realistic medium (no truncation)
+max_prompt_length: 1024
 # Should be divisble by number of GPUs.
 num_generations: 4
 max_completion_length: 4096
@@ -33,7 +33,7 @@ max_completion_length: 4096
 # Evaluation config
 bf16_full_eval: true
 eval_strategy: steps
-eval_steps: 1000
+eval_steps: 100
 per_device_eval_batch_size: 8
 
 # Logging config
@@ -42,7 +42,6 @@ logging_strategy: steps
 logging_first_step: true
 logging_steps: 100
 save_strategy: steps
-save_steps: 500
-save_total_limit: 5
+save_steps: 100
 log_completions: true
 num_completions_to_print: 0
