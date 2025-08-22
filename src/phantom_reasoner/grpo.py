@@ -16,6 +16,7 @@ import shutil
 import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Literal
 
 import torch
@@ -38,7 +39,6 @@ from transformers import (
 )
 from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR, get_last_checkpoint
 from trl import (
-    GRPOTrainer,
     ModelConfig,
     ScriptArguments,
     TrlParser,
@@ -47,6 +47,7 @@ from trl import (
 )
 
 from phantom_reasoner.configs import GRPOConfig
+from phantom_reasoner.trainers.custom_grpo_trainer import CustomGRPOTrainer
 from phantom_reasoner.utils import exp_utils
 
 logger = logging.getLogger(__name__)
@@ -314,6 +315,10 @@ class PhantomEvalCallback(TrainerCallback):
             *self.script_args.eval_split_list,
             "--inf_vllm_tensor_parallel_size",
             "1",
+            "--inf_vllm_max_model_len",
+            str(
+                args.max_prompt_length + args.max_completion_length
+            ),  # eval should use the same max prompt length as training
             "-od",
             eval_out_dir,
         ]
@@ -359,6 +364,26 @@ class PhantomEvalCallback(TrainerCallback):
         return env
 
 
+class DeleteAllButLastOptimizerCheckpointCallback(TrainerCallback):
+    """Callback to delete all optimizer states except the last checkpoint."""
+
+    def on_save(self, args: GRPOConfig, state: TrainerState, control: TrainerControl, **kwargs):
+        # Delete all optimizer checkpoints except the last one
+        glob_checkpoints = [
+            str(x) for x in Path(args.output_dir).glob(f"{PREFIX_CHECKPOINT_DIR}-*") if os.path.isdir(x)
+        ]
+        last_checkpoint = str(Path(args.output_dir).joinpath(f"{PREFIX_CHECKPOINT_DIR}-{state.global_step}"))
+        for checkpoint in glob_checkpoints:
+            if checkpoint != last_checkpoint:
+                # Delete optimizer state in directory checkpoint/global_step*
+                glob_optimizer_states = [str(x) for x in Path(checkpoint).glob("global_step*")]
+                for optimizer_state in glob_optimizer_states:
+                    logger.info(f"Deleting optimizer state {optimizer_state}")
+                    shutil.rmtree(optimizer_state, ignore_errors=True)
+
+        return control
+
+
 def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, model_args: ModelConfig) -> None:
     """Training script for the GRPO model using Zeroshot prompt from PhantomEval.
 
@@ -395,8 +420,13 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
     # )
 
     # Load tokenizer
+    # Set padding side to left for GRPO. If we don't create tokenizer here, the GRPOTrainer will create it
+    # and set padding_side="left". So we do it here with other kwargs.
     tokenizer = AutoTokenizer.from_pretrained(
-        model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code, use_fast=True
+        model_args.model_name_or_path,
+        trust_remote_code=model_args.trust_remote_code,
+        use_fast=True,
+        padding_side="left",
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
@@ -412,6 +442,21 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         if model_args.torch_dtype in ["auto", None]
         else getattr(torch, model_args.torch_dtype)
     )
+
+    # Get glibc version from ldd --version. If less than 2.32, set attn_implementation to None
+    # This is because flash-attn==2.8.2 requires GLIBC 2.32, and Anvil has GLIBC 2.82
+    try:
+        glibc_version = (
+            subprocess.check_output(["ldd", "--version"]).decode("utf-8").split("\n")[0].split(" ")[-1]
+        )
+        logger.info(f"*** Available GLIBC version: {glibc_version}, required: 2.32 ***")
+        # glibc_version is like "2.28"
+        if float(glibc_version) < 2.32:
+            logger.info("*** Setting attn_implementation to None***")
+            model_args.attn_implementation = None
+    except Exception as e:
+        logger.warning(f"*** Error getting glibc version: {e} ***")
+
     model_kwargs = dict(
         revision=model_args.model_revision,
         trust_remote_code=model_args.trust_remote_code,
@@ -421,7 +466,7 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         quantization_config=get_quantization_config(model_args) if model_args.use_peft else None,
     )
     logger.info(f"*** Model kwargs: {model_kwargs} ***")
-    # NOTE: GRPOTrainer does not prepare model for kbit training,
+    # NOTE: CustomGRPOTrainer does not prepare model for kbit training,
     # so we do it outside of the trainer manually
     # Reference: https://huggingface.co/docs/peft/en/developer_guides/quantization
     model = AutoModelForCausalLM.from_pretrained(
@@ -437,8 +482,8 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         model = get_peft_model(model, lora_config)
 
     # Instantiate the trainer
-    callbacks: list[TrainerCallback] = [PhantomEvalCallback(script_args)]
-    trainer = GRPOTrainer(
+    callbacks: list[TrainerCallback] = [DeleteAllButLastOptimizerCheckpointCallback()]
+    trainer = CustomGRPOTrainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
