@@ -22,7 +22,7 @@ data_curriculum: "random"
 prompt_method: "cot"
 
 # Model arguments
-model_name_or_path: "Qwen/Qwen3-0.6B"
+model_name_or_path: "Qwen/Qwen2.5-0.5B-Instruct"
 bf16: true
 torch_dtype: bfloat16
 attn_implementation: "flash_attention_2" # Use flash attention for better performance

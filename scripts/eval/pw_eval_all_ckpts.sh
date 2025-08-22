@@ -4,7 +4,6 @@
 
 if [ "$#" -lt 1 ]; then
     echo "Usage: $0 <path_to_checkpoint_parent_dir>"
-    echo "If the model outputs <think> tags, pass a flag --inf_is_deepseek_r1_model to the script."
     exit 1
 fi
 
