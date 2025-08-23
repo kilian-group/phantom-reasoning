@@ -27,3 +27,6 @@ lighteval vllm model_configs/Qwen3-1.7B.yaml "lighteval|gsm8k|4|0" --use-chat-te
 
 > \[!IMPORTANT\]
 > When using a local model with vLLM, "model_name" in the yaml config must be an absolute path.
+
+> \[!TIP\]
+> Use `null` instead of -1 to disable vLLM parameters. For example, `top_k: null` considers all tokens when sampling.
