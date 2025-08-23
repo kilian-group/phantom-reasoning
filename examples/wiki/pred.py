@@ -55,7 +55,6 @@ def get_model_kwargs(args: ArgumentParser) -> dict:
                 max_model_len=args.inf_vllm_max_model_len,
                 tensor_parallel_size=args.inf_vllm_tensor_parallel_size,
                 use_api=False,  # NOTE: we use offline inference to maximize throughput
-                is_deepseek_r1_model=args.inf_is_deepseek_r1_model,
             )
         case _:
             raise ValueError(f"Invalid server: {args.server}")
@@ -158,7 +157,6 @@ async def main(args: ArgumentParser) -> None:
                         questions=batch_df_qa_pairs["question"].tolist(),
                         inf_gen_config=inf_gen_config,
                         corpora=batch_corpora,
-                        parse_thinking_output=args.inf_is_deepseek_r1_model,
                     )
                     agent_interactions: list[Conversation] = agent.agent_interactions
                 case "zeroshot" | "fewshot":

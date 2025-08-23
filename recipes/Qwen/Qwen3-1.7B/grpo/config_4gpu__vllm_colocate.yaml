@@ -23,7 +23,6 @@ prompt_method: "cot"
 
 # Model arguments
 model_name_or_path: "Qwen/Qwen3-1.7B"
-ignore_think_tags_in_outputs: true
 bf16: true
 torch_dtype: bfloat16
 attn_implementation: "flash_attention_2" # Use flash attention for better performance
@@ -44,13 +43,6 @@ max_prompt_length: 6000
 num_generations: 4
 max_completion_length: 4096
 
-# Evaluation config
-bf16_full_eval: true
-eval_on_start: false
-eval_strategy: "steps"
-eval_steps: 500
-per_device_eval_batch_size: 8
-
 # Logging config
 log_level: "info"
 logging_strategy: "steps"
@@ -61,3 +53,4 @@ save_strategy: "steps"
 save_steps: 500
 log_completions: true
 num_completions_to_print: 0 # don't print completions to stdout
+eval_strategy: "no" # NOTE: DO NOT EVALUATE because it slows down training by a lot
