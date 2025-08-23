@@ -17,9 +17,9 @@ To evaluate Qwen3 on GSM8K with 4 few-shot examples, please use the following co
 
 ```bash
 # 0.6B model
-lighteval vllm model_configs/qwen3-0.6b.yaml "lighteval|gsm8k|4|0" --use-chat-template --save-details
+lighteval vllm model_configs/Qwen3-0.6B.yaml "lighteval|gsm8k|4|0" --use-chat-template --save-details
 # 1.7B model
-lighteval vllm model_configs/qwen3-1.7b.yaml "lighteval|gsm8k|4|0" --use-chat-template --save-details
+lighteval vllm model_configs/Qwen3-1.7B.yaml "lighteval|gsm8k|4|0" --use-chat-template --save-details
 ```
 
 > \[!IMPORTANT\]
