@@ -10,47 +10,28 @@ Usage:
 ```
 """
 
-import glob
 import logging
 import os
-import re
 import shutil
 import subprocess
-from dataclasses import dataclass, field
 from datetime import datetime
-from pathlib import Path
-from typing import Any, Literal
 
 import torch
-from datasets import Dataset, concatenate_datasets, load_dataset
+from datasets import Dataset
 from peft import get_peft_model, prepare_model_for_kbit_training
-from phantom_eval.agents.common import get_all_evidence
 from phantom_eval.agents.cot import CoTAgent
 from phantom_eval.agents.nshot import NshotAgent
 from phantom_eval.constants import answer_sep
-from phantom_eval.prompts import COT_EXAMPLES, CoTLLMPrompt, ZeroshotLLMPrompt
 from phantom_eval.score import exact_match, f1, precision, recall
-from phantom_eval.utils import load_data, setup_logging
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    TrainerCallback,
-    TrainerControl,
-    TrainerState,
-    set_seed,
-)
-from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR, get_last_checkpoint
-from trl import (
-    ModelConfig,
-    ScriptArguments,
-    TrlParser,
-    get_peft_config,
-    get_quantization_config,
-)
+from phantom_eval.utils import setup_logging
+from transformers import AutoModelForCausalLM, AutoTokenizer, set_seed
+from transformers.trainer_utils import get_last_checkpoint
+from trl import ModelConfig, TrlParser, get_peft_config, get_quantization_config
 
-from phantom_reasoner.configs import GRPOConfig
+from phantom_reasoner.configs import GRPOConfig, GRPOScriptArguments
+from phantom_reasoner.datasets import GSMInfiniteDataset, PhantomWikiDataset
 from phantom_reasoner.trainers.custom_grpo_trainer import CustomGRPOTrainer
-from phantom_reasoner.utils import exp_utils
+from phantom_reasoner.utils import callbacks, exp_utils
 
 logger = logging.getLogger(__name__)
 
@@ -164,36 +145,6 @@ def get_reward_func(reward_type_name: str) -> callable:
             raise ValueError(f"Invalid {reward_type_name=}")
 
 
-############################################
-# SCRIPT ARGUMENTS
-############################################
-@dataclass
-class GRPOScriptArguments(ScriptArguments):
-    # Train dataset arguments
-    training_mode: Literal["pw", "gsminfinite"] = "pw"
-    dataset_name: str = "kilian-group/phantom-wiki-v1"
-    split_list: list[str] = field(
-        default_factory=lambda: ["depth_20_size_50_seed_1", "depth_20_size_50_seed_2"]
-    )
-    from_local: bool = False
-    # Eval dataset arguments
-    eval_dataset_name: str = "kilian-group/phantom-wiki-v1"
-    eval_split_list: str = field(default_factory=lambda: ["depth_20_size_50_seed_3"])
-    eval_from_local: bool = False
-
-    # Script arguments
-    run_dir: str = "runs"
-    reward_func_names: list[str] = field(default_factory=lambda: ["f1"])
-    data_curriculum: Literal[
-        "random",
-        "difficulty_asc",
-        "difficulty_desc",
-    ] = "random"
-    prompt_method: Literal["zeroshot", "cot"] = "cot"
-    ignore_think_tags_in_outputs: bool = False
-    exclude_aggregation_questions: bool = True
-
-
 def arrange_dataset(dataset: Dataset, data_curriculum: str, seed: int) -> Dataset:
     match data_curriculum:
         case "random":
@@ -204,266 +155,6 @@ def arrange_dataset(dataset: Dataset, data_curriculum: str, seed: int) -> Datase
             return dataset.sort("difficulty", reverse=True)
         case _:
             raise ValueError(f"Invalid {data_curriculum=}")
-
-
-def get_pw_prompt_for_sample(
-    sample: dict[str, Any], evidence: str, prompt_method: str
-) -> list[dict[str, str]]:
-    """
-    Get the prompt for a PhantomWiki sample, depending on the prompt method.
-
-    Args:
-        sample (dict[str, Any]): A sample from the dataset, with key "question".
-        evidence (str): The evidence text to include in the prompt.
-        prompt_method (str): Either "zeroshot" or "cot".
-
-    Returns:
-        list[dict[str, str]]: A list of messages for the conversational-style prompt.
-            Each message is a dict with keys "role" and "content".
-    """
-    match prompt_method:
-        case "zeroshot":
-            llm_prompt = ZeroshotLLMPrompt()
-            prompt = [
-                {
-                    "role": "user",
-                    "content": llm_prompt.get_prompt().format(evidence=evidence, question=sample["question"]),
-                },
-            ]
-            return prompt
-
-        case "cot":
-            llm_prompt = CoTLLMPrompt()
-            return [
-                {
-                    "role": "user",
-                    "content": llm_prompt.get_prompt().format(
-                        evidence=evidence, examples=COT_EXAMPLES, question=sample["question"]
-                    ),
-                },
-            ]
-        case _:
-            raise ValueError(f"Invalid {prompt_method=}")
-
-
-def get_pw_dataset(script_args: GRPOScriptArguments, is_eval: bool) -> Dataset:
-    if is_eval:
-        dataset_name = script_args.eval_dataset_name
-        split_list = script_args.eval_split_list
-        from_local = script_args.eval_from_local
-    else:
-        dataset_name = script_args.dataset_name
-        split_list = script_args.split_list
-        from_local = script_args.from_local
-
-    all_datasets: list[Dataset] = []
-    for split_name in split_list:
-        dataset: dict[str, Dataset] = load_data(
-            dataset_name,
-            split=split_name,
-            from_local=from_local,
-            exclude_aggregation_questions=script_args.exclude_aggregation_questions,
-        )
-        text_corpus: Dataset = dataset["text"]
-        qa_pairs: Dataset = dataset["qa_pairs"]
-        evidence: str = get_all_evidence(text_corpus)
-
-        dataset: Dataset = qa_pairs.map(
-            lambda sample: {
-                "prompt": get_pw_prompt_for_sample(sample, evidence, script_args.prompt_method),
-                "answer": sample["answer"],  # x['answer'] is a list of strings
-                "prompt_method": script_args.prompt_method,
-            }
-        )
-        all_datasets.append(dataset)
-
-    dataset = concatenate_datasets(all_datasets)
-    logger.info(
-        f"*** Loaded {is_eval=} dataset {script_args.dataset_name}::{script_args.split_list} "
-        f"with {len(dataset)} samples."
-    )
-    return dataset
-
-
-def get_gsminfinite_dataset(script_args: GRPOScriptArguments, is_eval: bool) -> Dataset:
-    if is_eval:
-        base_path = script_args.eval_dataset_name
-        difficulty_list = script_args.eval_split_list
-    else:
-        base_path = script_args.dataset_name
-        difficulty_list = script_args.split_list
-    prompt_method = script_args.prompt_method
-
-    if difficulty_list is None:
-        difficulty_list = [d for d in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, d))]
-
-    all_datasets = []
-    for diff in difficulty_list:
-        diff_dir = os.path.join(base_path, diff)
-        if not os.path.isdir(diff_dir):
-            continue
-
-        for op_subdir in os.listdir(diff_dir):
-            sub_dir_path = os.path.join(diff_dir, op_subdir)
-            if not os.path.isdir(sub_dir_path):
-                continue
-
-            for filename in glob.glob(os.path.join(sub_dir_path, "*.jsonl")):
-                ds: Dataset = load_dataset("json", data_files=filename, split="train")
-                ds = ds.map(
-                    lambda x: {
-                        "prompt": get_gsm_prompt_for_sample(x, prompt_method),
-                        "answer": extract_gsm_final_answer_from_ground_truth(x["solution"]),
-                        "prompt_method": prompt_method,
-                        "difficulty": x.get("op", None),
-                        "id": x.get("id", None),
-                    }
-                )
-                all_datasets.append(ds)
-
-    if len(all_datasets) == 0:
-        raise RuntimeError(
-            "No data loaded from GSM-Infinite. Please check the base_path and difficulty_list."
-        )
-
-    combined_dataset = concatenate_datasets(all_datasets)
-    return combined_dataset
-
-
-def extract_gsm_final_answer_from_ground_truth(solution: str) -> str:
-    match = re.search(r"Answer:\s*([^\n\.]*)", solution)
-    if match:
-        return match.group(1).strip()
-    raise ValueError(f"No final answer found in solution: {solution}")
-
-
-def get_gsm_prompt_for_sample(sample: dict[str, Any], prompt_method: str) -> list[dict[str, str]]:
-    """
-    Get the prompt for a GSM-Infinite sample, depending on the prompt method.
-
-    Args:
-        sample (dict[str, Any]): A sample from the dataset, with key "problem" and "question".
-        prompt_method (str): Either "zeroshot" or "cot".
-
-    Returns:
-        list[dict[str, str]]: A list of messages for the conversational-style prompt.
-            Each message is a dict with keys "role" and "content".
-    """
-    problem = sample["problem"]
-    question = sample["question"]
-    if prompt_method == "zeroshot":
-        prompt_text = f"{problem}\nQuestion: {question}"
-    elif prompt_method == "cot":
-        prompt_text = (
-            f"{problem}\n"
-            f"Question: {question}\n"
-            f"Let's think step by step. Please respond with the final answer enclosed in tags: <answer>FINAL_ANSWER</answer>"
-        )
-    else:
-        raise ValueError(f"Invalid prompt_method: {prompt_method}")
-
-    return [{"role": "user", "content": prompt_text}]
-
-
-class PhantomEvalCallback(TrainerCallback):
-    """Callback to run phantom_eval on saving a checkpoint."""
-
-    def __init__(self, script_args: GRPOScriptArguments):
-        """
-        Args:
-            script_args (GRPOScriptArguments): Script arguments containing evaluation parameters.
-        """
-        self.script_args = script_args
-
-    def on_save(self, args: GRPOConfig, state: TrainerState, control: TrainerControl, **kwargs):
-        checkpoint_folder = os.path.join(args.output_dir, f"{PREFIX_CHECKPOINT_DIR}-{state.global_step}")
-        eval_out_dir = os.path.join(args.output_dir, "out")
-
-        # Run phantom_eval on the saved checkpoint ONLY on the first GPU
-        pw_eval_cmd = [
-            "python",
-            "-m",
-            "phantom_eval",
-            "--method",
-            self.script_args.prompt_method,
-            "--server",
-            "vllm",
-            "--inf_vllm_offline",
-            "--model_name",
-            checkpoint_folder,
-            "--dataset",
-            self.script_args.eval_dataset_name,
-            "--split_list",
-            *self.script_args.eval_split_list,
-            "--inf_vllm_tensor_parallel_size",
-            "1",
-            "--inf_vllm_max_model_len",
-            str(
-                args.max_prompt_length + args.max_completion_length
-            ),  # eval should use the same max prompt length as training
-            "-od",
-            eval_out_dir,
-        ]
-        if self.script_args.eval_from_local:
-            pw_eval_cmd.append("--from_local")
-
-        if self.script_args.ignore_think_tags_in_outputs:
-            # NOTE: in phantom_eval, this flag is used to ignore <think> tags in outputs
-            pw_eval_cmd.append("--inf_is_deepseek_r1_model")
-
-        if self.script_args.exclude_aggregation_questions:
-            pw_eval_cmd.append("--exclude_aggregation_questions")
-
-        if args.should_save:
-            # In multi-GPU training, we only run phantom_eval from the main process
-            # that was trying to save the checkpoint. This ensures that we call
-            # phantom_eval only once per checkpoint, not once per GPU.
-            env = PhantomEvalCallback.get_env_vars_for_pw_eval_vllm()
-
-            try:
-                # Block until the PhantomEval process finishes
-                # TODO: think about non-blocking, but we need to be careful since
-                # older checkpoints will be deleted during training (only a number of
-                # checkpoints are retained)
-                logger.info(f"*** Running PhantomEval with command: {' '.join(pw_eval_cmd)}")
-                _ = subprocess.run(pw_eval_cmd, env=env, check=True, text=True)
-            except subprocess.CalledProcessError as e:
-                logger.error(f"!!! PhantomEval failed with error:\n{e.stderr}")
-                raise e
-
-        return control
-
-    @staticmethod
-    def get_env_vars_for_pw_eval_vllm() -> dict[str, str]:
-        """Get environment variables for running PhantomEval with vLLM."""
-        # Set vllm visible devices to the first GPU
-        env = {"CUDA_VISIBLE_DEVICES": "0"}
-        # Copy all env vars that contain "CONDA" or "PYTHON" or "PATH"
-        # These are needed by the subprocess to launch vllm and phantom_eval
-        for key, value in os.environ.items():
-            if "CONDA" in key or "PYTHON" in key or "PATH" in key:
-                env[key] = value
-        return env
-
-
-class DeleteAllButLastOptimizerCheckpointCallback(TrainerCallback):
-    """Callback to delete all optimizer states except the last checkpoint."""
-
-    def on_save(self, args: GRPOConfig, state: TrainerState, control: TrainerControl, **kwargs):
-        # Delete all optimizer checkpoints except the last one
-        glob_checkpoints = [
-            str(x) for x in Path(args.output_dir).glob(f"{PREFIX_CHECKPOINT_DIR}-*") if os.path.isdir(x)
-        ]
-        last_checkpoint = str(Path(args.output_dir).joinpath(f"{PREFIX_CHECKPOINT_DIR}-{state.global_step}"))
-        for checkpoint in glob_checkpoints:
-            if checkpoint != last_checkpoint:
-                # Delete optimizer state in directory checkpoint/global_step*
-                glob_optimizer_states = [str(x) for x in Path(checkpoint).glob("global_step*")]
-                for optimizer_state in glob_optimizer_states:
-                    logger.info(f"Deleting optimizer state {optimizer_state}")
-                    shutil.rmtree(optimizer_state, ignore_errors=True)
-
-        return control
 
 
 def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, model_args: ModelConfig) -> None:
@@ -477,35 +168,20 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
     # Ensure GRPO does not shuffle dataset by itself
     training_args.shuffle_dataset = False
 
-    # Get train dataset and use a curriculum
+    # Get train and eval datasets and use a curriculum on the train dataset
     match script_args.training_mode:
         case "pw":
-            train_dataset = get_pw_dataset(script_args, is_eval=False)
+            dataset_for_grpo = PhantomWikiDataset(script_args)
         case "gsminfinite":
-            train_dataset = get_gsminfinite_dataset(script_args, is_eval=False)
+            dataset_for_grpo = GSMInfiniteDataset(script_args)
         case _:
             raise ValueError(f"Invalid {script_args.training_mode=}")
+
+    train_dataset: Dataset = dataset_for_grpo.get_dataset(is_eval=False)
     train_dataset = arrange_dataset(train_dataset, script_args.data_curriculum, training_args.seed)
     logger.info(f"*** Arranged in curriculum={script_args.data_curriculum}.")
 
-    # NOTE: getting rid of stage now, only sorting
-    # if script_args.data_curriculum in ["difficulty_asc_stage_on", "difficulty_desc_stage_on"]:
-    #     # Repeat each dataset entry num_train_epochs times and reduce num_train_epochs to 1
-    #     # This creates a curriculum where the easy questions are processed num_train_epochs times
-    #     # before the harder questions are processed
-    #     train_dataset = train_dataset.select(
-    #         [i for i in range(len(train_dataset)) for _ in range(training_args.num_train_epochs)]
-    #     )
-    #     training_args.num_train_epochs = 1
-
-    # Get eval dataset
-    match script_args.training_mode:
-        case "pw":
-            eval_dataset = get_pw_dataset(script_args, is_eval=True)
-        case "gsminfinite":
-            eval_dataset = get_gsminfinite_dataset(script_args, is_eval=True)
-        case _:
-            raise ValueError(f"Invalid {script_args.training_mode=}")
+    eval_dataset: Dataset = dataset_for_grpo.get_dataset(is_eval=True)
 
     # Count number of tokens in train dataset
     # NOTE: depth_20_size_50_seed_1 prompts have num_tokens ~ 4k
@@ -577,7 +253,6 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         model = get_peft_model(model, lora_config)
 
     # Instantiate the trainer
-    callbacks: list[TrainerCallback] = [DeleteAllButLastOptimizerCheckpointCallback()]
     trainer = CustomGRPOTrainer(
         model=model,
         args=training_args,
@@ -585,7 +260,7 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         eval_dataset=eval_dataset,
         processing_class=tokenizer,
         reward_funcs=reward_funcs,
-        callbacks=callbacks,
+        callbacks=callbacks.get_callbacks(training_args, model_args),
     )
     logger.info(f"*** Instantiated GRPO trainer for model {model_args.model_name_or_path}")
 
