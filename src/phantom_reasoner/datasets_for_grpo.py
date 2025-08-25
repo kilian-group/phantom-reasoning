@@ -30,8 +30,8 @@ class DatasetForGRPO(abc.ABC):
         Get the dataset for training or evaluation.
         """
 
-    @abc.abstractmethod
     @staticmethod
+    @abc.abstractmethod
     def get_prompt_for_sample(sample: dict[str, Any], prompt_method: str, **kwargs) -> CONVO_T:
         """
         Get the prompt for a sample, depending on the prompt method.

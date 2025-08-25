@@ -29,7 +29,7 @@ from trl import ModelConfig, TrlParser, get_peft_config, get_quantization_config
 
 from phantom_reasoner._types import CONVO_T
 from phantom_reasoner.configs import GRPOConfig, GRPOScriptArguments
-from phantom_reasoner.datasets import GSMInfiniteDataset, PhantomWikiDataset
+from phantom_reasoner.datasets_for_grpo import GSMInfiniteDataset, PhantomWikiDataset
 from phantom_reasoner.trainers.custom_grpo_trainer import CustomGRPOTrainer
 from phantom_reasoner.utils import callbacks, exp_utils
 
