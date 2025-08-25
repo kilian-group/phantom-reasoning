@@ -27,7 +27,6 @@ class GRPOScriptArguments(trl.ScriptArguments):
         "difficulty_desc",
     ] = "random"
     prompt_method: Literal["zeroshot", "cot"] = "cot"
-    ignore_think_tags_in_outputs: bool = False
     exclude_aggregation_questions: bool = True
 
 

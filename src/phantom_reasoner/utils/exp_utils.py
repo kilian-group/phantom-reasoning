@@ -1,8 +1,21 @@
+import logging
 import os
+import subprocess
 from datetime import datetime
 
+from trl import ModelConfig
 
-def get_run_name(training_algo_name: str, script_args, model_args, run_flags_str: str = "") -> str:
+from phantom_reasoner.configs import GRPOScriptArguments
+
+logger = logging.getLogger(__name__)
+
+
+def get_run_name(
+    training_algo_name: str,
+    script_args: GRPOScriptArguments,
+    model_args: ModelConfig,
+    run_flags_str: str = "",
+) -> str:
     """
     Returns <run_dir>/<dataset_name>/<model_name>/<training_algo_name>/$USER/<MMDD>__<run_flags_str>
 
@@ -23,3 +36,21 @@ def get_run_name(training_algo_name: str, script_args, model_args, run_flags_str
     if run_flags_str:
         run_name += f"__{run_flags_str}"
     return run_name
+
+
+def disable_flash_attn_if_unsupported_glibc(model_args: ModelConfig) -> None:
+    """
+    Get glibc version from ldd --version. If less than 2.32, set attn_implementation to None
+    This is because flash-attn==2.8.2 requires GLIBC 2.32, and Anvil has GLIBC 2.82
+    """
+    try:
+        glibc_version = (
+            subprocess.check_output(["ldd", "--version"]).decode("utf-8").split("\n")[0].split(" ")[-1]
+        )
+        logger.info(f"*** Available GLIBC version: {glibc_version}, required: 2.32 ***")
+        # glibc_version is like "2.28"
+        if float(glibc_version) < 2.32:
+            logger.info("*** Setting attn_implementation to None***")
+            model_args.attn_implementation = None
+    except Exception as e:
+        logger.warning(f"*** Error getting glibc version: {e} ***")

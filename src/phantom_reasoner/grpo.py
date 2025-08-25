@@ -13,7 +13,6 @@ Usage:
 import logging
 import os
 import shutil
-import subprocess
 from datetime import datetime
 
 import torch
@@ -28,6 +27,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, set_seed
 from transformers.trainer_utils import get_last_checkpoint
 from trl import ModelConfig, TrlParser, get_peft_config, get_quantization_config
 
+from phantom_reasoner._types import CONVO_T
 from phantom_reasoner.configs import GRPOConfig, GRPOScriptArguments
 from phantom_reasoner.datasets import GSMInfiniteDataset, PhantomWikiDataset
 from phantom_reasoner.trainers.custom_grpo_trainer import CustomGRPOTrainer
@@ -60,7 +60,7 @@ def format_pred(pred: str, prompt_method: str) -> str:
 
 
 def reward_exact_match(
-    completions: list[list[dict[str, str]]], answer: list[list[str]], prompt_method: list[str], **kwargs
+    completions: list[CONVO_T], answer: list[list[str]], prompt_method: list[str], **kwargs
 ) -> list[float]:
     """
     Args:
@@ -78,7 +78,7 @@ def reward_exact_match(
 
 
 def reward_precision(
-    completions: list[list[dict[str, str]]], answer: list[list[str]], prompt_method: list[str], **kwargs
+    completions: list[CONVO_T], answer: list[list[str]], prompt_method: list[str], **kwargs
 ) -> list[float]:
     """
     Args:
@@ -96,7 +96,7 @@ def reward_precision(
 
 
 def reward_recall(
-    completions: list[list[dict[str, str]]], answer: list[list[str]], prompt_method: list[str], **kwargs
+    completions: list[CONVO_T], answer: list[list[str]], prompt_method: list[str], **kwargs
 ) -> list[float]:
     """
     Args:
@@ -114,7 +114,7 @@ def reward_recall(
 
 
 def reward_f1(
-    completions: list[list[dict[str, str]]], answer: list[list[str]], prompt_method: list[str], **kwargs
+    completions: list[CONVO_T], answer: list[list[str]], prompt_method: list[str], **kwargs
 ) -> list[float]:
     """
     Args:
@@ -214,19 +214,7 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         else getattr(torch, model_args.torch_dtype)
     )
 
-    # Get glibc version from ldd --version. If less than 2.32, set attn_implementation to None
-    # This is because flash-attn==2.8.2 requires GLIBC 2.32, and Anvil has GLIBC 2.82
-    try:
-        glibc_version = (
-            subprocess.check_output(["ldd", "--version"]).decode("utf-8").split("\n")[0].split(" ")[-1]
-        )
-        logger.info(f"*** Available GLIBC version: {glibc_version}, required: 2.32 ***")
-        # glibc_version is like "2.28"
-        if float(glibc_version) < 2.32:
-            logger.info("*** Setting attn_implementation to None***")
-            model_args.attn_implementation = None
-    except Exception as e:
-        logger.warning(f"*** Error getting glibc version: {e} ***")
+    exp_utils.disable_flash_attn_if_unsupported_glibc(model_args)
 
     model_kwargs = dict(
         revision=model_args.model_revision,
