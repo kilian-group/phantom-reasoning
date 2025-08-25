@@ -75,7 +75,7 @@ class PhantomWikiDataset(DatasetForGRPO):
             dataset: Dataset = qa_pairs.map(
                 lambda sample: {
                     "prompt": PhantomWikiDataset.get_prompt_for_sample(
-                        sample, evidence, self.script_args.prompt_method
+                        sample, self.script_args.prompt_method, evidence=evidence
                     ),
                     "answer": sample["answer"],  # x['answer'] is a list of strings
                     "prompt_method": self.script_args.prompt_method,

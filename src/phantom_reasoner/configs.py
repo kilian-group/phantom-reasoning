@@ -27,6 +27,7 @@ class GRPOScriptArguments(trl.ScriptArguments):
         "difficulty_desc",
     ] = "random"
     prompt_method: Literal["zeroshot", "cot"] = "cot"
+    ignore_think_tags_in_outputs: bool = False
     exclude_aggregation_questions: bool = True
 
 
@@ -41,7 +42,7 @@ class GRPOConfig(trl.GRPOConfig):
         default_factory=lambda: [], metadata={"help": "The benchmarks to run after training."}
     )
     callbacks: list[str] = field(
-        default_factory=lambda: ["delete_all_but_last_optimizer_checkpoint_callback"],
+        default_factory=lambda: [],
         metadata={"help": "The callbacks to run during training."},
     )
     system_prompt: str | None = field(

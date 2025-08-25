@@ -16,6 +16,9 @@ from .hub import push_to_hub_revision
 logger = logging.getLogger(__name__)
 
 
+##################################
+# START Callbacks that take in ModelConfig used by SFT trainer
+##################################
 def is_slurm_available() -> bool:
     # returns true if a slurm queueing system is available
     try:
@@ -61,6 +64,26 @@ class PushToHubRevisionCallback(TrainerCallback):
                     run_benchmark_jobs(dummy_config, self.model_config)
 
                 future.add_done_callback(run_benchmark_callback)
+
+
+CALLBACKS = {
+    "push_to_hub_revision": PushToHubRevisionCallback,
+}
+
+
+def get_callbacks(train_config, model_config) -> list[TrainerCallback]:
+    callbacks = []
+    for callback_name in train_config.callbacks:
+        if callback_name not in CALLBACKS:
+            raise ValueError(f"Callback {callback_name} not found in CALLBACKS.")
+        callbacks.append(CALLBACKS[callback_name](model_config))
+
+    return callbacks
+
+
+##################################
+# END Callbacks that take in ModelConfig used by SFT trainer
+##################################
 
 
 class DeleteAllButLastOptimizerCheckpointCallback(TrainerCallback):
@@ -162,20 +185,3 @@ class PhantomEvalCallback(TrainerCallback):
             if "CONDA" in key or "PYTHON" in key or "PATH" in key:
                 env[key] = value
         return env
-
-
-CALLBACKS = {
-    "push_to_hub_revision": PushToHubRevisionCallback,
-    "delete_all_but_last_optimizer_checkpoint_callback": DeleteAllButLastOptimizerCheckpointCallback,
-    "phantom_eval": PhantomEvalCallback,
-}
-
-
-def get_callbacks(train_config, model_config) -> list[TrainerCallback]:
-    callbacks = []
-    for callback_name in train_config.callbacks:
-        if callback_name not in CALLBACKS:
-            raise ValueError(f"Callback {callback_name} not found in CALLBACKS.")
-        callbacks.append(CALLBACKS[callback_name](model_config))
-
-    return callbacks

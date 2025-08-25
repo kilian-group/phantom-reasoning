@@ -31,7 +31,8 @@ from phantom_reasoner._types import CONVO_T
 from phantom_reasoner.configs import GRPOConfig, GRPOScriptArguments
 from phantom_reasoner.datasets_for_grpo import GSMInfiniteDataset, PhantomWikiDataset
 from phantom_reasoner.trainers.custom_grpo_trainer import CustomGRPOTrainer
-from phantom_reasoner.utils import callbacks, exp_utils
+from phantom_reasoner.utils import exp_utils
+from phantom_reasoner.utils.callbacks import DeleteAllButLastOptimizerCheckpointCallback
 
 logger = logging.getLogger(__name__)
 
@@ -241,6 +242,7 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         model = get_peft_model(model, lora_config)
 
     # Instantiate the trainer
+    callbacks = [DeleteAllButLastOptimizerCheckpointCallback()]
     trainer = CustomGRPOTrainer(
         model=model,
         args=training_args,
@@ -248,7 +250,7 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         eval_dataset=eval_dataset,
         processing_class=tokenizer,
         reward_funcs=reward_funcs,
-        callbacks=callbacks.get_callbacks(training_args, model_args),
+        callbacks=callbacks,
     )
     logger.info(f"*** Instantiated GRPO trainer for model {model_args.model_name_or_path}")
 
