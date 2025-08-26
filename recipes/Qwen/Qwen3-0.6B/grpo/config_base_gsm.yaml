@@ -24,8 +24,8 @@ vllm_mode: "colocate"
 vllm_gpu_memory_utilization: 0.20
 generation_kwargs: {}
 
-# 1024 is sufficient for gsm-infinite zero-context-realistic medium (no truncation)
-max_prompt_length: 1024
+# 1536 is sufficient for gsm-infinite zero-context-realistic medium (no truncation)
+max_prompt_length: 1536
 # Should be divisble by number of GPUs.
 num_generations: 4
 max_completion_length: 4096
