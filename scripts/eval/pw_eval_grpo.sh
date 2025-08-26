@@ -36,7 +36,7 @@ rm -r cachedir/
 
 python ~/work/phantom-wiki/eval/format_leaderboard.py \
   -od "${OUTPUT_DIR}__temp=1.0" \
-  --model_list "${MODEL_NAMES[*]}" \
+  --model_list ${MODEL_NAMES[*]} \
   --size_list 25 \
   --method_list cot \
   --dataset data/wiki-v1-easy-depth_20_size_25 \

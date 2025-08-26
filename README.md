@@ -216,6 +216,30 @@ python scripts/plot_reasoning_during_training.py \
 	--from_local
 ```
 
+### Scaling plots for other datasets
+
+Evaluate all training checkpoints on evaluation datasets of various wiki datasets (HP, 2Wiki, MSQ) with:
+
+```bash
+./scripts/eval/other_eval_all_ckpts.sh /path/to/checkpoint/parent dataset split base_model_name
+# for example, for this Qwen3-0.6B trained model:
+./scripts/eval/other_eval_all_ckpts.sh runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot hp500 minidev Qwen/Qwen3-0.6B
+```
+
+Then we can produce how the model performance evolves as training progresses.
+First, tabulate metrics from the generations with `examples/wiki/format_split_accuracy.py`:
+
+```bash
+python examples/wiki/plot_scaling_all_ckpts.py \
+	-dd data/ \
+	-od runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot/out \
+	--split minidev \
+	--dataset hp500 \
+	--method cot \
+	--base_model_name Qwen/Qwen3-0.6B \
+	--training_dataset_name pw
+```
+
 ## Lighteval (GSM8k, ARC etc.)
 
 ```bash

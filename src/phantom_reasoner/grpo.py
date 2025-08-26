@@ -42,15 +42,11 @@ logger = logging.getLogger(__name__)
 ############################################
 # TODO refactor reward functions to a separate python module
 def format_pred(pred: str, prompt_method: str) -> str:
-    # TODO: use script_arguments.ignore_think_tags_in_outputs
-    # HACK: check if pred contains <think> tag
+    # TODO partial reward for correct parsing but wrong values?
     match prompt_method:
         case "zeroshot":
-            if "<think>" in pred:
-                # Zeroshot prompt does not use thinking tags, so we remove them
-                return NshotAgent.parse_thinking_answer(pred)
-            else:
-                return pred
+            # parse_answer takes care of any <think> tags
+            return NshotAgent.parse_answer(pred)
         case "cot":
             try:
                 return CoTAgent.parse_answer(pred)

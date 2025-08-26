@@ -38,5 +38,5 @@ logging_steps: 1000
 save_strategy: steps
 save_steps: 1000
 log_completions: true
-num_completions_to_print: 0
-eval_strategy: "no"
+num_completions_to_print: 0 # don't print completions to stdout
+eval_strategy: "no" # NOTE: DO NOT EVALUATE because it slows down training by a lot

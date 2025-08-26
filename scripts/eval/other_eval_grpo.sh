@@ -1,7 +1,7 @@
 #!/bin/bash
 # NOTE: hacked together
 # Script to run the Qwen3 family of models on the Wiki datasets (HP, 2Wiki, MSQ)
-# Usage: ./eval_grpo_on_other_datasets.sh <output_dir> <dataset> <split>
+# Usage: ./scripts/eval/other_eval_grpo.sh <output_dir> <dataset> <split>
 # Split can be minidev (500 examples) or dev (~11K examples)
 
 OUTPUT_DIR=$1
@@ -16,6 +16,13 @@ DATASET_LIST=(
     "2wiki500"
     "msq500"
 )
+
+# If dataset not in DATASET_LIST, complain
+if [[ ! " ${DATASET_LIST[@]} " =~ " ${dataset} " ]]; then
+    echo "Dataset $dataset not in DATASET_LIST"
+    exit 1
+fi
+
 MODEL_NAMES=(
     "Qwen/Qwen3-0.6B"
     "runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-0.6B/grpo/ak2426/0819__curr=random__prompt=cot"

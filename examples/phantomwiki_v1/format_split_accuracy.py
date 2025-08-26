@@ -16,6 +16,7 @@ from phantom_eval.utils import setup_logging
 
 logger = logging.getLogger(__name__)
 
+metrics = ["EM", "precision", "recall", "f1"]
 
 parser = get_parser()
 args = parser.parse_args()
@@ -30,10 +31,31 @@ df = get_evaluation_data(output_dir, method, dataset, from_local=from_local)
 if False:
     logger.warning(f"Filtering out {method} with more than 1 solution")
     df = df[df["solutions"] <= 1]
-# group by model, split, and seed
+
+df["completion_tokens"] = df["usage"].apply(lambda x: x["completion_tokens"])
+# Define aggregation functions
+agg_dict = {
+    **{metric: "mean" for metric in metrics},
+    "completion_tokens": [
+        "mean",
+        lambda x: x.quantile(0.5),
+        lambda x: x.quantile(0.75),
+        lambda x: x.quantile(0.90),
+        lambda x: x.quantile(0.95),
+        lambda x: x.quantile(0.99),
+    ],
+}
 grouped = df.groupby(["_model", "_depth", "_size", "_data_seed", "_seed"])
-# print the accuracy
-acc = grouped[["EM", "precision", "recall", "f1"]].mean()
+acc = grouped.agg(agg_dict)
+# Flatten column names
+acc.columns = metrics + [
+    "completion_tokens_mean",
+    "completion_tokens_median",
+    "completion_tokens_75",
+    "completion_tokens_90",
+    "completion_tokens_95",
+    "completion_tokens_99",
+]
 # add a column that counts the number of elements in the group
 acc["count"] = grouped.size()
 # add a column at the end for the method
