@@ -3,10 +3,10 @@ Training script for the GRPO model using Zeroshot or CoT prompt from PhantomEval
 
 Usage:
 ```bash
-./scripts/train_grpo.sh \
+bash scripts/create_train_grpo__vllm_colocate.sh <cluster_name>
+bash scripts/train_grpo__vllm_colocate.sub \
     recipes/accelerate_configs/zero1.yaml \
-    recipes/Qwen/Qwen2.5-1.5B-Instruct/grpo/config_base.yaml \
-    --prompt_method cot \
+    recipes/Qwen/Qwen3-0.6B-Instruct/grpo/config_pw_4gpu.yaml
 ```
 """
 
