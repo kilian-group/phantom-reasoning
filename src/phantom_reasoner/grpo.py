@@ -13,7 +13,9 @@ Usage:
 import logging
 import os
 import shutil
+import typing
 from datetime import datetime
+from functools import partial
 
 import torch
 from datasets import Dataset
@@ -56,11 +58,17 @@ def format_pred(pred: str, prompt_method: str) -> str:
             raise ValueError(f"Invalid {prompt_method=}")
 
 
-def reward_exact_match(
-    completions: list[CONVO_T], answer: list[list[str]], prompt_method: list[str], **kwargs
+def reward_with_metric(
+    metric: typing.Callable[[str, str], float],
+    completions: list[CONVO_T],
+    answer: list[list[str]],
+    prompt_method: list[str],
+    **kwargs,
 ) -> list[float]:
     """
     Args:
+        metric: A function that takes a predicted string and a target string and returns a float score.
+            E.g. `exact_match`, `precision`, `recall`, `f1`.
         completions (shape (batch, len of convo)): Batch of completions,
             where each is a conversation (i.e. a list of dicts).
         answer: (shape (batch, # answers)): The true answers for the prompts.
@@ -71,75 +79,24 @@ def reward_exact_match(
         format_pred(completion[0]["content"], method)
         for completion, method in zip(completions, prompt_method)
     ]
-    return [float(exact_match(pred, answer_sep.join(a))) for pred, a in zip(preds, answer)]
+    return [float(metric(pred, answer_sep.join(a))) for pred, a in zip(preds, answer)]
 
 
-def reward_precision(
-    completions: list[CONVO_T], answer: list[list[str]], prompt_method: list[str], **kwargs
-) -> list[float]:
-    """
-    Args:
-        completions (shape (batch, len of convo)): Batch of completions,
-            where each is a conversation (i.e. a list of dicts).
-        answer: (shape (batch, # answers)): The true answers for the prompts.
-        prompt_method: (shape (batch,)): The prompt method used for each sample.
-    """
-    # Format the model output text based on the prompting format
-    preds = [
-        format_pred(completion[0]["content"], method)
-        for completion, method in zip(completions, prompt_method)
-    ]
-    return [float(precision(pred, answer_sep.join(a))) for pred, a in zip(preds, answer)]
-
-
-def reward_recall(
-    completions: list[CONVO_T], answer: list[list[str]], prompt_method: list[str], **kwargs
-) -> list[float]:
-    """
-    Args:
-        completions (shape (batch, len of convo)): Batch of completions,
-            where each is a conversation (i.e. a list of dicts).
-        answer: (shape (batch, # answers)): The true answers for the prompts.
-        prompt_method: (shape (batch,)): The prompt method used for each sample.
-    """
-    # Format the model output text based on the prompting format
-    preds = [
-        format_pred(completion[0]["content"], method)
-        for completion, method in zip(completions, prompt_method)
-    ]
-    return [float(recall(pred, answer_sep.join(a))) for pred, a in zip(preds, answer)]
-
-
-def reward_f1(
-    completions: list[CONVO_T], answer: list[list[str]], prompt_method: list[str], **kwargs
-) -> list[float]:
-    """
-    Args:
-        completions (shape (batch, len of convo)): Batch of completions,
-            where each is a conversation (i.e. a list of dicts).
-        answer: (shape (batch, # answers)): The true answers for the prompts.
-        prompt_method: (shape (batch,)): The prompt method used for each sample.
-    """
-    # Format the model output text based on the prompting format
-    preds = [
-        format_pred(completion[0]["content"], method)
-        for completion, method in zip(completions, prompt_method)
-    ]
-    return [float(f1(pred, answer_sep.join(a))) for pred, a in zip(preds, answer)]
-
-
-def get_reward_func(reward_type_name: str) -> callable:
+def get_reward_func(reward_type_name: str) -> typing.Callable:
     match reward_type_name:
         case "exact_match":
-            return reward_exact_match
+            f = partial(reward_with_metric, exact_match)
         case "precision":
-            return reward_precision
+            f = partial(reward_with_metric, precision)
         case "recall":
-            return reward_recall
+            f = partial(reward_with_metric, recall)
         case "f1":
-            return reward_f1
+            f = partial(reward_with_metric, f1)
         case _:
             raise ValueError(f"Invalid {reward_type_name=}")
+    # Add a __name__ attribute because CustomGRPOTrainer uses the attribute
+    f.__name__ = f"reward_{reward_type_name}"
+    return f
 
 
 def arrange_dataset(dataset: Dataset, data_curriculum: str, seed: int) -> Dataset:
