@@ -10,6 +10,7 @@ import re
 from typing import Any
 
 from datasets import Dataset, concatenate_datasets, load_dataset
+from langchain.prompts import PromptTemplate
 from phantom_eval.agents.common import get_all_evidence
 from phantom_eval.prompts import COT_EXAMPLES, CoTLLMPrompt, ZeroshotLLMPrompt
 from phantom_eval.utils import load_data
@@ -135,6 +136,54 @@ class GSMInfiniteDataset(DatasetForGRPO):
     def __init__(self, script_args: GRPOScriptArguments):
         super().__init__(script_args)
 
+    COT_INSTRUCTION = f"""
+    You are given the following problem:
+    (BEGIN PROBLEM)
+    {{problem}}
+    (END PROBLEM)
+
+    You will be provided a question on the above problem. Your response must end with the final answer enclosed in tags: <answer>FINAL_ANSWER</answer>
+
+    Here, FINAL_ANSWER must be a number.
+
+    Here are some examples:
+    (START OF EXAMPLES)
+    {{examples}}
+    (END OF EXAMPLES)
+
+    Question: {{question}}
+    Answer: """  # noqa: F541, E501
+
+    # From /share/nikola/phantom-reasoning/data/gsm-infinite-train.zip
+    # taken from
+    # - igsm_op2_ip20_force_True_0.jsonl
+    # - igsm_op7_ip20_force_True_0.jsonl
+    # - igsm_op16_ip20_force_True_0.jsonl
+    COT_EXAMPLES = """
+    Example 1:
+    Question: What is the total number of adult animals in Cedar Valley?
+    Answer: Define adult racoon in Cedar Valley as q; so q = 4. Define total number of adult animals in Cedar Valley as D; so D = q = 4. <answer>4</answer>.
+
+    Example 2:
+    Question: What is the total number of adult animals in Mayer Aquarium?
+    Answer: Define adult bear in Hamilton Farm as W; so W = 2. Define adult racoon in Hamilton Farm as S; K = W = 2; so S = 4 + K = 4 + 2 = 6. Define adult bear in Mayer Aquarium as x; so x = S = 6. Define adult racoon in Mayer Aquarium as Z; so Z = 2. Define total number of adult animals in Mayer Aquarium as n; so n = x + Z = 6 + 2 = 8. <answer>8</answer>.
+
+    Example 3:
+    Question: How many adult racoon does Jefferson Circus have?
+    Answer: Define adult fox in Jefferson Circus as M; so M = 1. Define adult deer in Mayer Aquarium as w; so w = M = 1. Define total number of adult animals in Mayer Aquarium as P; so P = w = 1. Define adult racoon in Hamilton Farm as A; D = P + M = 1 + 1 = 2; b = D + w = 2 + 1 = 3; so A = 2 + b = 2 + 3 = 5. Define total number of adult animals in Hamilton Farm as I; so I = A = 5. Define adult deer in Jefferson Circus as o; f = I + P = 5 + 1 = 6; q = f + w = 6 + 1 = 7; so o = 4 * q = 4 * 7 = 28. Define adult racoon in Jefferson Circus as p; X = o + M = 28 + 1 = 29; k = X + I = 29 + 5 = 34; so p = 4 * k = 4 * 34 = 136. <answer>136</answer>.
+    """  # noqa: F541, E501
+
+    def get_prompt(self) -> PromptTemplate:
+        """Get the Chain-of-Thought prompt template.
+
+        Returns:
+            A PromptTemplate object containing the Chain-of-Thought prompt template.
+        """
+        return PromptTemplate(
+            input_variables=["problem", "examples", "question"],
+            template=self.COT_INSTRUCTION,
+        )
+
     def get_dataset(self, is_eval: bool) -> Dataset:
         if is_eval:
             base_path = self.script_args.eval_dataset_name
@@ -179,6 +228,10 @@ class GSMInfiniteDataset(DatasetForGRPO):
             )
 
         combined_dataset = concatenate_datasets(all_datasets)
+        logger.info(
+            f"*** Loaded {is_eval=} dataset {self.script_args.dataset_name}::{self.script_args.split_list} "
+            f"with {len(combined_dataset)} samples."
+        )
         return combined_dataset
 
     @staticmethod
@@ -203,15 +256,28 @@ class GSMInfiniteDataset(DatasetForGRPO):
         """
         problem = sample["problem"]
         question = sample["question"]
-        if prompt_method == "zeroshot":
-            prompt_text = f"{problem}\nQuestion: {question}"
-        elif prompt_method == "cot":
-            prompt_text = (
-                f"{problem}\n"
-                f"Question: {question}\n"
-                f"Let's think step by step. Please respond with the final answer enclosed in tags: <answer>FINAL_ANSWER</answer>"  # noqa: E501
-            )
-        else:
-            raise ValueError(f"Invalid prompt_method: {prompt_method}")
+        match prompt_method:
+            case "zeroshot":
+                prompt = [
+                    {
+                        "role": "user",
+                        "content": f"{problem}\nQuestion: {question}\nAnswer: ",
+                    },
+                ]
+                return prompt
 
-        return [{"role": "user", "content": prompt_text}]
+            case "cot":
+                prompt_template = PromptTemplate(
+                    input_variables=["problem", "examples", "question"],
+                    template=GSMInfiniteDataset.COT_INSTRUCTION,
+                )
+                return [
+                    {
+                        "role": "user",
+                        "content": prompt_template.format(
+                            problem=problem, examples=GSMInfiniteDataset.COT_EXAMPLES, question=question
+                        ),
+                    },
+                ]
+            case _:
+                raise ValueError(f"Invalid {prompt_method=}")
