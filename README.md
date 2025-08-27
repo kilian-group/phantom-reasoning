@@ -60,7 +60,22 @@ unzip wiki-v1-easy-depth_20_size_25.zip
 cd ..
 ```
 
-## Training on PhantomWiki data
+### GSM-infinite data
+
+We have generated GSM-infinite data and stored on G2. See `gsm_realistic/README.md` for instructions to generate your own data.
+
+```bash
+mkdir -p data/
+cp /share/nikola/phantom-reasoning/data/gsm-infinite-train.zip data/
+cp /share/nikola/phantom-reasoning/data/gsm-infinite-eval.zip data/
+# To transfer to another cluster: scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/gsm-infinite-train.zip data/
+cd data/
+unzip gsm-infinite-train.zip
+unzip gsm-infinite-eval.zip
+cd ..
+```
+
+## Training on multi-hop reasoning datasets
 
 > \[!NOTE\]
 > If you are in multiple projects in the `mlcore` org, you will also need to set the `WANDB_PROJECT` environment variable. You can automatically load environment variables when your conda environment activates:
@@ -87,24 +102,30 @@ Recommendations for GRPO fine-tuning a Qwen3-1.7B model:
 ```bash
 conda activate $CONDA_ENV_NAME
 
-./scripts/create_train_grpo__vllm_colocate.sh <cluster_name>
+bash scripts/create_train_grpo__vllm_colocate.sh <cluster_name>
 
-./scripts/train_grpo__vllm_colocate.sub \
+bash scripts/train_grpo__vllm_colocate.sub \
 	/path/to/accelerate/config/file.yaml \
 	/path/to/training/config/file.yaml
 ```
 
-For example, running the following command full-finetunes a Qwen/Qwen3-1.7B model using GRPO.
+For example, running the following command full-finetunes a Qwen/Qwen3-1.7B model using GRPO on PhantomWiki data.
 Checkpoints are saved at `runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags>/checkpoint-XX/`, and the final model is saved at `runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags>/`
 
 ```bash
 conda activate $CONDA_ENV_NAME
 
-./scripts/create_train_grpo__vllm_colocate.sh anvil
+bash scripts/create_train_grpo__vllm_colocate.sh anvil
 
-./scripts/train_grpo__vllm_colocate.sub \
+# Train on PhantomWiki data
+bash scripts/train_grpo__vllm_colocate.sub \
 	recipes/accelerate_configs/zero1.yaml \
-	recipes/Qwen/Qwen3-1.7B/grpo/config_4gpu__vllm_colocate.yaml
+	recipes/Qwen/Qwen3-1.7B/grpo/config_pw_4gpu.yaml
+
+# Train on GSM-infinite data
+bash scripts/train_grpo__vllm_colocate.sub \
+	recipes/accelerate_configs/zero1.yaml \
+	recipes/Qwen/Qwen3-1.7B/grpo/config_gsminfinite_4gpu.yaml
 ```
 
 <details>

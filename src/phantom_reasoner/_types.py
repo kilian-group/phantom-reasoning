@@ -1,10 +1,3 @@
-"""Imports ContentTextMessage, Message, Conversation, and LLMChatResponse types from PhantomWiki eval scripts.
-
-"""
-
-from phantom_eval._types import (  # noqa: F401, F403
-    ContentTextMessage,
-    Conversation,
-    LLMChatResponse,
-    Message,
-)
+# Type alias for OpenAI conversation format
+# [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]
+CONVO_T = list[dict[str, str]]

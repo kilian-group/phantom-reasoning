@@ -183,3 +183,6 @@ data
 nohup.out
 *.zip
 *.sub
+evals/
+models/
+
