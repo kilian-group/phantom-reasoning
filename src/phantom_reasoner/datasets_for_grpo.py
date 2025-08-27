@@ -156,21 +156,21 @@ class GSMInfiniteDataset(DatasetForGRPO):
 
     # From /share/nikola/phantom-reasoning/data/gsm-infinite-train.zip
     # taken from
-    # - igsm_op2_ip20_force_True_0.jsonl
-    # - igsm_op7_ip20_force_True_0.jsonl
+    # - igsm_op2_ip20_force_True_15.jsonl
+    # - igsm_op7_ip20_force_True_3.jsonl
     # - igsm_op16_ip20_force_True_0.jsonl
     COT_EXAMPLES = """
     Example 1:
-    Question: What is the total number of adult animals in Cedar Valley?
-    Answer: Define adult racoon in Cedar Valley as q; so q = 4. Define total number of adult animals in Cedar Valley as D; so D = q = 4. <answer>4</answer>.
+    Question: What is the total number of adult animals in Maple Creek?
+    Answer: Define adult wolf in Maple Creek as r; so r = 2. Define total number of adult animals in Maple Creek as p; so p = r = 2. <answer>2</answer>.
 
     Example 2:
-    Question: What is the total number of adult animals in Mayer Aquarium?
-    Answer: Define adult bear in Hamilton Farm as W; so W = 2. Define adult racoon in Hamilton Farm as S; K = W = 2; so S = 4 + K = 4 + 2 = 6. Define adult bear in Mayer Aquarium as x; so x = S = 6. Define adult racoon in Mayer Aquarium as Z; so Z = 2. Define total number of adult animals in Mayer Aquarium as n; so n = x + Z = 6 + 2 = 8. <answer>8</answer>.
+    Question: What is the total number of schools in Clearwater Bay?
+    Answer: Define elementary school in Riverton City as b; so b = 3. Define private middle school in Clearwater Bay as i; so i = b = 3. Define public highschool in Clearwater Bay as M; so M = i = 3. Define elementary school in Clearwater Bay as G; so G = 2. Define total number of schools in Clearwater Bay as W; V = G + i = 2 + 3 = 5; so W = V + M = 5 + 3 = 8. <answer>8</answer>.
 
     Example 3:
-    Question: How many adult racoon does Jefferson Circus have?
-    Answer: Define adult fox in Jefferson Circus as M; so M = 1. Define adult deer in Mayer Aquarium as w; so w = M = 1. Define total number of adult animals in Mayer Aquarium as P; so P = w = 1. Define adult racoon in Hamilton Farm as A; D = P + M = 1 + 1 = 2; b = D + w = 2 + 1 = 3; so A = 2 + b = 2 + 3 = 5. Define total number of adult animals in Hamilton Farm as I; so I = A = 5. Define adult deer in Jefferson Circus as o; f = I + P = 5 + 1 = 6; q = f + w = 6 + 1 = 7; so o = 4 * q = 4 * 7 = 28. Define adult racoon in Jefferson Circus as p; X = o + M = 28 + 1 = 29; k = X + I = 29 + 5 = 34; so p = 4 * k = 4 * 34 = 136. <answer>136</answer>.
+    Question: What is the total number of movies in Festival de Clairmont?
+    Answer: Define upbeat metropolis comedy in Festival de Saint-Rivage as m; so m = 4. Define total number of movies in Festival de Saint-Rivage as k; so k = m = 4. Define intense detective thriller in Festival Lumi\u00e8re de Valmont as C; l = k - m = 4 - 4 = 0; so C = 3 + l = 3 + 0 = 3. Define total number of movies in Festival Lumi\u00e8re de Valmont as Q; so Q = C = 3. Define solemn period drama in R\u00eaves de Belleville as N; t = Q + C = 3 + 3 = 6; T = t + k = 6 + 4 = 10; so N = 4 + T = 4 + 10 = 14. Define total number of movies in R\u00eaves de Belleville as y; so y = N = 14. Define futuristic sci-fi movie in Festival de Clairmont as A; z = y + N = 14 + 14 = 28; q = z + C = 28 + 3 = 31; so A = 3 * q = 3 * 31 = 93. Define total number of movies in Festival de Clairmont as p; so p = A = 93. <answer>93</answer>.
     """  # noqa: F541, E501
 
     def get_prompt(self) -> PromptTemplate:
