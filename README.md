@@ -75,6 +75,19 @@ unzip gsm-infinite-eval.zip
 cd ..
 ```
 
+### Real-world wiki datasets
+
+Copy HotpotQA (hp), 2wiki (2wiki), Musique (MSQ) datasets:
+
+```bash
+mkdir -p data/
+for d in "hp" "2wiki" "msq"; do cp /share/nikola/phantom-reasoning/data/${d}.zip data/; done
+# To transfer to another cluster: for d in "hp" "2wiki" "msq"; do scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/${d}.zip data/; done
+cd data/
+for d in "hp" "2wiki" "msq"; do unzip ${d}.zip; done
+cd ..
+```
+
 ## Training on multi-hop reasoning datasets
 
 > \[!NOTE\]

@@ -31,7 +31,11 @@ from trl import ModelConfig, TrlParser, get_peft_config, get_quantization_config
 
 from phantom_reasoner._types import CONVO_T
 from phantom_reasoner.configs import GRPOConfig, GRPOScriptArguments
-from phantom_reasoner.datasets_for_grpo import GSMInfiniteDataset, PhantomWikiDataset
+from phantom_reasoner.datasets_for_grpo import (
+    GSMInfiniteDataset,
+    HotpotQADataset,
+    PhantomWikiDataset,
+)
 from phantom_reasoner.trainers.custom_grpo_trainer import CustomGRPOTrainer
 from phantom_reasoner.utils import exp_utils
 from phantom_reasoner.utils.callbacks import DeleteAllButLastOptimizerCheckpointCallback
@@ -128,10 +132,14 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
             dataset_for_grpo = PhantomWikiDataset(script_args)
         case "gsminfinite":
             dataset_for_grpo = GSMInfiniteDataset(script_args)
+        case "hp":
+            dataset_for_grpo = HotpotQADataset(script_args)
         case _:
             raise ValueError(f"Invalid {script_args.training_mode=}")
 
     train_dataset: Dataset = dataset_for_grpo.get_dataset(is_eval=False)
+    # TODO: remove the slicing
+    train_dataset = train_dataset.select(range(10000))
     train_dataset = arrange_dataset(train_dataset, script_args.data_curriculum, training_args.seed)
     logger.info(f"*** Arranged in curriculum={script_args.data_curriculum}.")
 
@@ -139,10 +147,11 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
 
     # Count number of tokens in train dataset
     # NOTE: depth_20_size_50_seed_1 prompts have num_tokens ~ 4k
-    # logger.info(
-    #     train_dataset.map(lambda x: {"num_tokens": len(x["prompt"][0]["content"].split()) })\
-    #     .to_pandas().sort_values(by="num_tokens", ascending=False)
-    # )
+    logger.info(
+        train_dataset.map(lambda x: {"num_tokens": len(x["prompt"][0]["content"].split())})
+        .to_pandas()
+        .sort_values(by="num_tokens", ascending=False)
+    )
 
     # Load tokenizer
     # Set padding side to left for GRPO. If we don't create tokenizer here, the GRPOTrainer will create it
