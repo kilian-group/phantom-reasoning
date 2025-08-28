@@ -25,17 +25,16 @@ do
     --split_list depth_20_size_25_seed_1 depth_20_size_25_seed_2 depth_20_size_25_seed_3 \
     --from_local \
     --exclude_aggregation_questions \
-    --inf_is_deepseek_r1_model \
     --inf_temperature 1 \
     --inf_vllm_tensor_parallel_size 1 \
-    -od "${OUTPUT_DIR}__temp=1.0"
+    -od "${OUTPUT_DIR}"
 done
 
 echo "${MODEL_NAMES[*]}"
 rm -r cachedir/
 
 python ~/work/phantom-wiki/eval/format_leaderboard.py \
-  -od "${OUTPUT_DIR}__temp=1.0" \
+  -od "${OUTPUT_DIR}" \
   --model_list ${MODEL_NAMES[*]} \
   --size_list 25 \
   --method_list cot \
