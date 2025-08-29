@@ -13,8 +13,9 @@ By default, DATA_DIR is `/share/nikola/phantom-reasoning/data`.
 import os
 
 from tabulate import tabulate
-from utils.data_utils import get_parser
 from utils.evaluate_utils import get_preds
+
+from phantom_reasoner.utils.data_utils import get_parser
 
 parser = get_parser()
 args = parser.parse_args()
