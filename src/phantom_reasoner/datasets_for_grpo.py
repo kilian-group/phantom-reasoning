@@ -18,11 +18,9 @@ from phantom_eval.utils import load_data as load_pw_data
 
 from phantom_reasoner._types import CONVO_T
 from phantom_reasoner.configs import GRPOScriptArguments
-from phantom_reasoner.utils.data_utils import (
-    load_2wiki_data,
-    load_hp_data,
-    load_msq_data,
-)
+from phantom_reasoner.utils.hp.data_utils import load_hp_data
+from phantom_reasoner.utils.msq.data_utils import load_msq_data
+from phantom_reasoner.utils.twowiki.data_utils import load_2wiki_data
 
 logger = logging.getLogger(__name__)
 
