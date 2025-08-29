@@ -10,9 +10,10 @@ Example usage:
 python scripts/plot_reasoning_during_training.py \
     -od runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0626__curr=random__prompt=cot/out \
     --model_list runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0626__curr=random__prompt=cot/ \
-    --dataset data/wiki-v1-easy-depth_20_size_25 --from_local
+    --dataset data/wiki-v1-easy-depth_20_size_25 --from_local \
+    --base_model_name Qwen/Qwen3-1.7B
 ```
-"""
+"""  # noqa: E501
 
 import logging
 
@@ -50,6 +51,7 @@ parser.add_argument(
 parser.add_argument(
     "--model_list", nargs="+", default=plotting_utils.DEFAULT_MODEL_LIST, help="List of models to plot"
 )
+parser.add_argument("--base_model_name", type=str, default=None, help="Base model name to plot")
 parser.add_argument("--seed", type=int, default=42, help="Random seed for color generation")
 args = parser.parse_args()
 output_dir = args.output_dir
@@ -58,6 +60,7 @@ dataset = args.dataset
 filter_by_depth = args.filter_by_depth
 from_local = args.from_local
 seed = args.seed
+base_model_name = args.base_model_name
 
 assert len(model_list) == 1, "Please provide a single model to plot the accuracies for."
 
@@ -118,7 +121,10 @@ def get_color(ckpt_name, method, by_model=True, max_ckpt=0):
 
 def get_ckpt_number(model_name: str) -> int:
     """Extract the checkpoint number from the model name."""
-    return int(re.search(r"checkpoint-(\d+)", model_name).group(1))
+    if model_name == base_model_name:
+        return 0
+    else:
+        return int(re.search(r"checkpoint-(\d+)", model_name).group(1))
 
 
 METHOD_LIST = [
