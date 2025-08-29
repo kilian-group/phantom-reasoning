@@ -124,7 +124,7 @@ def reward_with_metric_single_string(
 
 def get_reward_func(training_mode: str, reward_type_name: str) -> typing.Callable:
     match training_mode:
-        case "pw":
+        case "pw" | "gsminfinite":
             match reward_type_name:
                 case "exact_match":
                     f = partial(reward_with_metric, exact_match)
