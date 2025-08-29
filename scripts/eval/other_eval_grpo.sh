@@ -18,8 +18,8 @@ DATASET_LIST=(
 )
 
 # If dataset not in DATASET_LIST, complain
-if [[ ! " ${DATASET_LIST[@]} " =~ " ${dataset} " ]]; then
-    echo "Dataset $dataset not in DATASET_LIST"
+if [[ ! " ${DATASET_LIST[@]} " =~ " ${DATASET} " ]]; then
+    echo "Dataset $DATASET not in DATASET_LIST"
     exit 1
 fi
 
