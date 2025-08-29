@@ -42,6 +42,15 @@ from phantom_reasoner.trainers.custom_grpo_trainer import CustomGRPOTrainer
 from phantom_reasoner.utils import exp_utils
 from phantom_reasoner.utils.callbacks import DeleteAllButLastOptimizerCheckpointCallback
 
+# import HP metrics
+from phantom_reasoner.utils.hp.hotpot_evaluate_v1 import exact_match_score, f1_score
+
+# import msq metrics
+from phantom_reasoner.utils.msq.evaluate_utils import score_pred as score_pred_msq
+
+# import 2wiki metrics
+from phantom_reasoner.utils.twowiki.evaluate_2wiki import score_pred as score_pred_2wiki
+
 logger = logging.getLogger(__name__)
 
 
@@ -88,18 +97,100 @@ def reward_with_metric(
     return [float(metric(pred, answer_sep.join(a))) for pred, a in zip(preds, answer)]
 
 
-def get_reward_func(reward_type_name: str) -> typing.Callable:
-    match reward_type_name:
-        case "exact_match":
-            f = partial(reward_with_metric, exact_match)
-        case "precision":
-            f = partial(reward_with_metric, precision)
-        case "recall":
-            f = partial(reward_with_metric, recall)
-        case "f1":
-            f = partial(reward_with_metric, f1)
+def reward_with_metric_single_string(
+    metric: typing.Callable[[str, str], float],
+    completions: list[CONVO_T],
+    answer: list[str],
+    prompt_method: list[str],
+    **kwargs,
+) -> list[float]:
+    """
+    Args:
+        metric: A function that takes a predicted string and a target string and returns a float score.
+            E.g. `exact_match`, `precision`, `recall`, `f1`.
+        completions (shape (batch, len of convo)): Batch of completions,
+            where each is a conversation (i.e. a list of dicts).
+        answer: (shape (batch,)): The true answers for the prompts.
+        prompt_method: (shape (batch,)): The prompt method used for each sample.
+    """
+    # Format the model output text based on the prompting format
+    preds = [
+        format_pred(completion[0]["content"], method)
+        for completion, method in zip(completions, prompt_method)
+    ]
+    # import pdb; pdb.set_trace()
+    return [float(metric(pred, a)) for pred, a in zip(preds, answer)]
+
+
+def get_reward_func(training_mode: str, reward_type_name: str) -> typing.Callable:
+    match training_mode:
+        case "pw":
+            match reward_type_name:
+                case "exact_match":
+                    f = partial(reward_with_metric, exact_match)
+                case "precision":
+                    f = partial(reward_with_metric, precision)
+                case "recall":
+                    f = partial(reward_with_metric, recall)
+                case "f1":
+                    f = partial(reward_with_metric, f1)
+                case _:
+                    raise ValueError(f"Invalid {reward_type_name=}")
+        case "hp":
+            match reward_type_name:
+                case "exact_match":
+                    f = partial(reward_with_metric_single_string, exact_match_score)
+                case "precision":
+                    # NOTE: f1_score returns (f1, precision, recall)
+                    f = partial(reward_with_metric_single_string, lambda x, y: f1_score(x, y)[1])
+                case "recall":
+                    # NOTE: f1_score returns (f1, precision, recall)
+                    f = partial(reward_with_metric_single_string, lambda x, y: f1_score(x, y)[2])
+                case "f1":
+                    # NOTE: f1_score returns (f1, precision, recall)
+                    f = partial(reward_with_metric_single_string, lambda x, y: f1_score(x, y)[0])
+                case _:
+                    raise ValueError(f"Invalid {reward_type_name=}")
+        case "2wiki":
+            match reward_type_name:
+                case "exact_match":
+                    f = partial(
+                        reward_with_metric_single_string,
+                        lambda x, y: score_pred_2wiki({"pred": x, "answer": y})["em"],
+                    )
+                case "precision":
+                    f = partial(
+                        reward_with_metric_single_string,
+                        lambda x, y: score_pred_2wiki({"pred": x, "answer": y})["prec"],
+                    )
+                case "recall":
+                    f = partial(
+                        reward_with_metric_single_string,
+                        lambda x, y: score_pred_2wiki({"pred": x, "answer": y})["recall"],
+                    )
+                case "f1":
+                    f = partial(
+                        reward_with_metric_single_string,
+                        lambda x, y: score_pred_2wiki({"pred": x, "answer": y})["f1"],
+                    )
+                case _:
+                    raise ValueError(f"Invalid {reward_type_name=}")
+        case "msq":
+            match reward_type_name:
+                case "exact_match":
+                    f = partial(
+                        reward_with_metric_single_string,
+                        lambda x, y: score_pred_msq({"pred": x, "answer": y})["em"],
+                    )
+                case "f1":
+                    f = partial(
+                        reward_with_metric_single_string,
+                        lambda x, y: score_pred_msq({"pred": x, "answer": y})["f1"],
+                    )
+                case _:
+                    raise ValueError(f"Invalid {reward_type_name=}")
         case _:
-            raise ValueError(f"Invalid {reward_type_name=}")
+            raise ValueError(f"Invalid {training_mode=}")
     # Add a __name__ attribute because CustomGRPOTrainer uses the attribute
     f.__name__ = f"reward_{reward_type_name}"
     return f
@@ -172,7 +263,8 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         tokenizer.pad_token = tokenizer.eos_token
 
     reward_funcs: list[callable] = [
-        get_reward_func(reward_func_name) for reward_func_name in script_args.reward_func_names
+        get_reward_func(script_args.training_mode, reward_func_name)
+        for reward_func_name in script_args.reward_func_names
     ]
     logger.info(f"*** Selected reward functions: {script_args.reward_func_names}")
 

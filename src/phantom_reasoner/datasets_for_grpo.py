@@ -78,14 +78,19 @@ class PhantomWikiDataset(DatasetForGRPO):
             qa_pairs: Dataset = dataset["qa_pairs"]
             evidence: str = get_all_evidence(text_corpus)
 
-            dataset: Dataset = qa_pairs.map(
-                lambda sample: {
+            # Define a named function for better caching
+            def add_prompt_formatting_pw(sample):
+                return {
                     "prompt": self.get_prompt_for_sample(
                         sample, self.script_args.prompt_method, evidence=evidence
                     ),
                     "answer": sample["answer"],  # x['answer'] is a list of strings
                     "prompt_method": self.script_args.prompt_method,
                 }
+
+            dataset: Dataset = qa_pairs.map(
+                add_prompt_formatting_pw,
+                desc="Formatting PhantomWiki prompts",
             )
             all_datasets.append(dataset)
 
@@ -215,8 +220,10 @@ class GSMInfiniteDataset(DatasetForGRPO):
 
                 for filename in glob.glob(os.path.join(sub_dir_path, "*.jsonl")):
                     ds: Dataset = load_dataset("json", data_files=filename, split="train")
-                    ds = ds.map(
-                        lambda x: {
+
+                    # Define a named function for better caching
+                    def add_prompt_formatting_gsm(x):
+                        return {
                             "prompt": self.get_prompt_for_sample(x, prompt_method),
                             "answer": GSMInfiniteDataset.extract_gsm_final_answer_from_ground_truth(
                                 x["solution"]
@@ -225,6 +232,10 @@ class GSMInfiniteDataset(DatasetForGRPO):
                             "difficulty": x.get("op", None),
                             "id": x.get("id", None),
                         }
+
+                    ds = ds.map(
+                        add_prompt_formatting_gsm,
+                        desc="Formatting GSM prompts",
                     )
                     all_datasets.append(ds)
 
@@ -300,6 +311,16 @@ class WikiDataset(DatasetForGRPO):
     def load_data_func(data_path: str, split: str) -> dict:
         raise NotImplementedError("Subclasses must implement this method")
 
+    def get_all_evidence(self, text_corpus: pd.DataFrame) -> str:
+        """
+        Format the text corpus into a string of evidence.
+
+        NOTE: the wiki passages do not already contain the title, so we need to add it.
+        """
+        formatted_articles = text_corpus.apply(lambda x: f"{x['title']}\n{x['article']}", axis=1)
+        evidence = "\n================\n\n".join(formatted_articles)
+        return evidence
+
     def __init__(self, script_args: GRPOScriptArguments):
         super().__init__(script_args)
 
@@ -330,8 +351,10 @@ class WikiDataset(DatasetForGRPO):
             )
 
             dataset: Dataset = Dataset.from_pandas(df_qa_pairs)
-            dataset = dataset.map(
-                lambda sample: {
+
+            # Define a named function for better caching
+            def add_prompt_formatting(sample):
+                return {
                     "prompt": self.get_prompt_for_sample(
                         sample,
                         self.script_args.prompt_method,
@@ -339,6 +362,10 @@ class WikiDataset(DatasetForGRPO):
                     "answer": sample["answer"],
                     "prompt_method": self.script_args.prompt_method,
                 }
+
+            dataset = dataset.map(
+                add_prompt_formatting,
+                desc="Formatting prompts",
             )
 
             all_datasets.append(dataset)
@@ -365,7 +392,7 @@ class WikiDataset(DatasetForGRPO):
                 Each message is a dict with keys "role" and "content".
         """
         text_corpus = pd.DataFrame({"title": sample["title"], "article": sample["article"]})
-        evidence = get_all_evidence(text_corpus)
+        evidence = self.get_all_evidence(text_corpus)
         match prompt_method:
             case "zeroshot":
                 llm_prompt = ZeroshotLLMPrompt()
