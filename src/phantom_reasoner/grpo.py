@@ -254,7 +254,7 @@ if __name__ == "__main__":
     setup_logging(training_args.log_level.upper())
     set_seed(training_args.seed)
 
-    run_flags_str = f"curr={script_args.data_curriculum}__prompt={script_args.prompt_method}"
+    run_flags_str = f"curr={script_args.data_curriculum}__training_seed={training_args.seed}"
     run_name: str = exp_utils.get_run_name(
         training_algo_name="grpo",
         script_args=script_args,
