@@ -1,7 +1,15 @@
 import pandas as pd
-from utils.evaluate_utils.evaluate_2wiki import get_preds as get_preds_2wiki
-from utils.evaluate_utils.hp import get_preds as get_preds_hp
-from utils.evaluate_utils.msq import get_preds as get_preds_msq
+
+if False:
+    from utils.evaluate_utils.evaluate_2wiki import get_preds as get_preds_2wiki
+    from utils.evaluate_utils.hp import get_preds as get_preds_hp
+    from utils.evaluate_utils.msq import get_preds as get_preds_msq
+else:
+    from phantom_reasoner.utils.hp import get_preds as get_preds_hp
+    from phantom_reasoner.utils.msq.evaluate_utils import get_preds as get_preds_msq
+    from phantom_reasoner.utils.twowiki.evaluate_2wiki import (
+        get_preds as get_preds_2wiki,
+    )
 
 
 def get_preds(output_dir, data_dir, dataset, split, method) -> tuple[pd.DataFrame, list[str]]:
