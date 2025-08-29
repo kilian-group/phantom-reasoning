@@ -11,8 +11,9 @@ import re
 
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
-from utils.data_utils import get_parser
 from utils.evaluate_utils import get_preds
+
+from phantom_reasoner.utils.data_utils import get_parser
 
 # utils for plotting
 plt.rcParams.update(

@@ -6,7 +6,8 @@ import os
 import pandas as pd
 from phantom_eval.evaluate_utils import _get_preds
 
-from ..data_utils import get_hp_data_path
+from phantom_reasoner.utils.data_utils import get_hp_data_path
+
 from .hotpot_evaluate_v1 import exact_match_score, f1_score, update_answer, update_sp
 
 

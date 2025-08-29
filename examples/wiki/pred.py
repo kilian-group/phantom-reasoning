@@ -22,7 +22,8 @@ from phantom_eval.llm import Conversation, InferenceGenerationConfig, LLMChat, g
 from phantom_eval.prompts import LLMPrompt, get_llm_prompt
 from phantom_eval.utils import setup_logging
 from utils.agent_utils import CoTWikiAgent
-from utils.data_utils import get_parser, load_data
+
+from phantom_reasoner.utils.data_utils import get_parser, load_data
 
 logger = logging.getLogger(__name__)
 
