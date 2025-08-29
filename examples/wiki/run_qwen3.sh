@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Script to run the Qwen3 family of models on the Wiki datasets (HP, 2Wiki, MSQ)
-# Usage: ./run_qwen3.sh <output_dir> <split>
+# Usage: ./run_qwen3.sh <output_dir> <data_dir> <split>
 # Split can be minidev (500 examples) or dev (~11K examples)
 
 OUTPUT_DIR=$1
-SPLIT=$2
+DATA_DIR=$2
+SPLIT=$3
 
 DATASET_LIST=(
     "hp500"
@@ -23,7 +24,7 @@ MODELS_LIST=(
 
 for dataset in ${DATASET_LIST[@]}; do
     for model in ${MODELS_LIST[@]}; do
-        CMD="python pred.py --dataset $dataset --split $SPLIT --method cot --server vllm -m $model --inf_temperature 0.6 --inf_top_p 0.95 --inf_top_k 20 -od $OUTPUT_DIR"
+        CMD="python pred.py --dataset $dataset --split $SPLIT --method cot --server vllm -m $model --inf_temperature 0.6 --inf_top_p 0.95 --inf_top_k 20 -od $OUTPUT_DIR -dd $DATA_DIR"
         echo $CMD
         $CMD
     done
