@@ -34,7 +34,9 @@ from phantom_reasoner.configs import GRPOConfig, GRPOScriptArguments
 from phantom_reasoner.datasets_for_grpo import (
     GSMInfiniteDataset,
     HotpotQADataset,
+    MuSiQueDataset,
     PhantomWikiDataset,
+    TwoWikiDataset,
 )
 from phantom_reasoner.trainers.custom_grpo_trainer import CustomGRPOTrainer
 from phantom_reasoner.utils import exp_utils
@@ -134,6 +136,10 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
             dataset_for_grpo = GSMInfiniteDataset(script_args)
         case "hp":
             dataset_for_grpo = HotpotQADataset(script_args)
+        case "2wiki":
+            dataset_for_grpo = TwoWikiDataset(script_args)
+        case "msq":
+            dataset_for_grpo = MuSiQueDataset(script_args)
         case _:
             raise ValueError(f"Invalid {script_args.training_mode=}")
 
