@@ -21,9 +21,8 @@ import os
 
 import matplotlib.pyplot as plt
 from tabulate import tabulate
+from utils.data_utils import get_parser
 from utils.evaluate_utils import get_preds
-
-from phantom_reasoner.utils.data_utils import get_parser
 
 parser = get_parser()
 parser.add_argument("--base_model_name", type=str, required=True)
