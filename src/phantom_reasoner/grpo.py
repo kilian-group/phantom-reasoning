@@ -106,7 +106,7 @@ def reward_with_metric_single_string(
 ) -> list[float]:
     """
     Args:
-        metric: A function that takes a predicted string and a target string and returns a float score.
+        metric: A function that takes a predicted string and a target answer and returns a float score.
             E.g. `exact_match`, `precision`, `recall`, `f1`.
         completions (shape (batch, len of convo)): Batch of completions,
             where each is a conversation (i.e. a list of dicts).
