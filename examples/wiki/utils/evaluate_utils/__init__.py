@@ -1,6 +1,7 @@
 import pandas as pd
 
 if False:
+    # NOTE: these imports contain reference evaluation code
     from utils.evaluate_utils.evaluate_2wiki import get_preds as get_preds_2wiki
     from utils.evaluate_utils.hp import get_preds as get_preds_hp
     from utils.evaluate_utils.msq import get_preds as get_preds_msq
