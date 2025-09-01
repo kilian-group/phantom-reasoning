@@ -89,3 +89,8 @@ print(
     f"Processed {len(df)} data points from {len(df['dataset'].unique())} datasets \
         and {len(df['model'].unique())} models."
 )
+
+model_accuracy = df.groupby("model")["accuracy"].mean().reset_index()
+print("\nOverall accuracy per model:")
+for _, row in model_accuracy.iterrows():
+    print(f"Model: {row['model']}, Accuracy: {row['accuracy']:.4f}")

@@ -34,13 +34,21 @@ pip install -e .
 2. **Run evaluation**:
 
    ```bash
-   cd gsm-infinite
+   cd gsm_infinite
    sbatch eval_models.sh
    ```
 
-Results are stored in `gsm-infinite/results`
+Results are stored in `gsm_infinite/results`
 
-3. **View results** with the interactive dashboard and forward it to local browser:
+3. **Preprocess Result**:
+
+After running evaluation, we run preprocess.py to preprocess the result for visualization, and print the overall accuracy.
+
+```bash
+python preprocess.py
+```
+
+4. **View results** with the interactive dashboard and forward it to local browser:
    ```bash
    streamlit run app.py --server.address 0.0.0.0 --server.port 8502
    # On your local device:
