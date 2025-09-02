@@ -29,21 +29,18 @@ SBATCH_JOB_NAME="grpo"
 SBATCH_OUTPUT="logs/grpo-%j.out"
 SBATCH_ERROR="logs/grpo-%j.err"
 SBATCH_NODES="1"
-SBATCH_NTASKS="16"
-SBATCH_MEM="100GB"
+SBATCH_NTASKS="8"
+SBATCH_MEM="50GB"
 SBATCH_TIME="24:00:00"
 SBATCH_MAIL_USER=$USER_EMAIL
 
 # Define SBATCH_PARTITION based on cluster
 if [[ "$CLUSTER_NAME" == "aida" ]]; then
     SBATCH_PARTITION="full"
-    SBATCH_GRES="gpu:a100:4"
 elif [[ "$CLUSTER_NAME" == "anvil" ]]; then
     SBATCH_PARTITION="ai"
-    SBATCH_GRES="gpu:4"
 elif [[ "$CLUSTER_NAME" == "empire" ]]; then
     SBATCH_PARTITION="cornell,priority"
-    SBATCH_GRES="gpu:4"
 fi
 
 # Create the merged script, substituting the variables
@@ -55,12 +52,20 @@ cat << EOT > "$OUTPUT_FILE"
 #SBATCH -p $SBATCH_PARTITION
 #SBATCH -N $SBATCH_NODES
 #SBATCH -n $SBATCH_NTASKS
-#SBATCH --gres=$SBATCH_GRES
+#SBATCH --gres=gpu:4
 #SBATCH --mem=$SBATCH_MEM
 #SBATCH --time=$SBATCH_TIME
 #SBATCH --mail-user=$SBATCH_MAIL_USER
 #SBATCH --mail-type=all
 EOT
+
+# On aida, select H100 or A100 GPUs by adding SBATCH -C=gpu-h100|gpu-a100&no-gpu-1g.10gb
+# NOTE: the &no-gpu-1g.10gb part is necessary to avoid the aida nodes with 1GB of memory, which are not supported by GRPO
+if [[ "$CLUSTER_NAME" == "aida" ]]; then
+    cat >> "$OUTPUT_FILE" << EOT
+#SBATCH --constraint="gpu-h100|gpu-a100&no-gpu-1g.10gb"
+EOT
+fi
 
 # Add account information for each cluster
 if [[ "$CLUSTER_NAME" == "aida" ]]; then
