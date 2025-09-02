@@ -25,11 +25,9 @@ fi
 
 MODEL_NAMES=(
     "Qwen/Qwen3-0.6B"
-    "runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-0.6B/grpo/ak2426/0819__curr=random__prompt=cot"
-    "runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-0.6B/grpo/ak2426/0819__curr=difficulty_asc__prompt=cot"
-    "Qwen/Qwen3-1.7B"
-    "runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-1.7B/grpo/ak2426/0819__curr=random__prompt=cot"
-    "runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-1.7B/grpo/ak2426/0819__curr=difficulty_asc__prompt=cot"
+    "runs__bs=16/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/ak2426/0829__curr=random__training_seed=42"
+    "runs__bs=16/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/ak2426/0829__curr=random__training_seed=1"
+    "runs__bs=16/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/ak2426/0830__curr=random__training_seed=2"
 )
 
 for model_name in ${MODEL_NAMES[@]}; do
@@ -47,3 +45,12 @@ for model_name in ${MODEL_NAMES[@]}; do
         --inf_vllm_tensor_parallel_size 1 \
         $cmd_args
 done
+
+rm -r cachedir/
+
+python examples/wiki/format_split_accuracy.py \
+    -dd data/ \
+    -od $OUTPUT_DIR \
+    --split $SPLIT \
+    --dataset $DATASET \
+    --method cot
