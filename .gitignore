@@ -178,11 +178,10 @@ cython_debug/
 cachedir
 out*
 logs
-runs
+runs*
 data
 nohup.out
 *.zip
 *.sub
 evals/
 models/
-
