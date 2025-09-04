@@ -31,7 +31,7 @@ gradient_checkpointing: true # Enable gradient checkpointing for memory efficien
 # Trainer arguments
 num_train_epochs: 1
 per_device_train_batch_size: 8
-gradient_accumulation_steps: 2
+gradient_accumulation_steps: 1
 use_vllm: true
 vllm_mode: "colocate"
 vllm_gpu_memory_utilization: 0.20
