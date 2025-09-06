@@ -236,7 +236,7 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
 
     train_dataset: Dataset = dataset_for_grpo.get_dataset(is_eval=False)
     # TODO: remove the slicing
-    train_dataset = train_dataset.select(range(10000))
+    train_dataset = train_dataset.select(range(20000))
     train_dataset = arrange_dataset(train_dataset, script_args.data_curriculum, training_args.seed)
     logger.info(f"*** Arranged in curriculum={script_args.data_curriculum}.")
 
