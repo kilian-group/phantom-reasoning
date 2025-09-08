@@ -6,13 +6,10 @@
 OUTPUT_DIR=$1
 
 MODEL_NAMES=(
-    "Qwen/Qwen3-0.6B"
-    "runs__bs=16/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/ak2426/0829__curr=random__training_seed=42"
-    "runs__bs=16/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/ak2426/0829__curr=random__training_seed=1"
-    "runs__bs=16/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/ak2426/0830__curr=random__training_seed=2"
-    # "runs__bs=16/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/ak2426/0829__curr=difficulty_asc__training_seed=42"
-    # "runs__bs=16/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/ak2426/0829__curr=difficulty_asc__training_seed=1"
-    # "runs__bs=16/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/ak2426/0830__curr=difficulty_asc__training_seed=2"
+    "google/gemma-3-1b-it"
+    "runs__bs=8/data/wiki-v1-easy-depth_20_size_25/google/gemma-3-1b-it/grpo/x-anmolkab/0905__curr=random__training_seed=2"
+    "meta-llama/Llama-3.2-3B-Instruct"
+    "runs__bs=8/data/wiki-v1-easy-depth_20_size_25/meta-llama/Llama-3.2-3B-Instruct/grpo/x-anmolkab/0905__curr=random__training_seed=1"
 )
 
 for model_name in ${MODEL_NAMES[@]}
