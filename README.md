@@ -204,46 +204,22 @@ python /path/to/phantom-wiki-installation/eval/format_leaderboard.py \
 
 ### GRPO training performance evolution
 
-Evaluate all training checkpoints on an evaluation split of PhantomWiki with:
+Evaluate all training checkpoints on evaluation splits of PhantomWiki and plot how model performance evolves as a function of question difficulty, as training progresses.
 
 ```bash
-./scripts/eval/pw_eval_all_ckpts.sh /path/to/checkpoint/parent
+./scripts/eval/pw_eval_all_ckpts.sh /path/to/checkpoint/parent <base_model_name> <training_dataset_name>
 # for example, for this Qwen3-0.6B trained model:
-./scripts/eval/pw_eval_all_ckpts.sh runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot
+./scripts/eval/pw_eval_all_ckpts.sh runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot Qwen/Qwen3-0.6B pw
 ```
 
-Then we can produce how the model performance evolves as training progresses:
+### Scaling plots for wiki datasets
+
+Evaluate all training checkpoints on evaluation datasets of various wiki datasets (HP, 2Wiki, MSQ) and plot how model performance on wiki datasets evolves as training progresses.
 
 ```bash
-python scripts/plot_reasoning_during_training.py \
-	-od runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot/out \
-	--model_list runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot/ \
-	--dataset data/wiki-v1-easy-depth_20_size_25 \
-	--from_local
-```
-
-### Scaling plots for other datasets
-
-Evaluate all training checkpoints on evaluation datasets of various wiki datasets (HP, 2Wiki, MSQ) with:
-
-```bash
-./scripts/eval/other_eval_all_ckpts.sh /path/to/checkpoint/parent dataset split base_model_name
+./scripts/eval/other_eval_all_ckpts.sh /path/to/checkpoint/parent <dataset> <split> <base_model_name> <training_dataset_name>
 # for example, for this Qwen3-0.6B trained model:
-./scripts/eval/other_eval_all_ckpts.sh runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot hp500 minidev Qwen/Qwen3-0.6B
-```
-
-Then we can produce how the model performance evolves as training progresses.
-First, tabulate metrics from the generations with `examples/wiki/format_split_accuracy.py`:
-
-```bash
-python examples/wiki/plot_scaling_all_ckpts.py \
-	-dd data/ \
-	-od runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot/out \
-	--split minidev \
-	--dataset hp500 \
-	--method cot \
-	--base_model_name Qwen/Qwen3-0.6B \
-	--training_dataset_name pw
+./scripts/eval/other_eval_all_ckpts.sh runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot hp500 minidev Qwen/Qwen3-0.6B pw
 ```
 
 ## Lighteval (GSM8k, ARC etc.)
