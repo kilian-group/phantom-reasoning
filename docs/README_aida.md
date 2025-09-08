@@ -63,10 +63,10 @@ conda activate $CONDA_ENV_NAME
 
 ./scripts/train_grpo__vllm_colocate.sub \
     recipes/accelerate_configs/zero1.yaml \
-    recipes/Qwen/Qwen3-1.7B/grpo/config_4gpu__vllm_colocate.yaml
+    recipes/Qwen/Qwen3-1.7B/grpo/config_pw_4gpu.yaml
 
 # Option 2: Batch job
 sbatch scripts/train_grpo__vllm_colocate.sub \
     recipes/accelerate_configs/zero1.yaml \
-    recipes/Qwen/Qwen3-1.7B/grpo/config_4gpu__vllm_colocate.yaml
+    recipes/Qwen/Qwen3-1.7B/grpo/config_pw_4gpu.yaml
 ```
