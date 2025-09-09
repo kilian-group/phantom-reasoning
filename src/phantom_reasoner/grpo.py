@@ -132,7 +132,7 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
             raise ValueError(f"Invalid {script_args.training_mode=}")
 
     train_dataset: Dataset = dataset_for_grpo.get_dataset(is_eval=False)
-    num_train_samples = max(script_args.max_num_train_samples, len(train_dataset))
+    num_train_samples = min(script_args.max_num_train_samples, len(train_dataset))
     train_dataset = train_dataset.select(range(num_train_samples))
     train_dataset = arrange_dataset(train_dataset, script_args.data_curriculum, training_args.seed)
     logger.info(f"*** Arranged in curriculum={script_args.data_curriculum}.")
