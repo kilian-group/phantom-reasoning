@@ -1,20 +1,35 @@
-# Copyright 2025 The HuggingFace Team. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 from dataclasses import dataclass, field
+from typing import Literal
 
 import trl
+
+
+@dataclass
+class GRPOScriptArguments(trl.ScriptArguments):
+    # Train dataset arguments
+    training_mode: Literal["pw", "gsminfinite"] = "pw"
+    dataset_name: str = "kilian-group/phantom-wiki-v1"
+    split_list: list[str] = field(
+        default_factory=lambda: ["depth_20_size_50_seed_1", "depth_20_size_50_seed_2"]
+    )
+    from_local: bool = False
+    # Eval dataset arguments
+    eval_dataset_name: str = "kilian-group/phantom-wiki-v1"
+    eval_split_list: str = field(default_factory=lambda: ["depth_20_size_50_seed_3"])
+    eval_from_local: bool = False
+
+    # Script arguments
+    run_dir: str = "runs"
+    reward_func_names: list[str] = field(default_factory=lambda: ["f1"])
+    data_curriculum: Literal[
+        "random",
+        "difficulty_asc",
+        "difficulty_desc",
+    ] = "random"
+    prompt_method: Literal["zeroshot", "cot"] = "cot"
+    ignore_think_tags_in_outputs: bool = False
+    exclude_aggregation_questions: bool = True
+    max_num_train_samples: int = 10_000
 
 
 # TODO: add the shared options with a mixin to reduce code duplication
@@ -28,7 +43,8 @@ class GRPOConfig(trl.GRPOConfig):
         default_factory=lambda: [], metadata={"help": "The benchmarks to run after training."}
     )
     callbacks: list[str] = field(
-        default_factory=lambda: [], metadata={"help": "The callbacks to run during training."}
+        default_factory=lambda: [],
+        metadata={"help": "The callbacks to run during training."},
     )
     system_prompt: str | None = field(
         default=None, metadata={"help": "The optional system prompt to use for benchmarking."}

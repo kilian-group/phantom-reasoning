@@ -60,7 +60,22 @@ unzip wiki-v1-easy-depth_20_size_25.zip
 cd ..
 ```
 
-## Training on PhantomWiki data
+### GSM-infinite data
+
+We have generated GSM-infinite data and stored on G2. See `gsm_realistic/README.md` for instructions to generate your own data.
+
+```bash
+mkdir -p data/
+cp /share/nikola/phantom-reasoning/data/gsm-infinite-train.zip data/
+cp /share/nikola/phantom-reasoning/data/gsm-infinite-eval.zip data/
+# To transfer to another cluster: scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/gsm-infinite-train.zip data/
+cd data/
+unzip gsm-infinite-train.zip
+unzip gsm-infinite-eval.zip
+cd ..
+```
+
+## Training on multi-hop reasoning datasets
 
 > \[!NOTE\]
 > If you are in multiple projects in the `mlcore` org, you will also need to set the `WANDB_PROJECT` environment variable. You can automatically load environment variables when your conda environment activates:
@@ -87,24 +102,30 @@ Recommendations for GRPO fine-tuning a Qwen3-1.7B model:
 ```bash
 conda activate $CONDA_ENV_NAME
 
-./scripts/create_train_grpo__vllm_colocate.sh <cluster_name>
+bash scripts/create_train_grpo__vllm_colocate.sh <cluster_name>
 
-./scripts/train_grpo__vllm_colocate.sub \
+bash scripts/train_grpo__vllm_colocate.sub \
 	/path/to/accelerate/config/file.yaml \
 	/path/to/training/config/file.yaml
 ```
 
-For example, running the following command full-finetunes a Qwen/Qwen3-1.7B model using GRPO.
+For example, running the following command full-finetunes a Qwen/Qwen3-1.7B model using GRPO on PhantomWiki data.
 Checkpoints are saved at `runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags>/checkpoint-XX/`, and the final model is saved at `runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags>/`
 
 ```bash
 conda activate $CONDA_ENV_NAME
 
-./scripts/create_train_grpo__vllm_colocate.sh anvil
+bash scripts/create_train_grpo__vllm_colocate.sh anvil
 
-./scripts/train_grpo__vllm_colocate.sub \
+# Train on PhantomWiki data
+bash scripts/train_grpo__vllm_colocate.sub \
 	recipes/accelerate_configs/zero1.yaml \
-	recipes/Qwen/Qwen3-1.7B/grpo/config_4gpu__vllm_colocate.yaml
+	recipes/Qwen/Qwen3-1.7B/grpo/config_pw_4gpu.yaml
+
+# Train on GSM-infinite data
+bash scripts/train_grpo__vllm_colocate.sub \
+	recipes/accelerate_configs/zero1.yaml \
+	recipes/Qwen/Qwen3-1.7B/grpo/config_gsminfinite_4gpu.yaml
 ```
 
 <details>
@@ -183,46 +204,22 @@ python /path/to/phantom-wiki-installation/eval/format_leaderboard.py \
 
 ### GRPO training performance evolution
 
-Evaluate all training checkpoints on an evaluation split of PhantomWiki with:
+Evaluate all training checkpoints on evaluation splits of PhantomWiki and plot how model performance evolves as a function of question difficulty, as training progresses.
 
 ```bash
-./scripts/eval/pw_eval_all_ckpts.sh /path/to/checkpoint/parent
+./scripts/eval/pw_eval_all_ckpts.sh /path/to/checkpoint/parent <base_model_name> <training_dataset_name>
 # for example, for this Qwen3-0.6B trained model:
-./scripts/eval/pw_eval_all_ckpts.sh runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot
+./scripts/eval/pw_eval_all_ckpts.sh runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot Qwen/Qwen3-0.6B pw
 ```
 
-Then we can produce how the model performance evolves as training progresses:
+### Scaling plots for wiki datasets
+
+Evaluate all training checkpoints on evaluation datasets of various wiki datasets (HP, 2Wiki, MSQ) and plot how model performance on wiki datasets evolves as training progresses.
 
 ```bash
-python scripts/plot_reasoning_during_training.py \
-	-od runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot/out \
-	--model_list runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot/ \
-	--dataset data/wiki-v1-easy-depth_20_size_25 \
-	--from_local
-```
-
-### Scaling plots for other datasets
-
-Evaluate all training checkpoints on evaluation datasets of various wiki datasets (HP, 2Wiki, MSQ) with:
-
-```bash
-./scripts/eval/other_eval_all_ckpts.sh /path/to/checkpoint/parent dataset split base_model_name
+./scripts/eval/other_eval_all_ckpts.sh /path/to/checkpoint/parent <dataset> <split> <base_model_name> <training_dataset_name>
 # for example, for this Qwen3-0.6B trained model:
-./scripts/eval/other_eval_all_ckpts.sh runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot hp500 minidev Qwen/Qwen3-0.6B
-```
-
-Then we can produce how the model performance evolves as training progresses.
-First, tabulate metrics from the generations with `examples/wiki/format_split_accuracy.py`:
-
-```bash
-python examples/wiki/plot_scaling_all_ckpts.py \
-	-dd data/ \
-	-od runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot/out \
-	--split minidev \
-	--dataset hp500 \
-	--method cot \
-	--base_model_name Qwen/Qwen3-0.6B \
-	--training_dataset_name pw
+./scripts/eval/other_eval_all_ckpts.sh runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot hp500 minidev Qwen/Qwen3-0.6B pw
 ```
 
 ## Lighteval (GSM8k, ARC etc.)
