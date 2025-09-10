@@ -43,7 +43,10 @@ from phantom_reasoner.utils import exp_utils
 from phantom_reasoner.utils.callbacks import DeleteAllButLastOptimizerCheckpointCallback
 
 # import HP metrics
-from phantom_reasoner.utils.hp.hotpot_evaluate_v1 import exact_match_score, f1_score
+from phantom_reasoner.utils.hp.hotpot_evaluate_v1 import (
+    exact_match_score as exact_match_score_hp,
+)
+from phantom_reasoner.utils.hp.hotpot_evaluate_v1 import f1_score as f1_score_hp
 
 # import msq metrics
 from phantom_reasoner.utils.msq.evaluate_utils import score_pred as score_pred_msq
@@ -139,16 +142,16 @@ def get_reward_func(training_mode: str, reward_type_name: str) -> typing.Callabl
         case "hp":
             match reward_type_name:
                 case "exact_match":
-                    f = partial(reward_with_metric_single_string, exact_match_score)
+                    f = partial(reward_with_metric_single_string, exact_match_score_hp)
                 case "precision":
                     # NOTE: f1_score returns (f1, precision, recall)
-                    f = partial(reward_with_metric_single_string, lambda x, y: f1_score(x, y)[1])
+                    f = partial(reward_with_metric_single_string, lambda x, y: f1_score_hp(x, y)[1])
                 case "recall":
                     # NOTE: f1_score returns (f1, precision, recall)
-                    f = partial(reward_with_metric_single_string, lambda x, y: f1_score(x, y)[2])
+                    f = partial(reward_with_metric_single_string, lambda x, y: f1_score_hp(x, y)[2])
                 case "f1":
                     # NOTE: f1_score returns (f1, precision, recall)
-                    f = partial(reward_with_metric_single_string, lambda x, y: f1_score(x, y)[0])
+                    f = partial(reward_with_metric_single_string, lambda x, y: f1_score_hp(x, y)[0])
                 case _:
                     raise ValueError(f"Invalid {reward_type_name=}")
         case "2wiki":
