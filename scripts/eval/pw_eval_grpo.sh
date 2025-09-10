@@ -6,12 +6,10 @@
 OUTPUT_DIR=$1
 
 MODEL_NAMES=(
-    "Qwen/Qwen3-0.6B"
-    "runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-0.6B/grpo/ak2426/0819__curr=random__prompt=cot"
-    "runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-0.6B/grpo/ak2426/0819__curr=difficulty_asc__prompt=cot"
-    "Qwen/Qwen3-1.7B"
-    "runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-1.7B/grpo/ak2426/0819__curr=random__prompt=cot"
-    "runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-1.7B/grpo/ak2426/0819__curr=difficulty_asc__prompt=cot"
+    "google/gemma-3-1b-it"
+    "runs__bs=8/data/wiki-v1-easy-depth_20_size_25/google/gemma-3-1b-it/grpo/x-anmolkab/0905__curr=random__training_seed=2"
+    "meta-llama/Llama-3.2-3B-Instruct"
+    "runs__bs=8/data/wiki-v1-easy-depth_20_size_25/meta-llama/Llama-3.2-3B-Instruct/grpo/x-anmolkab/0905__curr=random__training_seed=1"
 )
 
 for model_name in ${MODEL_NAMES[@]}

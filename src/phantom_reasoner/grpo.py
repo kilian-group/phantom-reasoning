@@ -235,8 +235,8 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
             raise ValueError(f"Invalid {script_args.training_mode=}")
 
     train_dataset: Dataset = dataset_for_grpo.get_dataset(is_eval=False)
-    # TODO: remove the slicing
-    train_dataset = train_dataset.select(range(20000))
+    num_train_samples = min(script_args.max_num_train_samples, len(train_dataset))
+    train_dataset = train_dataset.select(range(num_train_samples))
     train_dataset = arrange_dataset(train_dataset, script_args.data_curriculum, training_args.seed)
     logger.info(f"*** Arranged in curriculum={script_args.data_curriculum}.")
 
@@ -361,7 +361,7 @@ if __name__ == "__main__":
     setup_logging(training_args.log_level.upper())
     set_seed(training_args.seed)
 
-    run_flags_str = f"curr={script_args.data_curriculum}__prompt={script_args.prompt_method}"
+    run_flags_str = f"curr={script_args.data_curriculum}__training_seed={training_args.seed}"
     run_name: str = exp_utils.get_run_name(
         training_algo_name="grpo",
         script_args=script_args,
