@@ -30,7 +30,7 @@ generation_kwargs: {}
 # TODO
 max_prompt_length: 6000
 # Should be divisble by number of GPUs.
-num_generations: 4
+num_generations: 16
 max_completion_length: 4096
 
 # Logging config
