@@ -31,10 +31,28 @@ from trl import ModelConfig, TrlParser, get_peft_config, get_quantization_config
 
 from phantom_reasoner._types import CONVO_T
 from phantom_reasoner.configs import GRPOConfig, GRPOScriptArguments
-from phantom_reasoner.datasets_for_grpo import GSMInfiniteDataset, PhantomWikiDataset
+from phantom_reasoner.datasets_for_grpo import (
+    GSMInfiniteDataset,
+    HotpotQADataset,
+    MuSiQueDataset,
+    PhantomWikiDataset,
+    TwoWikiDataset,
+)
 from phantom_reasoner.trainers.custom_grpo_trainer import CustomGRPOTrainer
 from phantom_reasoner.utils import exp_utils
 from phantom_reasoner.utils.callbacks import DeleteAllButLastOptimizerCheckpointCallback
+
+# import HP metrics
+from phantom_reasoner.utils.hp.hotpot_evaluate_v1 import (
+    exact_match_score as exact_match_score_hp,
+)
+from phantom_reasoner.utils.hp.hotpot_evaluate_v1 import f1_score as f1_score_hp
+
+# import msq metrics
+from phantom_reasoner.utils.msq.evaluate_utils import score_pred as score_pred_msq
+
+# import 2wiki metrics
+from phantom_reasoner.utils.twowiki.evaluate_2wiki import score_pred as score_pred_2wiki
 
 logger = logging.getLogger(__name__)
 
@@ -82,18 +100,100 @@ def reward_with_metric(
     return [float(metric(pred, answer_sep.join(a))) for pred, a in zip(preds, answer)]
 
 
-def get_reward_func(reward_type_name: str) -> typing.Callable:
-    match reward_type_name:
-        case "exact_match":
-            f = partial(reward_with_metric, exact_match)
-        case "precision":
-            f = partial(reward_with_metric, precision)
-        case "recall":
-            f = partial(reward_with_metric, recall)
-        case "f1":
-            f = partial(reward_with_metric, f1)
+def reward_with_metric_single_string(
+    metric: typing.Callable[[str, str], float],
+    completions: list[CONVO_T],
+    answer: list[str],
+    prompt_method: list[str],
+    **kwargs,
+) -> list[float]:
+    """
+    Args:
+        metric: A function that takes a predicted string and a target answer and returns a float score.
+            E.g. `exact_match`, `precision`, `recall`, `f1`.
+        completions (shape (batch, len of convo)): Batch of completions,
+            where each is a conversation (i.e. a list of dicts).
+        answer: (shape (batch,)): The true answers for the prompts.
+        prompt_method: (shape (batch,)): The prompt method used for each sample.
+    """
+    # Format the model output text based on the prompting format
+    preds = [
+        format_pred(completion[0]["content"], method)
+        for completion, method in zip(completions, prompt_method)
+    ]
+    # import pdb; pdb.set_trace()
+    return [float(metric(pred, a)) for pred, a in zip(preds, answer)]
+
+
+def get_reward_func(training_mode: str, reward_type_name: str) -> typing.Callable:
+    match training_mode:
+        case "pw" | "gsminfinite":
+            match reward_type_name:
+                case "exact_match":
+                    f = partial(reward_with_metric, exact_match)
+                case "precision":
+                    f = partial(reward_with_metric, precision)
+                case "recall":
+                    f = partial(reward_with_metric, recall)
+                case "f1":
+                    f = partial(reward_with_metric, f1)
+                case _:
+                    raise ValueError(f"Invalid {reward_type_name=}")
+        case "hp":
+            match reward_type_name:
+                case "exact_match":
+                    f = partial(reward_with_metric_single_string, exact_match_score_hp)
+                case "precision":
+                    # NOTE: f1_score returns (f1, precision, recall)
+                    f = partial(reward_with_metric_single_string, lambda x, y: f1_score_hp(x, y)[1])
+                case "recall":
+                    # NOTE: f1_score returns (f1, precision, recall)
+                    f = partial(reward_with_metric_single_string, lambda x, y: f1_score_hp(x, y)[2])
+                case "f1":
+                    # NOTE: f1_score returns (f1, precision, recall)
+                    f = partial(reward_with_metric_single_string, lambda x, y: f1_score_hp(x, y)[0])
+                case _:
+                    raise ValueError(f"Invalid {reward_type_name=}")
+        case "2wiki":
+            match reward_type_name:
+                case "exact_match":
+                    f = partial(
+                        reward_with_metric_single_string,
+                        lambda x, y: score_pred_2wiki({"pred": x, "answer": y})["em"],
+                    )
+                case "precision":
+                    f = partial(
+                        reward_with_metric_single_string,
+                        lambda x, y: score_pred_2wiki({"pred": x, "answer": y})["prec"],
+                    )
+                case "recall":
+                    f = partial(
+                        reward_with_metric_single_string,
+                        lambda x, y: score_pred_2wiki({"pred": x, "answer": y})["recall"],
+                    )
+                case "f1":
+                    f = partial(
+                        reward_with_metric_single_string,
+                        lambda x, y: score_pred_2wiki({"pred": x, "answer": y})["f1"],
+                    )
+                case _:
+                    raise ValueError(f"Invalid {reward_type_name=}")
+        case "msq":
+            match reward_type_name:
+                case "exact_match":
+                    f = partial(
+                        reward_with_metric_single_string,
+                        lambda x, y: score_pred_msq({"pred": x, "answer": y})["em"],
+                    )
+                case "f1":
+                    f = partial(
+                        reward_with_metric_single_string,
+                        lambda x, y: score_pred_msq({"pred": x, "answer": y})["f1"],
+                    )
+                case _:
+                    raise ValueError(f"Invalid {reward_type_name=}")
         case _:
-            raise ValueError(f"Invalid {reward_type_name=}")
+            raise ValueError(f"Invalid {training_mode=}")
     # Add a __name__ attribute because CustomGRPOTrainer uses the attribute
     f.__name__ = f"reward_{reward_type_name}"
     return f
@@ -128,6 +228,12 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
             dataset_for_grpo = PhantomWikiDataset(script_args)
         case "gsminfinite":
             dataset_for_grpo = GSMInfiniteDataset(script_args)
+        case "hp":
+            dataset_for_grpo = HotpotQADataset(script_args)
+        case "2wiki":
+            dataset_for_grpo = TwoWikiDataset(script_args)
+        case "msq":
+            dataset_for_grpo = MuSiQueDataset(script_args)
         case _:
             raise ValueError(f"Invalid {script_args.training_mode=}")
 
@@ -141,10 +247,11 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
 
     # Count number of tokens in train dataset
     # NOTE: depth_20_size_50_seed_1 prompts have num_tokens ~ 4k
-    # logger.info(
-    #     train_dataset.map(lambda x: {"num_tokens": len(x["prompt"][0]["content"].split()) })\
-    #     .to_pandas().sort_values(by="num_tokens", ascending=False)
-    # )
+    logger.info(
+        train_dataset.map(lambda x: {"num_tokens": len(x["prompt"][0]["content"].split())})
+        .to_pandas()
+        .sort_values(by="num_tokens", ascending=False)
+    )
 
     # Load tokenizer
     # Set padding side to left for GRPO. If we don't create tokenizer here, the GRPOTrainer will create it
@@ -159,7 +266,8 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         tokenizer.pad_token = tokenizer.eos_token
 
     reward_funcs: list[callable] = [
-        get_reward_func(reward_func_name) for reward_func_name in script_args.reward_func_names
+        get_reward_func(script_args.training_mode, reward_func_name)
+        for reward_func_name in script_args.reward_func_names
     ]
     logger.info(f"*** Selected reward functions: {script_args.reward_func_names}")
 
