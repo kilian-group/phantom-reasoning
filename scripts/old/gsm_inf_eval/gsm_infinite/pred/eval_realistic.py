@@ -1,3 +1,4 @@
+import os
 import re
 
 
@@ -145,6 +146,7 @@ if __name__ == "__main__":
     length = args.length
     try:
         dir_name = "datasets"
+        os.makedirs(dir_name, exist_ok=True)
         with open(f"{dir_name}/{args.save_dataset}-{args.save_name}_{str(length)}") as f:
             unprocessed_dataset = json.load(f)
         filter_config = args.filter_config
@@ -203,8 +205,6 @@ if __name__ == "__main__":
                     file_sample_suffix = f"-sample-{sample_num}"
                 else:
                     sample_num = 1
-
-                import os
 
                 dir_name = "results"
                 os.makedirs(dir_name, exist_ok=True)  # Create directory if it doesn't exist

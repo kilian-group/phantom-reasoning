@@ -19,8 +19,8 @@ backend_type='openai'
 SAMPLER_OPENAI_BASE_URL="http://localhost:8001/v1"
 SAMPLER_OPENAI_API_KEY="EMPTY"
 
-EVAL_OPENAI_BASE_URL="http://localhost:8002/v1"
-EVAL_OPENAI_API_KEY="EMPTY"
+# EVAL_OPENAI_BASE_URL="http://localhost:8002/v1"
+# EVAL_OPENAI_API_KEY="EMPTY"
 
 # Control sampling and evaluation (can be set from command line)
 run_sampling=true  # Set to "true" to run sampling, "false" to skip
@@ -29,14 +29,14 @@ run_symbolic_evaluation=false # Set to "true" to ONLY run symbolic evaluation
 run_realistic_evaluation=false # Set to "true" to ONLY run realistic evaluation
 
 # Model and Dataset Configuration
-model_name='qwen3-0.6b-0727' # SAMPLER API model name
+model_name='Qwen/Qwen3-0.6B' # SAMPLER API model name
 dataset_base='InfiniAILab/gsm_infinite' # Base name for the dataset 'InfiniAILab/gsm_infinite'
-save_name='qwen3-0.6b-0727' # Model name for saving the results
+save_name='Qwen3-0.6B' # Model name for saving the results
 
 # Sampling Settings
 num_samples=1
 temperature_symbolic=1.0 # Temperature for symbolic
-temperature_realistic=0.0 # Temperature for realistic
+temperature_realistic=1.0 # Temperature for realistic
 max_tokens=4096
 
 # Batch size and example limit per op
@@ -53,7 +53,7 @@ lengths=(
 # Dataset suffixes
 dataset_suffixes=(
     "medium"
-    "hard"
+    # "hard"
 )
 
 # Operation Range Configuration (Per length and suffix). if empty, the subset will be skipped.
@@ -66,11 +66,12 @@ ops_config["0_hard"]='{"start": 2, "end": 30, "stride": 1}'
 
 
 # Filter Configuration (JSON string, only used for realistic)
-filter_config='[
-    {"percentage": 0.4, "template": "crazy_zootopia", "mode": "normalforward"},
-    {"percentage": 0.05, "template": "movie_festival_awards", "mode": "normalforward"},
-    {"percentage": 0.05, "template": "teachers_in_school", "mode": "normalforward"},
-    {"percentage": 0.4, "template": "crazy_zootopia", "mode": "forwardreverse"},
-    {"percentage": 0.05, "template": "movie_festival_awards", "mode": "forwardreverse"},
-    {"percentage": 0.05, "template": "teachers_in_school", "mode": "forwardreverse"}
-]'
+filter_config='[]'
+# filter_config='[
+#     {"percentage": 0.4, "template": "crazy_zootopia", "mode": "normalforward"},
+#     {"percentage": 0.05, "template": "movie_festival_awards", "mode": "normalforward"},
+#     {"percentage": 0.05, "template": "teachers_in_school", "mode": "normalforward"},
+#     {"percentage": 0.4, "template": "crazy_zootopia", "mode": "forwardreverse"},
+#     {"percentage": 0.05, "template": "movie_festival_awards", "mode": "forwardreverse"},
+#     {"percentage": 0.05, "template": "teachers_in_school", "mode": "forwardreverse"}
+# ]'

@@ -1,10 +1,13 @@
+import argparse
 import os
 import re
 
 import pandas as pd
 
 # Directory containing result files
-RESULTS_DIR = "results/"
+parser = argparse.ArgumentParser()
+parser.add_argument("--output-dir", "-od", type=str, default="out")
+args = parser.parse_args()
 
 # Initialize an empty list to store data
 data = []
@@ -13,12 +16,12 @@ data = []
 filename_pattern = re.compile(r"^result_(?P<dataset>[A-Za-z0-9_\.]+)_(?P<model>[A-Za-z0-9\-\.]+)\.txt$")
 
 # Iterate over all files in the results directory
-for filename in os.listdir(RESULTS_DIR):
+for filename in os.listdir(args.output_dir):
     match = filename_pattern.match(filename)
     if match:
         dataset = match.group("dataset")
         model = match.group("model")
-        filepath = os.path.join(RESULTS_DIR, filename)
+        filepath = os.path.join(args.output_dir, filename)
 
         try:
             with open(filepath) as file:
@@ -83,7 +86,7 @@ if "num_examples" in df.columns:
     df["num_examples"].fillna(-1, inplace=True)
 
 # Optional: Save the processed data for future use
-df.to_csv("results/processed_results.csv", index=False)
+df.to_csv(os.path.join(args.output_dir, "processed_results.csv"), index=False)
 
 print(
     f"Processed {len(df)} data points from {len(df['dataset'].unique())} datasets \
@@ -92,5 +95,4 @@ print(
 
 model_accuracy = df.groupby("model")["accuracy"].mean().reset_index()
 print("\nOverall accuracy per model:")
-for _, row in model_accuracy.iterrows():
-    print(f"Model: {row['model']}, Accuracy: {row['accuracy']:.4f}")
+print(model_accuracy)
