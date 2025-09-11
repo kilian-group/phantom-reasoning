@@ -235,6 +235,14 @@ Evaluate all training checkpoints on evaluation datasets of various wiki dataset
 ./scripts/eval/other_eval_all_ckpts.sh runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot hp500 minidev Qwen/Qwen3-0.6B pw
 ```
 
+### GSM-Infinite evaluation
+
+We evaluate on the huggingface evaluation set of GSM-Infinite as follows:
+
+```bash
+./scripts/eval/gsminf_eval_grpo.py /path/to/output_for_preds/
+```
+
 ## Lighteval (GSM8k, ARC etc.)
 
 ```bash
