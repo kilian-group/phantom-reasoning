@@ -1,5 +1,8 @@
 ## Evaluate models on GSM-infinite
 
+> \[!NOTE\]
+> See main README.md for instructions. These are old instructions from Yilun below, keeping for posterity.
+
 We evaluate models on G2 in the following way.
 This is from: https://github.com/Infini-AI-Lab/gsm_infinite
 
