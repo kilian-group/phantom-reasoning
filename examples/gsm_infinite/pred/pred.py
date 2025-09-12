@@ -1,8 +1,9 @@
 import argparse
+import glob
 import json
 import os
 
-from datasets import Dataset, concatenate_datasets, load_dataset
+from datasets import Dataset, DatasetDict, concatenate_datasets, load_dataset
 from model_handler import ModelHandler
 from no_rag_pipeline import NoRAGPipeline
 
@@ -125,7 +126,83 @@ if __name__ == "__main__":
     try:
         # opset = set(args.op_range)
         # unprocessed_dataset = unprocessed_dataset.filter(lambda example: example["op"] in opset)
-        full_dataset = load_dataset(f"{args.dataset_name}_{length}")
+        if os.path.isdir(args.dataset_name):
+            base = os.path.join(args.dataset_name, "zero_context", "realistic", "medium")
+            requested = {
+                f"ops_{k}": sorted(glob.glob(os.path.join(base, str(k), "*.jsonl"))) for k in args.op_range
+            }
+
+            present = {k: v for k, v in requested.items() if v}
+            missing = [k for k, v in requested.items() if not v]
+            if missing:
+                print(f"[warn] missing splits skipped: {missing}")
+            if not present:
+                raise FileNotFoundError(f"No JSONL found under {base}/<op>/*.jsonl")
+
+            full_dataset = load_dataset("json", data_files=present)
+
+            subsets = list(full_dataset.keys())
+        else:
+            full_dataset = load_dataset(f"{args.dataset_name}_{length}")
+
+        # === Normalize local/remote dataset to ensure 'messages' exists ===
+        def _ensure_messages(ex):
+            # pass-through if already has messages
+            if isinstance(ex.get("messages"), list):
+                return ex
+            # build messages from common fields
+            msgs = []
+            # put the world state or long context into system, if available
+            if ex.get("problem"):
+                msgs.append({"role": "system", "content": str(ex["problem"])})
+            # user query; fallback to problem if question missing
+            user_txt = (
+                ex.get("question")
+                or ex.get("prompt")
+                or ex.get("input")
+                or ex.get("query")
+                or ex.get("problem")
+                or ""
+            )
+            msgs.append({"role": "user", "content": str(user_txt)})
+            ex["messages"] = msgs
+            return ex
+
+        def _print_split_debug(name, ds):
+            try:
+                ex0 = ds[0] if len(ds) > 0 else {}
+                cols = list(ds.features.keys()) if hasattr(ds, "features") else list(ex0.keys())
+                has_msgs = isinstance(ex0.get("messages"), list)
+                print(f"[debug] split={name} n={len(ds)} columns={cols} messages_present={has_msgs}")
+                if has_msgs:
+                    head = ex0["messages"][:1]
+                    print(f"[debug] split={name} messages_head={head}")
+            except Exception as e:
+                print(f"[debug] split={name} debug error: {e}")
+
+        # print available splits before normalization
+        try:
+            print(f"[debug] available_splits(before)={list(full_dataset.keys())}")
+        except Exception:
+            print("[debug] single dataset loaded")
+
+        # map normalization over all splits
+        if isinstance(full_dataset, DatasetDict):
+            for sname in list(full_dataset.keys()):
+                _print_split_debug(sname, full_dataset[sname])
+                full_dataset[sname] = full_dataset[sname].map(
+                    _ensure_messages, desc=f"ensure_messages::{sname}"
+                )
+                _print_split_debug(sname + "::after", full_dataset[sname])
+        else:
+            _print_split_debug("single", full_dataset)
+            full_dataset = full_dataset.map(_ensure_messages, desc="ensure_messages::single")
+            _print_split_debug("single::after", full_dataset)
+
+        available = list(full_dataset.keys()) if isinstance(full_dataset, DatasetDict) else ["single"]
+        print(f"[debug] available_splits(after)={available}")
+        # === End normalization ===
+
         filter_config = args.filter_config
         if filter_config:
             filtered_datasets = []
@@ -139,7 +216,9 @@ if __name__ == "__main__":
                         key: value for key, value in config.items() if key not in ["percentage"]
                     }
                     filtered_subset = dataset_split.filter(
-                        lambda example: all(example[key] == value for key, value in current_filter.items())
+                        lambda example: all(
+                            example.get(key) == value for key, value in current_filter.items()
+                        )
                     )
                     filtered_data.extend(filtered_subset.select(range(min(num_to_add, len(filtered_subset)))))
                 filtered_datasets.append(Dataset.from_list(filtered_data))
