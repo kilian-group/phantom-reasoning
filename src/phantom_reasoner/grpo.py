@@ -275,12 +275,12 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
 
     eval_dataset: Dataset = dataset_for_grpo.get_dataset(is_eval=True)
 
-    # Count number of tokens in train dataset
-    # NOTE: depth_20_size_50_seed_1 prompts have num_tokens ~ 4k
+    # Naively count number of tokens in train dataset
+    logger.info("*** Number of words in train dataset, split by whitespace ***")
     logger.info(
-        train_dataset.map(lambda x: {"num_tokens": len(x["prompt"][0]["content"].split())})
+        train_dataset.map(lambda x: {"num_words": len(x["prompt"][0]["content"].split())})
         .to_pandas()
-        .sort_values(by="num_tokens", ascending=False)
+        .sort_values(by="num_words", ascending=False)
     )
 
     # Load tokenizer

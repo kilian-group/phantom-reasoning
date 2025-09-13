@@ -19,28 +19,24 @@ gradient_checkpointing: true # Enable gradient checkpointing for memory efficien
 
 # Trainer arguments
 num_train_epochs: 1
-per_device_train_batch_size: 1
+per_device_train_batch_size: 8
 gradient_accumulation_steps: 1
 use_vllm: true
 vllm_mode: "colocate"
 vllm_gpu_memory_utilization: 0.20
 generation_kwargs: {}
 
-# size_25 universe is about 5000 tokens, so we set the max length to 6000
-# TODO
-max_prompt_length: 6000
-# Should be divisble by number of GPUs.
-num_generations: 4
+max_prompt_length: 6000 # hotpotqa is about maximum ~3000 words, so 2*that should avoid truncation
+num_generations: 16 # Should divide per_device_train_batch_size * number of GPUs.
 max_completion_length: 4096
 
 # Logging config
 log_level: "info"
 logging_strategy: "steps"
 logging_first_step: true
-logging_steps: 500
-# save_steps is also when PW eval is run on the saved ckpt
+logging_steps: 0.1 # logging is done every 0.1 of total training steps
 save_strategy: "steps"
-save_steps: 500
+save_steps: 0.1 # save is done every 0.1 of total training steps
 log_completions: true
 num_completions_to_print: 0 # don't print completions to stdout
 eval_strategy: "no" # NOTE: DO NOT EVALUATE because it slows down training by a lot
