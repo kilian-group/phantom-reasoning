@@ -76,6 +76,28 @@ def format_pred(pred: str, prompt_method: str) -> str:
             raise ValueError(f"Invalid {prompt_method=}")
 
 
+def reward_binary_format(
+    completions: list[CONVO_T],
+    answer: list[list[str]],
+    prompt_method: list[str],
+    **kwargs,
+) -> list[float]:
+    """
+    Reward 1 if the completion is in the correct format, 0 otherwise.
+    The correct format is determined by whether CoTAgent.parse_answer() can parse the completion.
+
+    The answer and prompt_method are not used in this function.
+    """
+    preds = []
+    for completion in completions:
+        try:
+            CoTAgent.parse_answer(completion[0]["content"])
+            preds.append(1.0)
+        except ValueError:
+            preds.append(0.0)
+    return preds
+
+
 def reward_with_metric(
     metric: typing.Callable[[str, str], float],
     completions: list[CONVO_T],
@@ -137,6 +159,8 @@ def get_reward_func(training_mode: str, reward_type_name: str) -> typing.Callabl
                     f = partial(reward_with_metric, recall)
                 case "f1":
                     f = partial(reward_with_metric, f1)
+                case "binary_format":
+                    f = reward_binary_format
                 case _:
                     raise ValueError(f"Invalid {reward_type_name=}")
         case "hp":
@@ -152,6 +176,8 @@ def get_reward_func(training_mode: str, reward_type_name: str) -> typing.Callabl
                 case "f1":
                     # NOTE: f1_score returns (f1, precision, recall)
                     f = partial(reward_with_metric_single_string, lambda x, y: f1_score_hp(x, y)[0])
+                case "binary_format":
+                    f = reward_binary_format
                 case _:
                     raise ValueError(f"Invalid {reward_type_name=}")
         case "2wiki":
@@ -176,6 +202,8 @@ def get_reward_func(training_mode: str, reward_type_name: str) -> typing.Callabl
                         reward_with_metric_single_string,
                         lambda x, y: score_pred_2wiki({"pred": x, "answer": y})["f1"],
                     )
+                case "binary_format":
+                    f = reward_binary_format
                 case _:
                     raise ValueError(f"Invalid {reward_type_name=}")
         case "msq":
@@ -190,6 +218,8 @@ def get_reward_func(training_mode: str, reward_type_name: str) -> typing.Callabl
                         reward_with_metric_single_string,
                         lambda x, y: score_pred_msq({"pred": x, "answer": y})["f1"],
                     )
+                case "binary_format":
+                    f = reward_binary_format
                 case _:
                     raise ValueError(f"Invalid {reward_type_name=}")
         case _:
