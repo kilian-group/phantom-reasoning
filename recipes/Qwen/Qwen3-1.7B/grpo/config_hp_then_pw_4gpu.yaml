@@ -43,7 +43,7 @@ data_curriculum: "random"
 prompt_method: "cot"
 
 # Model arguments
-model_name_or_path: "runs/data/msq/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr=random__training_seed=1/checkpoint-2500"
+model_name_or_path: "runs/data/hp/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr=random__training_seed=1/checkpoint-2500"
 bf16: true
 torch_dtype: bfloat16
 attn_implementation: "flash_attention_2" # Use flash attention for better performance
@@ -51,7 +51,7 @@ gradient_checkpointing: true # Enable gradient checkpointing for memory efficien
 
 # Trainer arguments
 num_train_epochs: 1
-num_train_samples: 5000
+max_num_train_samples: 5000
 per_device_train_batch_size: 8
 gradient_accumulation_steps: 1
 use_vllm: true
