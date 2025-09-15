@@ -15,6 +15,7 @@ python scripts/plot_reasoning_during_training.py \
 ```
 """  # noqa: E501
 
+import json
 import logging
 
 # %%
@@ -122,7 +123,14 @@ def get_color(ckpt_name, method, by_model=True, max_ckpt=0):
 def get_ckpt_number(model_name: str) -> int:
     """Extract the checkpoint number from the model name."""
     if model_name == base_model_name:
+        # Base model is checkpoint-0
         return 0
+    elif model_name == model_list[0]:
+        # Final model is checkpoint-<global_step> where <global_step> is from the json file
+        with open(os.path.join(model_list[0], "trainer_state.json")) as f:
+            trainer_state = json.load(f)
+            global_step = int(trainer_state["global_step"])
+            return global_step
     else:
         return int(re.search(r"checkpoint-(\d+)", model_name).group(1))
 

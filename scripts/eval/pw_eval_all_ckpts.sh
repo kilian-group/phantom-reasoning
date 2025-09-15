@@ -18,7 +18,6 @@ cmd_args=$@
 # Go over all checkpoints, and run evaluation script on them
 OUT_DIR="$CHECKPOINT_PARENT_DIR/out-pw"
 
-# NOTE: we run on depth_20_size_25_seed_2 split
 DATASET="data/wiki-v1-easy-depth_20_size_25"
 SPLITS="depth_20_size_25_seed_1 depth_20_size_25_seed_2 depth_20_size_25_seed_3"
 
@@ -57,6 +56,20 @@ do
     fi
 done
 
+# Evaluate the final model
+python -m phantom_eval \
+    --method cot \
+    --server vllm \
+    --inf_vllm_offline \
+    --model_name "$CHECKPOINT_PARENT_DIR" \
+    --dataset "$DATASET" \
+    --split_list $SPLITS \
+    --from_local \
+    --inf_vllm_tensor_parallel_size 1 \
+    --exclude_aggregation_questions \
+    -od "$OUT_DIR" \
+    $cmd_args
+
 python scripts/plot_reasoning_during_training.py \
     -od "$OUT_DIR" \
     --model_list "$CHECKPOINT_PARENT_DIR" \
@@ -66,6 +79,7 @@ python scripts/plot_reasoning_during_training.py \
 
 python scripts/plot_pw_scaling_all_ckpts.py \
     -od "$OUT_DIR" \
+    --model_list "$CHECKPOINT_PARENT_DIR" \
     --dataset "$DATASET" \
     --from_local \
     --method cot \
