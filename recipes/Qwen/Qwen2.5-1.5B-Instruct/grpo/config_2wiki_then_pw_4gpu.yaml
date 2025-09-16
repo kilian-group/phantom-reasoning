@@ -1,0 +1,75 @@
+# Script config
+dataset_name: "data/wiki-v1-easy-depth_20_size_25"
+split_list:
+  [
+    "depth_20_size_25_seed_11",
+    "depth_20_size_25_seed_12",
+    "depth_20_size_25_seed_13",
+    "depth_20_size_25_seed_14",
+    "depth_20_size_25_seed_15",
+    "depth_20_size_25_seed_16",
+    "depth_20_size_25_seed_17",
+    "depth_20_size_25_seed_18",
+    "depth_20_size_25_seed_19",
+    "depth_20_size_25_seed_20",
+    "depth_20_size_25_seed_21",
+    "depth_20_size_25_seed_22",
+    "depth_20_size_25_seed_23",
+    "depth_20_size_25_seed_24",
+    "depth_20_size_25_seed_25",
+    "depth_20_size_25_seed_26",
+    "depth_20_size_25_seed_27",
+    "depth_20_size_25_seed_28",
+    "depth_20_size_25_seed_29",
+    "depth_20_size_25_seed_30",
+    "depth_20_size_25_seed_31",
+    "depth_20_size_25_seed_32",
+    "depth_20_size_25_seed_33",
+    "depth_20_size_25_seed_34",
+    "depth_20_size_25_seed_35",
+    "depth_20_size_25_seed_36",
+    "depth_20_size_25_seed_37",
+    "depth_20_size_25_seed_38",
+    "depth_20_size_25_seed_39",
+    "depth_20_size_25_seed_40",
+    "depth_20_size_25_seed_41",
+  ]
+from_local: true
+eval_dataset_name: "data/wiki-v1-easy-depth_20_size_25"
+eval_split_list: ["depth_20_size_25_seed_2"]
+eval_from_local: true
+reward_func_names: ["f1"]
+data_curriculum: "random"
+prompt_method: "cot"
+
+# Model arguments
+model_name_or_path: "runs/data/2wiki/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0911__curr=random__training_seed=1/checkpoint-2500"
+bf16: true
+torch_dtype: bfloat16
+attn_implementation: "flash_attention_2" # Use flash attention for better performance
+gradient_checkpointing: true # Enable gradient checkpointing for memory efficiency, automatically sets `use_cache=False`
+
+# Trainer arguments
+num_train_epochs: 1
+max_num_train_samples: 5000
+per_device_train_batch_size: 8
+gradient_accumulation_steps: 1
+use_vllm: true
+vllm_mode: "colocate"
+vllm_gpu_memory_utilization: 0.20
+generation_kwargs: {}
+
+max_prompt_length: 6000 # size_25 universe is about 5000 tokens, so we set the max length to 6000
+num_generations: 16 # Should divide per_device_train_batch_size * number of GPUs.
+max_completion_length: 4096
+
+# Logging config
+log_level: "info"
+logging_strategy: "steps"
+logging_first_step: true
+logging_steps: 0.1 # logging is done every 0.1 of total training steps
+save_strategy: "steps"
+save_steps: 0.1 # save is done every 0.1 of total training steps
+log_completions: true
+num_completions_to_print: 0 # don't print completions to stdout
+eval_strategy: "no" # NOTE: DO NOT EVALUATE because it slows down training by a lot
