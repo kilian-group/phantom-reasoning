@@ -10,6 +10,8 @@ DATA_DIR="~/phantom/src/phantom-reasoning/data"
 MODEL_LIST=(
     "Qwen/Qwen3-1.7B"
     "/anvil/projects/x-nairr250102/phantom-reasoning/runs/data/hp/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr\=random__training_seed\=1"
+    "/anvil/projects/x-nairr250102/phantom-reasoning/runs/data/2wiki/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr\=random__training_seed\=1"
+    "/anvil/projects/x-nairr250102/phantom-reasoning/runs/data/msq/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr\=random__training_seed\=1"
 )
 
 # With evidence
