@@ -6,9 +6,15 @@
 OUTPUT_DIR=$1
 
 MODEL_NAMES=(
-    "microsoft/Phi-4-mini-reasoning"
-    "runs__bs=4/data/wiki-v1-easy-depth_20_size_25/microsoft/Phi-4-mini-reasoning/grpo/ak2426/0909__curr=random__training_seed=1"
-    "runs__bs=4/data/wiki-v1-easy-depth_20_size_25/microsoft/Phi-4-mini-reasoning/grpo/ak2426/0909__curr=random__training_seed=2/checkpoint-1320"
+    "Qwen/Qwen3-0.6B"
+    "runs__bs=8/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/x-anmolkab/0904__curr=random__training_seed=1"
+    "runs__bs=8/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/x-anmolkab/0904__curr=random__training_seed=2"
+    "Qwen/Qwen3-1.7B"
+    "runs__bs=8/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0902__curr=random__training_seed=1"
+    "runs__bs=8/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0902__curr=random__training_seed=2"
+    "Qwen/Qwen2.5-1.5B-Instruct"
+    "runs__bs=8/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0904__curr=random__training_seed=1"
+    "runs__bs=8/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0904__curr=random__training_seed=2"
 )
 
 mkdir -p logs

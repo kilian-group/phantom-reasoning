@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # NOTE: hacked together
 # Script to run the Qwen3 family of models on the Wiki datasets (HP, 2Wiki, MSQ)
 # Usage: ./scripts/eval/other_eval_grpo.sh <output_dir> <dataset> <split>
@@ -24,10 +24,21 @@ if [[ ! " ${DATASET_LIST[@]} " =~ " ${DATASET} " ]]; then
 fi
 
 MODEL_NAMES=(
-    "google/gemma-3-1b-it"
-    "runs__bs=8/data/wiki-v1-easy-depth_20_size_25/google/gemma-3-1b-it/grpo/x-anmolkab/0905__curr=random__training_seed=2"
-    "meta-llama/Llama-3.2-3B-Instruct"
-    "runs__bs=8/data/wiki-v1-easy-depth_20_size_25/meta-llama/Llama-3.2-3B-Instruct/grpo/x-anmolkab/0905__curr=random__training_seed=1"
+    "runs__pw_then_wiki/data/hp/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/after=pw__curr=random__training_seed=1"
+    "runs__pw_then_wiki/data/2wiki/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/after=pw__curr=random__training_seed=1"
+    "runs__pw_then_wiki/data/msq/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/after=pw__curr=random__training_seed=1"
+    "runs__pw_then_wiki/data/hp/Qwen/Qwen3-1.7B/grpo/x-anmolkab/after=pw__curr=random__training_seed=1"
+    "runs__pw_then_wiki/data/2wiki/Qwen/Qwen3-1.7B/grpo/x-anmolkab/after=pw__curr=random__training_seed=1"
+    # "runs__pw_then_wiki/data/msq/Qwen/Qwen3-1.7B/grpo/x-anmolkab/after=pw__curr=random__training_seed=1"
+    # "runs/data/hp/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr=random__training_seed=1/checkpoint-2500"
+    # "runs/data/2wiki/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr=random__training_seed=1/checkpoint-2500"
+    # "runs/data/msq/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr=random__training_seed=1/checkpoint-2500"
+    # "runs/data/hp/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0911__curr=random__training_seed=1/checkpoint-2500"
+    # "runs/data/2wiki/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0911__curr=random__training_seed=1/checkpoint-2500"
+    # "runs/data/msq/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0911__curr=random__training_seed=1/checkpoint-2500"
+    # "runs__wiki_then_pw/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/after=hp__curr=random__training_seed=1"
+    # "runs__wiki_then_pw/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/after=2wiki__curr=random__training_seed=1"
+    # "runs__wiki_then_pw/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/after=msq__curr=random__training_seed=1"
 )
 
 for model_name in ${MODEL_NAMES[@]}; do
