@@ -24,21 +24,8 @@ if [[ ! " ${DATASET_LIST[@]} " =~ " ${DATASET} " ]]; then
 fi
 
 MODEL_NAMES=(
-    "runs__pw_then_wiki/data/hp/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/after=pw__curr=random__training_seed=1"
-    "runs__pw_then_wiki/data/2wiki/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/after=pw__curr=random__training_seed=1"
-    "runs__pw_then_wiki/data/msq/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/after=pw__curr=random__training_seed=1"
-    "runs__pw_then_wiki/data/hp/Qwen/Qwen3-1.7B/grpo/x-anmolkab/after=pw__curr=random__training_seed=1"
-    "runs__pw_then_wiki/data/2wiki/Qwen/Qwen3-1.7B/grpo/x-anmolkab/after=pw__curr=random__training_seed=1"
-    # "runs__pw_then_wiki/data/msq/Qwen/Qwen3-1.7B/grpo/x-anmolkab/after=pw__curr=random__training_seed=1"
-    # "runs/data/hp/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr=random__training_seed=1/checkpoint-2500"
-    # "runs/data/2wiki/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr=random__training_seed=1/checkpoint-2500"
-    # "runs/data/msq/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr=random__training_seed=1/checkpoint-2500"
-    # "runs/data/hp/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0911__curr=random__training_seed=1/checkpoint-2500"
-    # "runs/data/2wiki/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0911__curr=random__training_seed=1/checkpoint-2500"
-    # "runs/data/msq/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0911__curr=random__training_seed=1/checkpoint-2500"
-    # "runs__wiki_then_pw/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/after=hp__curr=random__training_seed=1"
-    # "runs__wiki_then_pw/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/after=2wiki__curr=random__training_seed=1"
-    # "runs__wiki_then_pw/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/after=msq__curr=random__training_seed=1"
+    # "runs__bs=4/data/wiki-v1-easy-depth_20_size_25/microsoft/Phi-4-mini-reasoning/grpo/ak2426/0909__curr=random__training_seed=1"
+    "runs__bs=4/data/wiki-v1-easy-depth_20_size_25/microsoft/Phi-4-mini-reasoning/grpo/ak2426/0909__curr=random__training_seed=2/checkpoint-1485"
 )
 
 for model_name in ${MODEL_NAMES[@]}; do
