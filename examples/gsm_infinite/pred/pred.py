@@ -4,8 +4,11 @@ import json
 import os
 
 from datasets import Dataset, DatasetDict, concatenate_datasets, load_dataset
+from langchain.prompts import PromptTemplate
 from model_handler import ModelHandler
 from no_rag_pipeline import NoRAGPipeline
+
+from phantom_reasoner.datasets_for_grpo import GSMInfiniteDataset
 
 # def dump_dict_to_json(data: dict, filename: str):
 #     """Dumps a Python dictionary to a JSON file, creating the directory if needed.
@@ -147,25 +150,20 @@ if __name__ == "__main__":
 
         # === Normalize local/remote dataset to ensure 'messages' exists ===
         def _ensure_messages(ex):
-            # pass-through if already has messages
-            if isinstance(ex.get("messages"), list):
-                return ex
-            # build messages from common fields
-            msgs = []
-            # put the world state or long context into system, if available
-            if ex.get("problem"):
-                msgs.append({"role": "system", "content": str(ex["problem"])})
-            # user query; fallback to problem if question missing
-            user_txt = (
-                ex.get("question")
-                or ex.get("prompt")
-                or ex.get("input")
-                or ex.get("query")
-                or ex.get("problem")
-                or ""
+            prompt_template = PromptTemplate(
+                input_variables=["problem", "examples", "question"],
+                template=GSMInfiniteDataset.COT_INSTRUCTION,
             )
-            msgs.append({"role": "user", "content": str(user_txt)})
-            ex["messages"] = msgs
+            ex["messages"] = [
+                {
+                    "role": "user",
+                    "content": prompt_template.format(
+                        problem=ex["problem"],
+                        examples=GSMInfiniteDataset.COT_EXAMPLES,
+                        question=ex["question"],
+                    ),
+                },
+            ]
             return ex
 
         def _print_split_debug(name, ds):
@@ -248,7 +246,7 @@ if __name__ == "__main__":
         for i in range(0, len_dataset):
             for _ in range(args.num_samples):
                 queries.append(unprocessed_dataset[i]["messages"])
-
+        print(json.dumps(unprocessed_dataset[0]["messages"], ensure_ascii=False, indent=2))
         replies = pipeline.process_batch(queries=queries, max_workers=args.batch_size)
         processed_examples = []
 

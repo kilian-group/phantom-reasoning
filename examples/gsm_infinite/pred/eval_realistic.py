@@ -1,7 +1,8 @@
 import argparse
 import json
 import os
-import re
+
+from phantom_eval.agents.cot import CoTAgent
 
 
 def preprocess_line(line):
@@ -19,90 +20,35 @@ def is_integer(s):
         return False
 
 
+def safe_parse_int(text: str):
+    try:
+        return int(CoTAgent.parse_answer(text)), None
+    except Exception as e:
+        return None, e
+
+
 def criteriaoutput(generatedtext, inputexample):
     correctedanswers = 0
     totalanswers = 0
     # parsing the answer key
+    # print(f"Length of generatedtext: {len(generatedtext)}")
     for i in range(len(generatedtext)):
         totalanswers += 1
         idx_answer_start = inputexample["solution"].find("Answer: ")
         idx_answer_end = inputexample["solution"].find(".", idx_answer_start)
         answer_text = inputexample["solution"][idx_answer_start + len("Answer: ") : idx_answer_end]
         answer_text = int(answer_text.lower())
-
-        generatedtext[i] = re.sub(".\x08", "b", generatedtext[i])
-        generatedtext[i] = generatedtext[i].lower()
-        # if args.verbose and args.local_rank == 0:
-        #     print(colored(inputexample["solution"], "yellow"), flush = True)
-        #     print(colored(generatedtext[i], "cyan"), flush = True)
-
-        idx_generated_begin = -1
-        idx_generated_conclude = -1
-        keywords = [
-            "answer: ",
-            "solution: ",
-            "oxed{",
-            "**answer:** ",
-            "**answer: ",
-            "final answer: answer: ",
-            "\nanswer: ",
-            r"\text{answer: } ",
-            "is ",
-            "answer: ",
-        ]  # updated
-        keywordsend = [".", ".", "}", ".", "**", ".", ".", None, ".", "\n"]
-        cnt = 0
-
-        while not (idx_generated_begin != -1 and idx_generated_conclude != -1) and cnt < len(keywords):
-            if keywords[cnt] in ["oxed{", "is "]:
-                idx_generated_begin = generatedtext[i].rfind(
-                    keywords[cnt]
-                )  # this relies on the generated is stopped before
-                # generated next question plus onwards by stop
-            else:
-                idx_generated_begin = generatedtext[i].find(keywords[cnt])
-            if idx_generated_begin != -1:
-                if keywordsend[cnt] is None:
-                    idx_generated_conclude = idx_generated_begin + len(keywords[cnt])
-                    while generatedtext[0][idx_generated_conclude].isdigit():
-                        idx_generated_conclude += 1
-                else:
-                    idx_generated_conclude = generatedtext[i].find(
-                        keywordsend[cnt], idx_generated_begin + len(keywords[cnt])
-                    )
-                if idx_generated_conclude == -1:
-                    idx_generated_conclude = len(generatedtext[i])
-            cnt += 1
-            if not is_integer(
-                generatedtext[i][idx_generated_begin + len(keywords[cnt - 1]) : idx_generated_conclude]
-            ):
-                idx_generated_begin = -1
-                idx_generated_conclude = -1
-                continue  # if not this line, it will exit the loop
-
-        if idx_generated_begin == -1:
-            # if args.local_rank == 0:
-            #     print(colored("Answer not found", "red"), flush = True)
-            correctedanswers += 0
-            continue
+        parsed_int, err = safe_parse_int(generatedtext[i])
+        if parsed_int is None:
+            is_correct = False
+            answer_generated_text = "PARSE_ERROR"
         else:
-            try:
-                answergenerated_text = int(
-                    generatedtext[i][idx_generated_begin + len(keywords[cnt - 1]) : idx_generated_conclude]
-                )
-            except (ValueError, TypeError):
-                # if args.local_rank == 0:
-                #     print(colored("Answer not found", "red"), flush = True)
-                correctedanswers += 0
-                continue
-            # if args.local_rank == 0:
-            #     if answergenerated_text == answer_text:
-            #         print(colored("Answer {} expected {}".format(answergenerated_text, answer_text),
-            # "green"), flush = True)
-            #     else:
-            #         print(colored("Answer {} expected {}".format(answergenerated_text, answer_text),
-            # "red"), flush = True)
-            correctedanswers += int(answergenerated_text == answer_text)
+            answer_generated_text = parsed_int
+            is_correct = answer_generated_text == answer_text
+
+        correctedanswers += int(is_correct)
+        if err:
+            print(f"[PARSE_ERR] {type(err).__name__}: {err}")
     return correctedanswers, totalanswers
 
 
@@ -215,8 +161,6 @@ if __name__ == "__main__":
                         correctnum = 0.0
                         for elem in correct_dict[op]:
                             correctnum += 1.0 - (1.0 - elem) ** sample_num
-                        # file.write(f"length: {length}, op: {op}, acc:
-                        # {format(correctnum/count_dict[op], '.4f').rstrip('0').rstrip('.')}" + "\n")
                         output_line = f"length: {length}, op: {op}, acc: \
                             {format(correctnum/count_dict[op], '.4f').rstrip('0').rstrip('.')}"
 
