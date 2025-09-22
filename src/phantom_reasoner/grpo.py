@@ -12,6 +12,7 @@ bash scripts/train_grpo__vllm_colocate.sub \
 
 import logging
 import os
+import random
 import shutil
 import typing
 from datetime import datetime
@@ -99,6 +100,15 @@ def reward_binary_format(
     return preds
 
 
+def reward_random(
+    completions: list[CONVO_T],
+    answer: list[list[str]],
+    prompt_method: list[str],
+    **kwargs,
+) -> list[float]:
+    return [random.random() for _ in completions]
+
+
 def reward_with_metric(
     metric: typing.Callable[[str, str], float],
     completions: list[CONVO_T],
@@ -162,6 +172,8 @@ def get_reward_func(training_mode: str, reward_type_name: str) -> typing.Callabl
                     f = partial(reward_with_metric, f1)
                 case "binary_format":
                     f = reward_binary_format
+                case "random":
+                    f = reward_random
                 case _:
                     raise ValueError(f"Invalid {reward_type_name=}")
         case "hp":
