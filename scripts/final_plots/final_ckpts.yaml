@@ -1,0 +1,100 @@
+synthetic_train_ckpts:
+  - dataset_name: pw
+    dataset_path: data/wiki-v1-easy-depth_20_size_25
+    ckpts:
+      - model: Qwen/Qwen3-0.6B
+        paths:
+          [
+            "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/x-anmolkab/0913__curr=random__training_seed=1",
+          ]
+      - model: Qwen/Qwen3-1.7B
+        paths:
+          [
+            "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0913__curr=random__training_seed=1",
+          ]
+      - model: Qwen/Qwen2.5-1.5B-Instruct
+        paths:
+          [
+            "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0912__curr=random__training_seed=1",
+            "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0914__curr=random__training_seed=2",
+          ]
+
+  - dataset_name: gsminf
+    dataset_path: data/gsm-infinite-train/zero_context/realistic/medium
+    ckpts:
+      - model: Qwen/Qwen3-0.6B
+        paths:
+          [
+            "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-0.6B/grpo/x-anmolkab/0909__curr=random__training_seed=1",
+            "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-0.6B/grpo/x-anmolkab/0909__curr=random__training_seed=2",
+          ]
+      - model: Qwen/Qwen3-1.7B
+        paths:
+          [
+            "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0909__curr=random__training_seed=1",
+            "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0910__curr=random__training_seed=2",
+          ]
+      - model: Qwen/Qwen2.5-1.5B-Instruct
+        paths:
+          [
+            "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0910__curr=random__training_seed=1",
+            "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0910__curr=random__training_seed=2",
+          ]
+
+real_train_ckpts:
+  - dataset_name: hp
+    dataset_path: data/hp
+    ckpts:
+      - model: Qwen/Qwen3-0.6B
+        paths:
+          [
+            "share/runs/data/hp/Qwen/Qwen3-0.6B/grpo/x-yyin10/0911__curr=random__training_seed=1",
+          ]
+      - model: Qwen/Qwen3-1.7B
+        paths:
+          [
+            "share/runs/data/hp/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr=random__training_seed=1",
+          ]
+      - model: Qwen/Qwen2.5-1.5B-Instruct
+        paths:
+          [
+            "share/runs/data/hp/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0911__curr=random__training_seed=1",
+          ]
+
+  - dataset_name: 2wiki
+    dataset_path: data/2wiki
+    ckpts:
+      - model: Qwen/Qwen3-0.6B
+        paths:
+          [
+            "share/runs/data/2wiki/Qwen/Qwen3-0.6B/grpo/x-yyin10/0911__curr=random__training_seed=1",
+          ]
+      - model: Qwen/Qwen3-1.7B
+        paths:
+          [
+            "share/runs/data/2wiki/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr=random__training_seed=1",
+          ]
+      - model: Qwen/Qwen2.5-1.5B-Instruct
+        paths:
+          [
+            "share/runs/data/2wiki/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0911__curr=random__training_seed=1",
+          ]
+
+  - dataset_name: msq
+    dataset_path: data/msq
+    ckpts:
+      - model: Qwen/Qwen3-0.6B
+        paths:
+          [
+            "share/runs/data/msq/Qwen/Qwen3-0.6B/grpo/x-yyin10/0911__curr=random__training_seed=1",
+          ]
+      - model: Qwen/Qwen3-1.7B
+        paths:
+          [
+            "share/runs/data/msq/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr=random__training_seed=1",
+          ]
+      - model: Qwen/Qwen2.5-1.5B-Instruct
+        paths:
+          [
+            "share/runs/data/msq/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0911__curr=random__training_seed=1",
+          ]
