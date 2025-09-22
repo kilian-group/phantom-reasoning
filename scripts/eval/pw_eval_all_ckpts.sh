@@ -75,6 +75,7 @@ python scripts/plot_reasoning_during_training.py \
     --model_list "$CHECKPOINT_PARENT_DIR" \
     --dataset "$DATASET" \
     --base_model_name "$BASE_MODEL_NAME" \
+    --training_dataset_name "$TRAINING_DATASET_NAME" \
     --from_local
 
 python scripts/plot_pw_scaling_all_ckpts.py \
