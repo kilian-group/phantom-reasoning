@@ -15,7 +15,7 @@ TRAIN_DATASET_ALIAS2NAME = {
 }
 TRAIN_DATASET_ALIAS2COLOR = {"base": "myYellow", "format": "myOrange", "gsminf": "myGreen", "pw": "myBlue"}
 
-eval_dataset_names = ["HotpotQA", "2Wiki", "MuSiQue"]
+EVAL_DATASET_NAMES = ["HotpotQA", "2Wiki", "MuSiQue"]
 
 # Single column figures
 MARKER_ALPHA = 1
