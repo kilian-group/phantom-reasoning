@@ -191,42 +191,6 @@ fig.legend(
     bbox_to_anchor=(0.5, -0.15),
     bbox_transform=fig.transFigure,
 )
-# train_dataset_handles = [
-#     lines.Line2D(
-#         [0],
-#         [0],
-#         color=plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR[training_dataset_name]],
-#         label=plotting_utils.TRAIN_DATASET_ALIAS2NAME[training_dataset_name],
-#     ) for training_dataset_name in training_dataset_names
-# ]
-# dataset_legend = fig.legend(
-#     handles=train_dataset_handles,
-#     fontsize=plotting_utils.LEGEND_FONT_SIZE,
-#     loc="lower center",
-#     ncol=len(training_dataset_names),
-#     frameon=False,
-#     bbox_to_anchor=(0.5, -0.1),
-#     bbox_transform=fig.transFigure,
-# )
-# fig.add_artist(dataset_legend)
-# model_handles = [
-#     lines.Line2D(
-#         [0],
-#         [0],
-#         color='black',
-#         marker=plotting_utils.MODEL_NAME2MARKER[base_model_name],
-#         label=plotting_utils.MODEL_NAME2ALIAS[base_model_name],
-#     ) for base_model_name in base_model_names
-# ]
-# model_legend = fig.legend(
-#     handles=model_handles,
-#     fontsize=plotting_utils.LEGEND_FONT_SIZE,
-#     loc="lower center",
-#     ncol=len(base_model_names),
-#     frameon=False,
-#     bbox_to_anchor=(0.5, -0.3),
-#     bbox_transform=fig.transFigure,
-# )
 plt.tight_layout()
 
 save_path = os.path.join("f1_v_training_steps.pdf")
@@ -235,20 +199,3 @@ plt.savefig(save_path, bbox_inches="tight", dpi=300)
 print(f"Saved scaling plot to {save_path}")
 
 plt.close()
-# # Plot a line chart of metric vs checkpoint number
-# for metric in metrics + ["completion_tokens_median"]:
-#     plt.figure()
-#     metric_data = acc[metric].sort_index(level="checkpoint_number")
-#     plt.plot(metric_data.index.get_level_values("checkpoint_number"), metric_data, label=metric, marker="o")
-#     plt.title(f"Train {base_model_name} on {training_dataset_name} -> eval on {dataset}:{split}")
-#     plt.ylabel(metric)
-#     plt.xlabel("Training steps")
-
-#     save_path = os.path.join(
-#         output_dir, "figures", f"train={training_dataset_name}__eval={dataset}_{split}-{metric}.pdf"
-#     )
-#     os.makedirs(os.path.dirname(save_path), exist_ok=True)
-#     plt.savefig(save_path)
-#     print(f"Saved scaling plot to {save_path}")
-
-#     plt.close()

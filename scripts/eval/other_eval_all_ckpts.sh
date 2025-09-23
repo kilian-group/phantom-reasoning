@@ -67,6 +67,21 @@ do
     fi
 done
 
+# Evaluate the final model
+python examples/wiki/pred.py \
+    --data_dir data/ \
+    --dataset $DATASET \
+    --split $SPLIT \
+    --method cot \
+    --server vllm \
+    --model_name "$CHECKPOINT_PARENT_DIR" \
+    --inf_temperature 0.6 \
+    --inf_top_p 0.95 \
+    --inf_top_k 20 \
+    -od "$OUT_DIR" \
+    --inf_vllm_tensor_parallel_size 1 \
+    $cmd_args
+
 python examples/wiki/plot_scaling_all_ckpts.py \
 	-dd data/ \
 	-od "$OUT_DIR" \
@@ -74,4 +89,5 @@ python examples/wiki/plot_scaling_all_ckpts.py \
 	--dataset "$DATASET" \
 	--method cot \
 	--base_model_name "$BASE_MODEL_NAME" \
+    --model_list "$CHECKPOINT_PARENT_DIR" \
 	--training_dataset_name "$TRAINING_DATASET_NAME"
