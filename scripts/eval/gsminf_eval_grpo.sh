@@ -79,9 +79,7 @@ do
     python examples/gsm_infinite/pred/eval_realistic.py \
         --output-dir "$OUTPUT_DIR" \
         --save-dataset "medium" \
-        --save-name "$save_name" \
-        --num-samples 1 \
-        --length "0"
+        --model-name "$model_name"
 
     echo "Killing vLLM server..."
     pkill -f "vllm.entrypoints.openai.api_server"
