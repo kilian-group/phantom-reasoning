@@ -167,22 +167,23 @@ if __name__ == "__main__":
             return ex
 
         def _print_split_debug(name, ds):
-            try:
-                ex0 = ds[0] if len(ds) > 0 else {}
-                cols = list(ds.features.keys()) if hasattr(ds, "features") else list(ex0.keys())
-                has_msgs = isinstance(ex0.get("messages"), list)
-                print(f"[debug] split={name} n={len(ds)} columns={cols} messages_present={has_msgs}")
-                if has_msgs:
-                    head = ex0["messages"][:1]
-                    print(f"[debug] split={name} messages_head={head}")
-            except Exception as e:
-                print(f"[debug] split={name} debug error: {e}")
+            return
+            # try:
+            #     ex0 = ds[0] if len(ds) > 0 else {}
+            #     cols = list(ds.features.keys()) if hasattr(ds, "features") else list(ex0.keys())
+            #     has_msgs = isinstance(ex0.get("messages"), list)
+            #     print(f"[debug] split={name} n={len(ds)} columns={cols} messages_present={has_msgs}")
+            #     if has_msgs:
+            #         head = ex0["messages"][:1]
+            #         print(f"[debug] split={name} messages_head={head}")
+            # except Exception as e:
+            #     print(f"[debug] split={name} debug error: {e}")
 
-        # print available splits before normalization
-        try:
-            print(f"[debug] available_splits(before)={list(full_dataset.keys())}")
-        except Exception:
-            print("[debug] single dataset loaded")
+        # # print available splits before normalization
+        # try:
+        #     print(f"[debug] available_splits(before)={list(full_dataset.keys())}")
+        # except Exception:
+        #     print("[debug] single dataset loaded")
 
         # map normalization over all splits
         if isinstance(full_dataset, DatasetDict):
@@ -198,7 +199,7 @@ if __name__ == "__main__":
             _print_split_debug("single::after", full_dataset)
 
         available = list(full_dataset.keys()) if isinstance(full_dataset, DatasetDict) else ["single"]
-        print(f"[debug] available_splits(after)={available}")
+        # print(f"[debug] available_splits(after)={available}")
         # === End normalization ===
 
         filter_config = args.filter_config
