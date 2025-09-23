@@ -28,16 +28,7 @@ from phantom_reasoner.utils import plotting_utils
 
 parser = get_parser()
 parser.add_argument("--final_ckpts_yaml_path", type=str, required=True)
-# parser.add_argument("--training_dataset_names", nargs="+", required=True)
-# parser.add_argument("--base_model_name", type=str, required=True)
-# parser.add_argument("--training_dataset_name", type=str, required=True)
 args = parser.parse_args()
-# output_dir = args.output_dir
-# method = args.method
-# dataset = args.dataset
-# split = args.split
-# base_model_name = args.base_model_name
-# training_dataset_names = args.training_dataset_names
 
 eval_datasets = ["hp500", "2wiki500", "msq500"]
 eval_dataset2name = {
@@ -163,13 +154,31 @@ for i, eval_dataset in enumerate(eval_datasets):
     ax.grid(axis="y", alpha=0.3, linestyle="--", linewidth=plotting_utils.LINE_WIDTH)
     ax.set_axisbelow(True)
 
-handles = []
+# Add a legend on the right side of the figure
+handles = [
+    lines.Line2D(
+        [],
+        [],
+        color="black",
+        marker="None",
+        label="Train dataset",
+        linestyle="None",
+    )
+]
 for training_dataset_name in training_dataset_names:
-    for base_model_name in base_model_names:
-        label = (
-            f"{plotting_utils.MODEL_NAME2ALIAS[base_model_name]} x "
-            f"{plotting_utils.TRAIN_DATASET_ALIAS2NAME[training_dataset_name]}"
+    # Add the training dataset name as a legend handle with no line or marker
+    handles.append(
+        lines.Line2D(
+            [],
+            [],
+            color=plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR[training_dataset_name]],
+            marker="None",
+            label=plotting_utils.TRAIN_DATASET_ALIAS2NAME[training_dataset_name],
+            linestyle="None",
         )
+    )
+    # Then add a line+marker for each base model
+    for base_model_name in base_model_names:
         handles.append(
             lines.Line2D(
                 [0],
@@ -178,20 +187,48 @@ for training_dataset_name in training_dataset_names:
                     plotting_utils.TRAIN_DATASET_ALIAS2COLOR[training_dataset_name]
                 ],
                 marker=plotting_utils.MODEL_NAME2MARKER[base_model_name],
-                label=label,
+                label=plotting_utils.MODEL_NAME2ALIAS[base_model_name],
                 linewidth=plotting_utils.LINE_WIDTH,
+                linestyle="solid",
             )
         )
-fig.legend(
+
+legend = fig.legend(
     handles=handles,
     fontsize=plotting_utils.LEGEND_FONT_SIZE,
-    loc="lower center",
-    ncol=len(training_dataset_names),
-    frameon=False,
-    bbox_to_anchor=(0.5, -0.15),
+    loc="center left",
+    ncol=1,
+    frameon=True,
+    fancybox=False,
+    edgecolor="black",
+    bbox_to_anchor=(0.9, 0.5),
     bbox_transform=fig.transFigure,
 )
-plt.tight_layout()
+# Make the train dataset name bold
+text_object = legend.get_texts()[0]
+text_object.set_fontweight("bold")
+
+# Make the training dataset names bold and their specific color
+for i, training_dataset_name in enumerate(training_dataset_names):
+    # There are 3 rows per training dataset name in the legend:
+    # 1. The training dataset name
+    # ... rest are base models
+    text_object = legend.get_texts()[i * (len(base_model_names) + 1) + 1]
+
+    # Modify its style
+    text_object.set_color(
+        plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR[training_dataset_name]]
+    )
+    text_object.set_fontweight("bold")
+
+plt.subplots_adjust(
+    left=0.08,  # where the left subplot y-labels are, increase to move them away from left figure edge
+    right=0.9,  # where the right subplot edges are, increase to move them closer to right figure edge
+    top=0.9,  # where the top subplot edges are, increase to move them closer to top figure edge
+    bottom=0.1,  # where the bottom subplot edges are, increase to move them closer to bottom figure edge
+    hspace=0.2,  # horizontal space between subplots, increase to move them away
+    wspace=0.2,  # vertical space between subplots, increase to move them away
+)
 
 save_path = os.path.join("f1_v_training_steps.pdf")
 # os.makedirs(os.path.dirname(save_path), exist_ok=True)
