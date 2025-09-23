@@ -6,11 +6,13 @@ synthetic_train_ckpts:
         paths:
           [
             "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/x-anmolkab/0913__curr=random__training_seed=1",
+            "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/x-anmolkab/0914__curr=random__training_seed=2",
           ]
       - model: Qwen/Qwen3-1.7B
         paths:
           [
             "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0913__curr=random__training_seed=1",
+            "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0914__curr=random__training_seed=2",
           ]
       - model: Qwen/Qwen2.5-1.5B-Instruct
         paths:
@@ -49,16 +51,19 @@ real_train_ckpts:
         paths:
           [
             "share/runs/data/hp/Qwen/Qwen3-0.6B/grpo/x-yyin10/0911__curr=random__training_seed=1",
+            "share/runs/data/hp/Qwen/Qwen3-0.6B/grpo/x-anmolkab/0919__curr=random__training_seed=2",
           ]
       - model: Qwen/Qwen3-1.7B
         paths:
           [
             "share/runs/data/hp/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr=random__training_seed=1",
+            "share/runs/data/hp/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0920__curr=random__training_seed=2",
           ]
       - model: Qwen/Qwen2.5-1.5B-Instruct
         paths:
           [
             "share/runs/data/hp/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0911__curr=random__training_seed=1",
+            "share/runs/data/hp/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0919__curr=random__training_seed=2",
           ]
 
   - dataset_name: 2wiki
@@ -68,16 +73,19 @@ real_train_ckpts:
         paths:
           [
             "share/runs/data/2wiki/Qwen/Qwen3-0.6B/grpo/x-yyin10/0911__curr=random__training_seed=1",
+            "share/runs/data/2wiki/Qwen/Qwen3-0.6B/grpo/x-anmolkab/0919__curr=random__training_seed=2",
           ]
       - model: Qwen/Qwen3-1.7B
         paths:
           [
             "share/runs/data/2wiki/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr=random__training_seed=1",
+            "share/runs/data/2wiki/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0920__curr=random__training_seed=2",
           ]
       - model: Qwen/Qwen2.5-1.5B-Instruct
         paths:
           [
             "share/runs/data/2wiki/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0911__curr=random__training_seed=1",
+            "share/runs/data/2wiki/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0919__curr=random__training_seed=2",
           ]
 
   - dataset_name: msq
@@ -87,14 +95,17 @@ real_train_ckpts:
         paths:
           [
             "share/runs/data/msq/Qwen/Qwen3-0.6B/grpo/x-yyin10/0911__curr=random__training_seed=1",
+            "share/runs/data/msq/Qwen/Qwen3-0.6B/grpo/x-anmolkab/0919__curr=random__training_seed=2",
           ]
       - model: Qwen/Qwen3-1.7B
         paths:
           [
             "share/runs/data/msq/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr=random__training_seed=1",
+            "share/runs/data/msq/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0920__curr=random__training_seed=2",
           ]
       - model: Qwen/Qwen2.5-1.5B-Instruct
         paths:
           [
             "share/runs/data/msq/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0911__curr=random__training_seed=1",
+            "share/runs/data/msq/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0919__curr=random__training_seed=2",
           ]
