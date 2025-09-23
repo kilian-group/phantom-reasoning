@@ -185,3 +185,4 @@ nohup.out
 *.sub
 evals/
 models/
+*.pdf
