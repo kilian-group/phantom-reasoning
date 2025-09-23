@@ -1,1 +1,0 @@
-examples/wiki/plot_all_wiki_scaling_final_ckpts.py
