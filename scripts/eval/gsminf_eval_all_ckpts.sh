@@ -34,48 +34,48 @@ export OPENAI_API_KEY="EMPTY"
 eval_model_on_gsm_infinite() {
     model_name=$1
 
-    # # Kill any processes running on port ${PORT}
-    # # Get the PID of the process running on port ${PORT}
-    # PID=$(lsof -i :${PORT} | awk 'NR>1 {print $2}')
-    # if [ -n "${PID}" ]; then
-    #     kill -9 "${PID}"
-    # fi
+    # Kill any processes running on port ${PORT}
+    # Get the PID of the process running on port ${PORT}
+    PID=$(lsof -i :${PORT} | awk 'NR>1 {print $2}')
+    if [ -n "${PID}" ]; then
+        kill -9 "${PID}"
+    fi
 
-    # # Launch the model in vLLM
-    # log_file="vllm_${model_name}.log"
-    # log_file=$(echo "${log_file}" | sed 's/\//--/g') # replace slash in model_name with --
+    # Launch the model in vLLM
+    log_file="vllm_${model_name}.log"
+    log_file=$(echo "${log_file}" | sed 's/\//--/g') # replace slash in model_name with --
 
-    # python -m vllm.entrypoints.openai.api_server \
-    #     --model "${model_name}" \
-    #     --tokenizer "${model_name}" \
-    #     --tensor-parallel-size 1 \
-    #     --port "${PORT}" \
-    #     --served-model-name "${model_name}" \
-    #     &> "logs/${log_file}" &
+    python -m vllm.entrypoints.openai.api_server \
+        --model "${model_name}" \
+        --tokenizer "${model_name}" \
+        --tensor-parallel-size 1 \
+        --port "${PORT}" \
+        --served-model-name "${model_name}" \
+        &> "logs/${log_file}" &
 
-    # echo "Waiting for vLLM server to start..."
-    # until curl -s "${VLLM_BASE_URL}/models" | grep -q "${model_name}"; do
-    #     echo "Still waiting..."
-    #     sleep 5
-    # done
+    echo "Waiting for vLLM server to start..."
+    until curl -s "${VLLM_BASE_URL}/models" | grep -q "${model_name}"; do
+        echo "Still waiting..."
+        sleep 5
+    done
 
-    # echo "Running $model_name with length: 0, dataset: $DATASET, save-dataset: medium"
+    echo "Running $model_name with length: 0, dataset: $DATASET, save-dataset: medium"
 
-    # save_name="$(echo "$model_name" | sed 's|/|--|g' | sed 's|^-*||')"
-    # python examples/gsm_infinite/pred/pred.py \
-    #     --output-dir "$OUT_DIR" \
-    #     --dataset-name "$DATASET" \
-    #     --model-name "$model_name" \
-    #     --save-dataset "medium" \
-    #     --save-name="$save_name" \
-    #     --backend-type "openai" \
-    #     --num-samples 1 \
-    #     --temperature 1 \
-    #     --max-tokens 4096 \
-    #     --length "0" \
-    #     --op-range "$ops" \
-    #     --batch-size 200 \
-    #     --limit 200
+    save_name="$(echo "$model_name" | sed 's|/|--|g' | sed 's|^-*||')"
+    python examples/gsm_infinite/pred/pred.py \
+        --output-dir "$OUT_DIR" \
+        --dataset-name "$DATASET" \
+        --model-name "$model_name" \
+        --save-dataset "medium" \
+        --save-name="$save_name" \
+        --backend-type "openai" \
+        --num-samples 1 \
+        --temperature 1 \
+        --max-tokens 4096 \
+        --length "0" \
+        --op-range "$ops" \
+        --batch-size 200 \
+        --limit 200
 
     echo "Calculating accuracy..."
     python examples/gsm_infinite/pred/eval_realistic.py \
@@ -83,8 +83,8 @@ eval_model_on_gsm_infinite() {
         --save-dataset "medium" \
         --model-name "$model_name"
 
-    # echo "Killing vLLM server..."
-    # pkill -f "vllm.entrypoints.openai.api_server"
+    echo "Killing vLLM server..."
+    pkill -f "vllm.entrypoints.openai.api_server"
 }
 
 # Evaluate the base model
