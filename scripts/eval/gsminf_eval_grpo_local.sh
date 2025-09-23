@@ -6,7 +6,15 @@
 OUTPUT_DIR=$1
 
 MODEL_NAMES=(
-    "/home/x-yyin10/phantom-reasoning/runs/data/hp/Qwen/Qwen3-0.6B/grpo/x-yyin10/0911__curr=random__training_seed=1"
+    "share/runs/data/hp/Qwen/Qwen3-0.6B/grpo/x-yyin10/0911__curr=random__training_seed=1"
+    "share/runs/data/hp/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr=random__training_seed=1"
+    "share/runs/data/hp/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0911__curr=random__training_seed=1"
+    "share/runs/data/2wiki/Qwen/Qwen3-0.6B/grpo/x-yyin10/0911__curr=random__training_seed=1"
+    "share/runs/data/2wiki/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr=random__training_seed=1"
+    "share/runs/data/2wiki/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0911__curr=random__training_seed=1"
+    "share/runs/data/msq/Qwen/Qwen3-0.6B/grpo/x-yyin10/0911__curr=random__training_seed=1"
+    "share/runs/data/msq/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr=random__training_seed=1"
+    "share/runs/data/msq/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0911__curr=random__training_seed=1"
 )
 
 mkdir -p logs
@@ -15,8 +23,9 @@ VLLM_BASE_URL="http://localhost:${PORT}/v1"
 export OPENAI_BASE_URL="${VLLM_BASE_URL}"
 export OPENAI_API_KEY="EMPTY"
 
-for model_name in ${MODEL_NAMES[@]}
-do
+eval_model_on_gsm_infinite() {
+    model_name=$1
+
     # Kill any processes running on port ${PORT}
     # Get the PID of the process running on port ${PORT}
     PID=$(lsof -i :${PORT} | awk 'NR>1 {print $2}')
@@ -52,7 +61,6 @@ do
     echo "Running $model_name with length: 0, dataset: $dataset_name, save-dataset: medium"
 
     save_name="$(echo "$model_name" | sed 's|/|--|g' | sed 's|^-*||')"
-    # save_name=$(echo "${model_name}" | sed 's/\//--/g') # replace slash in model_name with --
     python examples/gsm_infinite/pred/pred.py \
         --output-dir "$OUTPUT_DIR" \
         --dataset-name "$dataset_name" \
@@ -78,6 +86,11 @@ do
 
     echo "Killing vLLM server..."
     pkill -f "vllm.entrypoints.openai.api_server"
+}
+
+for model_name in ${MODEL_NAMES[@]}
+do
+    eval_model_on_gsm_infinite "$model_name"
 done
 
 # Print the overall accuracy per model
