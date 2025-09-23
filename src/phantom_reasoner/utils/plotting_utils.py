@@ -22,15 +22,23 @@ MARKER_ALPHA = 1
 MARKER_SIZE = 3
 LINE_ALPHA = 0.75
 OUTWARD = 4
+LINE_WIDTH = 1
 
 LABEL_FONT_SIZE = 13
 MINOR_TICK_FONT_SIZE = 5
 TICK_FONT_SIZE = 10
 LEGEND_FONT_SIZE = 13
 
-MODEL_ALIASES = {
+MODEL_NAME2ALIAS = {
     "microsoft/Phi-4-mini-reasoning": "Phi-4-Mini-Reasoning",
     "Qwen/Qwen2.5-1.5B-Instruct": "Qwen2.5-1.5B-Instruct",
     "Qwen/Qwen3-0.6B": "Qwen3-0.6B",
     "Qwen/Qwen3-1.7B": "Qwen3-1.7B",
+}
+
+MODEL_NAME2MARKER = {
+    "microsoft/Phi-4-mini-reasoning": "+",
+    "Qwen/Qwen2.5-1.5B-Instruct": "*",
+    "Qwen/Qwen3-0.6B": "s",
+    "Qwen/Qwen3-1.7B": "o",
 }
