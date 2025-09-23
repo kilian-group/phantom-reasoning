@@ -4,8 +4,9 @@ import numpy as np
 from phantom_reasoner.utils import plotting_utils
 
 # Model and dataset names
-models = ["Qwen3-0.6B", "Qwen3-1.7B", "Qwen2.5-1.5B-Instruct"]
+models = ["Qwen3-0.6B", "Qwen3-1.7B", "Qwen2.5-1.5B-Instruct", "Phi-4-mini-reasoning"]
 train_dataset_names = plotting_utils.TRAIN_DATASET_NAMES
+# train_dataset_names = ["base", "format", "gsminf", "pw"]
 eval_dataset_names = plotting_utils.EVAL_DATASET_NAMES
 
 LINE_WIDTH = 1
@@ -27,14 +28,18 @@ data = {
         "2Wiki": {"base": 0.1422, "format": 0.2957, "gsminf": 0.3561, "pw": 0.4526},
         "MuSiQue": {"base": 0.0402, "format": 0.1983, "gsminf": 0.1629, "pw": 0.2878},
     },
+    "Phi-4-mini-reasoning": {
+        "HotpotQA": {"base": 0.4871, "format": 1, "gsminf": 0.5431, "pw": 1},
+        "2Wiki": {"base": 0.6663, "format": 1, "gsminf": 0.6739, "pw": 1},
+        "MuSiQue": {"base": 0.2923, "format": 1, "gsminf": 0.3250, "pw": 1},
+    },
 }
 
 
 def create_bar_plot_for_model(model: str, yticks: list[float]):
-    # Create figure with 3x3 subplots
-    fig, axes = plt.subplots(1, 3, figsize=(9, 4))
+    fig, axes = plt.subplots(1, 3, figsize=(8, 4))
 
-    # Bar settings - UPDATED COLORS to match the reference plot
+    # Bar settings
     bar_width = 0.85
     x_pos = np.arange(len(train_dataset_names))
     EDGE_COLOR = "black"
@@ -44,13 +49,8 @@ def create_bar_plot_for_model(model: str, yticks: list[float]):
     for j, dataset in enumerate(eval_dataset_names):
         ax = axes[j]
 
-        # Get values for this model-dataset combination - REORDERED
-        values = [
-            data[model][dataset]["base"],
-            data[model][dataset]["format"],
-            data[model][dataset]["gsminf"],
-            data[model][dataset]["pw"],
-        ]
+        # Get values for this model-dataset combination
+        values = [data[model][dataset][train_dataset_name] for train_dataset_name in train_dataset_names]
 
         # Create bars with error bars (using small errors for visual effect)
         # TODO add error bars
@@ -71,7 +71,6 @@ def create_bar_plot_for_model(model: str, yticks: list[float]):
         )
 
         # Customize subplot
-        # Set y-axis ticks at 0.0, 0.2, 0.4, 0.6, 0.8
         ax.set_ylim(0, max(yticks))
         ax.set_yticks(yticks)
         # Only show y-axis tick labels for the left most subplots
@@ -193,13 +192,13 @@ def create_bar_plot_for_model(model: str, yticks: list[float]):
     )
     # plt.tight_layout()
 
-    plt.savefig(f"f1_score_comparison_{model}.pdf", dpi=300)
+    plt.savefig(f"f1_transfer_performance_{model}.pdf", dpi=300)
     plt.close()
 
 
 if __name__ == "__main__":
     for model in models:
         yticks = [0.0, 0.2, 0.4, 0.6, 0.8]
-        if model == "Qwen3-1.7B":
+        if model == "Qwen3-1.7B" or model == "Phi-4-mini-reasoning":
             yticks += [1.0]
         create_bar_plot_for_model(model, yticks)

@@ -13,7 +13,7 @@ TRAIN_DATASET_ALIAS2NAME = {
     "gsminf": "GSM-$\\infty$",
     "pw": "PhantomWiki",
 }
-TRAIN_DATASET_ALIAS2COLOR = {"base": "myYellow", "format": "myOrange", "gsminf": "myGreen", "pw": "myBlue"}
+TRAIN_DATASET_ALIAS2COLOR = {"base": "myGreen", "format": "myYellow", "gsminf": "myBlue", "pw": "myOrange"}
 
 EVAL_DATASET_NAMES = ["HotpotQA", "2Wiki", "MuSiQue"]
 

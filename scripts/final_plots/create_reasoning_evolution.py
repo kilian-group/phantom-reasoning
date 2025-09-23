@@ -37,7 +37,7 @@ args = parser.parse_args()
 
 train_dataset_names2xticks = {
     "pw": [1, 5, 9],
-    "gsminf": [2, 5, 10, 15, 20],  # TODO change to what it uses
+    "gsminf": [2, 5, 10, 15, 20],
 }
 train_dataset_names2metric = {
     "pw": "f1",
@@ -49,7 +49,7 @@ train_dataset_names2xlabel = {
 }
 train_dataset_names2max_difficulty = {
     "pw": 9,
-    "gsminf": 20,  # TODO change to what it uses
+    "gsminf": 20,
 }
 
 # Load the yaml file
@@ -356,7 +356,7 @@ def plot_training_evolution(base_model_name: str, synthetic_train_ckpts: list[di
     plt.subplots_adjust(
         left=0.08,  # where the left subplot y-labels are, increase to move them away from left figure edge
         right=0.98,  # where the right subplot edges are, increase to move them closer to right figure edge
-        top=0.85,  # where the top subplot edges are, increase to move them closer to top figure edge
+        top=0.8,  # where the top subplot edges are, increase to move them closer to top figure edge
         bottom=0.15,  # where the bottom subplot edges are, increase to move them closer to bottom figure edge
         # hspace=0.4,  # horizontal space between subplots, increase to move them away
         wspace=0.4,  # vertical space between subplots, increase to move them away
