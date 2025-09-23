@@ -86,5 +86,5 @@ do
 done
 
 # Print the overall accuracy per model
-python examples/gsm_infinite/preprocess.py \
+python examples/gsm_infinite/format_model_accuracy.py \
     --output-dir "$OUTPUT_DIR"

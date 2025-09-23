@@ -12,6 +12,7 @@ python scripts/final_plots/create_reasoning_evolution.py \
 import json
 import os
 import re
+from pathlib import Path
 
 import matplotlib.lines as lines
 import matplotlib.pyplot as plt
@@ -116,8 +117,6 @@ def get_acc_mean_std(
             if df.empty:
                 print(f"No data found for {method}")
                 return pd.DataFrame()
-
-            # ignore difficulty beyond 15
             df = df[df[DIFFICULTY] <= max_difficulty]
 
             # get accuracies by model, split, difficulty, seed
@@ -132,7 +131,26 @@ def get_acc_mean_std(
             acc_mean_std = acc_mean_std.reset_index()
             return acc_mean_std
         case "gsminf":
-            raise NotImplementedError("GSM inf is not implemented yet")
+            df = []
+            scores_path = Path(preds_output_dir) / Path("scores")
+            for csv_file_path in scores_path.glob("*.csv"):
+                df.append(pd.read_csv(csv_file_path))
+            df = pd.concat(df)
+            # df = get_gsminf_evaluation_data(preds_output_dir)
+            if df.empty:
+                print(f"No data found for {method}")
+                return pd.DataFrame()
+            df = df[df[DIFFICULTY] <= max_difficulty]
+            df["_size"] = 0  # placeholder for size (corresponding to length in GSM infinite)
+            df["_model"] = df["model_name"]
+
+            # get the mean and std of the accuracy for each model, and difficulty across sizes
+            # first compute the mean across inference generation seeds
+            acc_mean_std = df.groupby(["_model", "_size", DIFFICULTY])[metrics].agg([mean, std])
+            # # second compute the mean and standard error across data generation seeds
+            # acc_mean_std = acc_mean_std.groupby(["_model", "_size", DIFFICULTY]).agg([mean, std])
+            acc_mean_std = acc_mean_std.reset_index()
+            return acc_mean_std
         case _:
             raise ValueError(f"Invalid train dataset name: {train_dataset_name}")
 
@@ -195,25 +213,29 @@ def plot_training_evolution(base_model_name: str, synthetic_train_ckpts: list[di
         for ckpt_name, row in df_mean.iterrows():
             y = row
             # If the ckpt_number is 0, use the base model color, else use the gradient color
-            if get_ckpt_number(ckpt_name, base_model_name, ckpt_parent_dir) == 0:
+            ckpt_number = get_ckpt_number(ckpt_name, base_model_name, ckpt_parent_dir)
+            if ckpt_number == 0:
                 color = plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR["base"]]
             else:
                 color = get_color(
                     ckpt_name, base_model_name, ckpt_parent_dir, max_ckpt=max_ckpt, colormap=colormap
                 )
 
+            linewidth = plotting_utils.LINE_WIDTH
+            if ckpt_number in [0, max_ckpt]:
+                linewidth = 1.5
             ax.plot(
                 x,
                 y,
                 color=color,
                 linestyle="solid",
-                linewidth=1,
+                linewidth=linewidth,
                 alpha=plotting_utils.LINE_ALPHA,
             )
 
         # format x-axis
-        ax.set_xlim(1, max_difficulty)
         xticks = train_dataset_names2xticks[train_dataset_name]
+        ax.set_xlim(xticks[0], max_difficulty)
         ax.set_xticks(xticks)
         ax.set_xticklabels(xticks, fontsize=plotting_utils.TICK_FONT_SIZE)
         ax.set_xlabel(train_dataset_names2xlabel[train_dataset_name], fontsize=plotting_utils.LABEL_FONT_SIZE)
@@ -225,13 +247,7 @@ def plot_training_evolution(base_model_name: str, synthetic_train_ckpts: list[di
         yticks = [0, 0.25, 0.5, 0.75, 1]
         ax.set_yticks(yticks)
         ax.set_yticklabels(yticks, fontsize=plotting_utils.TICK_FONT_SIZE)
-        ax.set_ylabel(metric.upper(), fontsize=plotting_utils.LABEL_FONT_SIZE)
-
-        ax.set_title(
-            plotting_utils.MODEL_NAME2ALIAS[base_model_name],
-            fontsize=plotting_utils.LABEL_FONT_SIZE,
-            fontweight="bold",
-        )
+        ax.set_ylabel(metric.capitalize(), fontsize=plotting_utils.LABEL_FONT_SIZE)
 
         # On the right of the figure, add a vertical colorbar of colormap
         # based on the checkpoint numbers
@@ -251,7 +267,7 @@ def plot_training_evolution(base_model_name: str, synthetic_train_ckpts: list[di
             [0],
             color=plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR["base"]],
             label=plotting_utils.TRAIN_DATASET_ALIAS2NAME["base"],
-            linewidth=1,
+            linewidth=1.5,
         )
     ]
     for train_dataset_name in train_dataset_names:
@@ -261,7 +277,7 @@ def plot_training_evolution(base_model_name: str, synthetic_train_ckpts: list[di
                 [0],
                 color=plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR[train_dataset_name]],
                 label=plotting_utils.TRAIN_DATASET_ALIAS2NAME[train_dataset_name],
-                linewidth=1,
+                linewidth=1.5,
             )
         )
     fig.legend(
@@ -270,13 +286,83 @@ def plot_training_evolution(base_model_name: str, synthetic_train_ckpts: list[di
         loc="upper center",
         ncol=len(legend_handles),
         frameon=True,
-        bbox_to_anchor=(0.5, 1.05),
+        fancybox=False,
+        edgecolor="black",
+        bbox_to_anchor=(0.5, 1.02),  # Move above the plots
     )
-    plt.tight_layout()
 
-    # output_dir = os.path.join(ckpt_parent_dir, f"out-{'-'.join(train_dataset_names)}", "figures")
-    # fig_path = os.path.join(output_dir, f"{DIFFICULTY}-performance-evolution.pdf")
-    # os.makedirs(os.path.dirname(fig_path), exist_ok=True)
+    # Add model name to the bottom of the figure
+    ax_left = axs[0].get_position()
+    ax_right = axs[-1].get_position()
+    LEFT_OFFSET = 0.0
+    RIGHT_OFFSET = 0.0
+
+    # Calculate positions
+    y_pos = ax_left.y0 - 0.15
+    BRACKET_HEIGHT = 0.015
+
+    # Draw left vertical line
+    fig.add_artist(
+        plt.Line2D(
+            [ax_left.x0 - LEFT_OFFSET, ax_left.x0 - LEFT_OFFSET],
+            [y_pos, y_pos + BRACKET_HEIGHT],
+            transform=fig.transFigure,
+            color="black",
+            linewidth=plotting_utils.LINE_WIDTH,
+        )
+    )
+
+    # Draw horizontal line
+    fig.add_artist(
+        plt.Line2D(
+            [ax_left.x0 - LEFT_OFFSET, ax_right.x1 + RIGHT_OFFSET],
+            [y_pos, y_pos],
+            transform=fig.transFigure,
+            color="black",
+            linewidth=plotting_utils.LINE_WIDTH,
+        )
+    )
+
+    # Draw right vertical line
+    fig.add_artist(
+        plt.Line2D(
+            [ax_right.x1 + RIGHT_OFFSET, ax_right.x1 + RIGHT_OFFSET],
+            [y_pos, y_pos + BRACKET_HEIGHT],
+            transform=fig.transFigure,
+            color="black",
+            linewidth=plotting_utils.LINE_WIDTH,
+        )
+    )
+    # Add the model name centered below the bracket
+    x_center = (ax_left.x0 + ax_right.x1) / 2
+    fig.text(
+        x_center + 0.02,
+        y_pos + BRACKET_HEIGHT,
+        plotting_utils.MODEL_NAME2ALIAS[base_model_name],
+        fontsize=plotting_utils.LABEL_FONT_SIZE,
+        fontweight="bold",
+        verticalalignment="top",
+        horizontalalignment="center",
+        transform=fig.transFigure,
+        bbox=dict(
+            boxstyle="square,pad=0.3",
+            facecolor="white",
+            edgecolor="black",
+            linewidth=plotting_utils.LINE_WIDTH,
+        ),
+    )
+
+    # Adjust layout
+    plt.subplots_adjust(
+        left=0.08,  # where the left subplot y-labels are, increase to move them away from left figure edge
+        right=0.98,  # where the right subplot edges are, increase to move them closer to right figure edge
+        top=0.85,  # where the top subplot edges are, increase to move them closer to top figure edge
+        bottom=0.15,  # where the bottom subplot edges are, increase to move them closer to bottom figure edge
+        # hspace=0.4,  # horizontal space between subplots, increase to move them away
+        wspace=0.4,  # vertical space between subplots, increase to move them away
+    )
+    # plt.tight_layout()
+
     print(f"Saving to {save_path}")
     plt.savefig(save_path, bbox_inches="tight", dpi=300)
 
@@ -284,5 +370,7 @@ def plot_training_evolution(base_model_name: str, synthetic_train_ckpts: list[di
 if __name__ == "__main__":
     for base_model_name in base_model_names:
         save_path = f"reasoning_evolution_{base_model_name.replace('/', '--')}.pdf"
+        print("--------------------------------")
         print(f"Plotting reasoning evolution for {base_model_name}")
+        print("--------------------------------")
         plot_training_evolution(base_model_name, synthetic_train_ckpts, save_path)
