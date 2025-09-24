@@ -24,8 +24,10 @@ if [[ ! " ${DATASET_LIST[@]} " =~ " ${DATASET} " ]]; then
 fi
 
 MODEL_NAMES=(
-    # "runs__bs=4/data/wiki-v1-easy-depth_20_size_25/microsoft/Phi-4-mini-reasoning/grpo/ak2426/0909__curr=random__training_seed=1"
-    "runs__bs=4/data/wiki-v1-easy-depth_20_size_25/microsoft/Phi-4-mini-reasoning/grpo/ak2426/0909__curr=random__training_seed=2/checkpoint-1485"
+    "Qwen/Qwen3-0.6B"
+    "Qwen/Qwen3-1.7B"
+    "Qwen/Qwen2.5-1.5B-Instruct"
+    "microsoft/Phi-4-mini-reasoning"
 )
 
 for model_name in ${MODEL_NAMES[@]}; do

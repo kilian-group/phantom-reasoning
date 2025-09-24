@@ -6,29 +6,10 @@
 OUTPUT_DIR=$1
 
 MODEL_NAMES=(
-    # "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/x-anmolkab/0913__curr=random__training_seed=1"
-    # "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/x-anmolkab/0914__curr=random__training_seed=2"
-    # "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0913__curr=random__training_seed=1"
-    # "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0912__curr=random__training_seed=1"
-#
-    # "share/runs/data/hp/Qwen/Qwen3-0.6B/grpo/x-yyin10/0911__curr=random__training_seed=1"
-    # "share/runs/data/hp/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr=random__training_seed=1"
-    # "share/runs/data/hp/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0911__curr=random__training_seed=1"
-    # "share/runs/data/2wiki/Qwen/Qwen3-0.6B/grpo/x-yyin10/0911__curr=random__training_seed=1"
-    # "share/runs/data/2wiki/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr=random__training_seed=1"
-    # "share/runs/data/2wiki/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0911__curr=random__training_seed=1"
-    # "share/runs/data/msq/Qwen/Qwen3-0.6B/grpo/x-yyin10/0911__curr=random__training_seed=1"
-    # "share/runs/data/msq/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr=random__training_seed=1"
-    # "share/runs/data/msq/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0911__curr=random__training_seed=1"
-    # "Qwen/Qwen3-0.6B"
-    # "Qwen/Qwen3-1.7B"
-    # "Qwen/Qwen2.5-1.5B-Instruct"
-    # "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-0.6B/grpo/x-anmolkab/0909__curr=random__training_seed=1"
-    # "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0909__curr=random__training_seed=1"
-    # "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0910__curr=random__training_seed=1"
-    "share/runs__binary_format/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/x-anmolkab/0911__curr=random__training_seed=1"
-    "share/runs__binary_format/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0911__curr=random__training_seed=1"
-    "share/runs__binary_format/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0911__curr=random__training_seed=1"
+    "Qwen/Qwen3-0.6B"
+    "Qwen/Qwen3-1.7B"
+    "Qwen/Qwen2.5-1.5B-Instruct"
+    "microsoft/Phi-4-mini-reasoning"
 )
 
 mkdir -p logs
