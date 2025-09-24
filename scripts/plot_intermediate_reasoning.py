@@ -328,8 +328,8 @@ def create_complexity_breakdown_plot(data: dict[str, Any], output_dir: str):
                         complexity = key.split("_")[0]
                         total_questions = value
 
-                        # Get full completion rate
-                        full_key = f"{complexity}_evidence_at_least_{complexity}_found"
+                        # Get full completion rate using new positional format
+                        full_key = f"{complexity}_evidence_{complexity}_found"
                         if full_key in breakdown:
                             full_value = breakdown[full_key]
                             if isinstance(full_value, str) and "/" in full_value:
@@ -361,8 +361,8 @@ def create_complexity_breakdown_plot(data: dict[str, Any], output_dir: str):
                         complexity = key.split("_")[0]
                         total_questions = value
 
-                        # Get full completion rate
-                        full_key = f"{complexity}_fact_at_least_{complexity}_found"
+                        # Get full completion rate using new positional format
+                        full_key = f"{complexity}_fact_{complexity}_found"
                         if full_key in breakdown:
                             full_value = breakdown[full_key]
                             if isinstance(full_value, str) and "/" in full_value:
@@ -394,8 +394,8 @@ def create_complexity_breakdown_plot(data: dict[str, Any], output_dir: str):
                         complexity = key.split("_")[0]
                         total_questions = value
 
-                        # Get full completion rate
-                        full_key = f"{complexity}_step_at_least_{complexity}_found"
+                        # Get full completion rate using new positional format
+                        full_key = f"{complexity}_step_{complexity}_found"
                         if full_key in breakdown:
                             full_value = breakdown[full_key]
                             if isinstance(full_value, str) and "/" in full_value:
@@ -570,7 +570,7 @@ def create_model_comparison_heatmap(data: dict[str, Any], output_dir: str):
 def main():
     """Main function to generate all plots."""
     # Load data from the new combined analysis
-    json_path = "scripts/intermediate_reasoning_analysis_both_folders_results.json"
+    json_path = "scripts/intermediate_reasoning_analysis_results.json"
     output_dir = "scripts/plots"
 
     # Create output directory
@@ -585,7 +585,7 @@ def main():
     print("Creating reasoning vs prediction gap plot...")
     create_reasoning_vs_prediction_plot(data, output_dir)
 
-    print("Creating complexity breakdown plot...")
+    print("Creating positional breakdown plot...")
     create_complexity_breakdown_plot(data, output_dir)
 
     print("Creating model comparison heatmap...")

@@ -29,26 +29,26 @@ class IntermediateReasoningAnalyzer:
         # All three prediction directories
         self.pw_preds_dir = self.eval_dir / "out__train=pw__eval=wiki" / "preds" / "cot"
         self.wiki_preds_dir = self.eval_dir / "out__train=wiki__eval=wiki" / "preds" / "cot"
-        self.notrain_preds_dir = self.eval_dir / "out__notrain__0626-other-datasets" / "preds" / "cot"
+        self.notrain_preds_dir = self.eval_dir / "out__train=base__eval=wiki" / "preds" / "cot"
 
     def load_ground_truth_data(self, dataset: str) -> dict[str, Any]:
         """Load ground truth data for a dataset."""
         logger.info(f"Loading ground truth data for {dataset}...")
 
         if dataset == "2wiki":
-            gt_file = self.datasets_dir / "2wiki" / "minidev.json"
+            gt_file = self.datasets_dir / "2wiki500" / "minidev.json"
             with open(gt_file) as f:
                 data = json.load(f)
             return {"data": data}  # Wrap in dict for consistency
 
         elif dataset == "hp":
-            gt_file = self.datasets_dir / "hp" / "hotpot_minidev_distractor_v1.json"
+            gt_file = self.datasets_dir / "hp500" / "hotpot_minidev_distractor_v1.json"
             with open(gt_file) as f:
                 data = json.load(f)
             return {"data": data}  # This already has the full structure
 
         elif dataset == "msq":
-            gt_file = self.datasets_dir / "msq" / "musique_ans_v1.0_minidev.jsonl"
+            gt_file = self.datasets_dir / "msq500" / "musique_ans_v1.0_minidev.jsonl"
             data = []
             with open(gt_file) as f:
                 for line in f:
@@ -405,49 +405,47 @@ class IntermediateReasoningAnalyzer:
                     if is_sequential:
                         sequential_reasoning += 1
 
-                # Update partial breakdown stats
-                evidence_found_count = len(evidence_found)
-                for i in range(1, evidence_length + 1):
-                    if evidence_found_count >= i:
-                        evidence_breakdown[f"{evidence_length}_evidence_at_least_{i}_found"] += 1
+                # Update partial breakdown stats - track which specific positions were found
+                evidence_positions_found = [item[1] for item in evidence_found]  # Extract step indices
+                for pos in range(1, evidence_length + 1):  # 1-indexed positions
+                    if pos - 1 in evidence_positions_found:  # Convert to 0-indexed for checking
+                        evidence_breakdown[f"{evidence_length}_evidence_{pos}_found"] += 1
 
-                bridging_found_count = len(bridging_found)
+                bridging_positions_found = [item[1] for item in bridging_found]  # Extract step indices
                 bridging_length = len(bridging_entities)
                 bridging_breakdown[f"{bridging_length}_bridging_questions"] += 1
-                for i in range(1, bridging_length + 1):
-                    if bridging_found_count >= i:
-                        bridging_breakdown[f"{bridging_length}_bridging_at_least_{i}_found"] += 1
+                for pos in range(1, bridging_length + 1):  # 1-indexed positions
+                    if pos - 1 in bridging_positions_found:  # Convert to 0-indexed for checking
+                        bridging_breakdown[f"{bridging_length}_bridging_{pos}_found"] += 1
 
-            # Convert counts to cumulative statistics
+            # Convert counts to positional statistics
             partial_breakdown_stats = dict(evidence_breakdown)
             partial_breakdown_stats.update(dict(bridging_breakdown))
 
-            # Fix cumulative calculation for "at least N found" statistics
+            # Convert positional counts to fractions
             for evidence_len in range(2, 6):  # Support up to 5 evidence questions
                 total_questions_key = f"{evidence_len}_evidence_questions"
                 if total_questions_key in partial_breakdown_stats:
                     total_q = partial_breakdown_stats[total_questions_key]
 
-                    # Calculate cumulative "at least N found" from right to left
-                    cumulative_sum = 0
-                    for found_count in range(evidence_len, 0, -1):  # From max to 1
-                        at_least_key = f"{evidence_len}_evidence_at_least_{found_count}_found"
-                        if at_least_key in partial_breakdown_stats:
-                            cumulative_sum = partial_breakdown_stats[at_least_key]
-                            partial_breakdown_stats[at_least_key] = f"{cumulative_sum}/{total_q}"
+                    # Convert each position count to fraction
+                    for pos in range(1, evidence_len + 1):
+                        pos_key = f"{evidence_len}_evidence_{pos}_found"
+                        if pos_key in partial_breakdown_stats:
+                            count = partial_breakdown_stats[pos_key]
+                            partial_breakdown_stats[pos_key] = f"{count}/{total_q}"
 
             for bridging_len in range(2, 6):  # Support up to 5 bridging questions
                 total_questions_key = f"{bridging_len}_bridging_questions"
                 if total_questions_key in partial_breakdown_stats:
                     total_q = partial_breakdown_stats[total_questions_key]
 
-                    # Calculate cumulative "at least N found" from right to left
-                    cumulative_sum = 0
-                    for found_count in range(bridging_len, 0, -1):  # From max to 1
-                        at_least_key = f"{bridging_len}_bridging_at_least_{found_count}_found"
-                        if at_least_key in partial_breakdown_stats:
-                            cumulative_sum = partial_breakdown_stats[at_least_key]
-                            partial_breakdown_stats[at_least_key] = f"{cumulative_sum}/{total_q}"
+                    # Convert each position count to fraction
+                    for pos in range(1, bridging_len + 1):
+                        pos_key = f"{bridging_len}_bridging_{pos}_found"
+                        if pos_key in partial_breakdown_stats:
+                            count = partial_breakdown_stats[pos_key]
+                            partial_breakdown_stats[pos_key] = f"{count}/{total_q}"
 
             results[model_name] = {
                 "total_questions": total_questions,
@@ -555,28 +553,27 @@ class IntermediateReasoningAnalyzer:
                     if is_sequential:
                         sequential_reasoning += 1
 
-                # Update partial breakdown stats
-                fact_found_count = len(fact_found)
-                for i in range(1, fact_length + 1):
-                    if fact_found_count >= i:
-                        fact_breakdown[f"{fact_length}_fact_at_least_{i}_found"] += 1
+                # Update partial breakdown stats - track which specific positions were found
+                fact_positions_found = [item[1] for item in fact_found]  # Extract fact indices
+                for pos in range(1, fact_length + 1):  # 1-indexed positions
+                    if pos - 1 in fact_positions_found:  # Convert to 0-indexed for checking
+                        fact_breakdown[f"{fact_length}_fact_{pos}_found"] += 1
 
-            # Convert counts to statistics with proper cumulative calculation
+            # Convert counts to positional statistics
             partial_breakdown_stats = dict(fact_breakdown)
 
-            # Fix cumulative calculation for "at least N found" statistics
+            # Convert positional counts to fractions
             for fact_len in range(2, 6):  # Support up to 5 fact questions
                 total_questions_key = f"{fact_len}_fact_questions"
                 if total_questions_key in partial_breakdown_stats:
                     total_q = partial_breakdown_stats[total_questions_key]
 
-                    # Calculate cumulative "at least N found" from right to left
-                    cumulative_sum = 0
-                    for found_count in range(fact_len, 0, -1):  # From max to 1
-                        at_least_key = f"{fact_len}_fact_at_least_{found_count}_found"
-                        if at_least_key in partial_breakdown_stats:
-                            cumulative_sum = partial_breakdown_stats[at_least_key]
-                            partial_breakdown_stats[at_least_key] = f"{cumulative_sum}/{total_q}"
+                    # Convert each position count to fraction
+                    for pos in range(1, fact_len + 1):
+                        pos_key = f"{fact_len}_fact_{pos}_found"
+                        if pos_key in partial_breakdown_stats:
+                            count = partial_breakdown_stats[pos_key]
+                            partial_breakdown_stats[pos_key] = f"{count}/{total_q}"
 
             results[model_name] = {
                 "total_questions": total_questions,
@@ -685,28 +682,27 @@ class IntermediateReasoningAnalyzer:
                     if is_sequential:
                         sequential_reasoning += 1
 
-                # Update partial breakdown stats
-                step_found_count = len(answer_positions)
-                for i in range(1, step_length + 1):
-                    if step_found_count >= i:
-                        step_breakdown[f"{step_length}_step_at_least_{i}_found"] += 1
+                # Update partial breakdown stats - track which specific positions were found
+                step_positions_found = [item[1] for item in answer_positions]  # Extract step indices
+                for pos in range(1, step_length + 1):  # 1-indexed positions
+                    if pos - 1 in step_positions_found:  # Convert to 0-indexed for checking
+                        step_breakdown[f"{step_length}_step_{pos}_found"] += 1
 
-            # Convert counts to statistics with proper cumulative calculation
+            # Convert counts to positional statistics
             partial_breakdown_stats = dict(step_breakdown)
 
-            # Fix cumulative calculation for "at least N found" statistics
+            # Convert positional counts to fractions
             for step_len in range(2, 6):  # Support up to 5 step questions
                 total_questions_key = f"{step_len}_step_questions"
                 if total_questions_key in partial_breakdown_stats:
                     total_q = partial_breakdown_stats[total_questions_key]
 
-                    # Calculate cumulative "at least N found" from right to left
-                    cumulative_sum = 0
-                    for found_count in range(step_len, 0, -1):  # From max to 1
-                        at_least_key = f"{step_len}_step_at_least_{found_count}_found"
-                        if at_least_key in partial_breakdown_stats:
-                            cumulative_sum = partial_breakdown_stats[at_least_key]
-                            partial_breakdown_stats[at_least_key] = f"{cumulative_sum}/{total_q}"
+                    # Convert each position count to fraction
+                    for pos in range(1, step_len + 1):
+                        pos_key = f"{step_len}_step_{pos}_found"
+                        if pos_key in partial_breakdown_stats:
+                            count = partial_breakdown_stats[pos_key]
+                            partial_breakdown_stats[pos_key] = f"{count}/{total_q}"
 
             results[model_name] = {
                 "total_questions": total_questions,
