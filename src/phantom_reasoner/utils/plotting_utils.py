@@ -37,8 +37,8 @@ MODEL_NAME2ALIAS = {
 }
 
 MODEL_NAME2MARKER = {
-    "microsoft/Phi-4-mini-reasoning": "+",
-    "Qwen/Qwen2.5-1.5B-Instruct": "*",
+    "microsoft/Phi-4-mini-reasoning": "X",
+    "Qwen/Qwen2.5-1.5B-Instruct": "d",
     "Qwen/Qwen3-0.6B": "s",
     "Qwen/Qwen3-1.7B": "o",
 }

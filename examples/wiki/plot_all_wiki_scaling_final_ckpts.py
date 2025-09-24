@@ -54,6 +54,13 @@ eval_dataset2yticks = {
     "2wiki500": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
     "msq500": [0.0, 0.1, 0.2, 0.3, 0.4, 0.5],
 }
+if "Qwen/Qwen2.5-1.5B-Instruct" in args.base_model_names_to_plot:
+    # Qwen2.5-1.5B-Instruct model starts off poorly on hp and 2wiki
+    # So start the y axis at 0
+    eval_dataset2ylims["hp500"] = (0.0, 0.8)
+    eval_dataset2ylims["2wiki500"] = (0.0, 0.8)
+    eval_dataset2yticks["hp500"] = [0.0, 0.2, 0.4, 0.6, 0.8]
+    eval_dataset2yticks["2wiki500"] = [0.0, 0.2, 0.4, 0.6, 0.8]
 
 # Load the yaml file
 with open(args.final_ckpts_yaml_path) as f:
