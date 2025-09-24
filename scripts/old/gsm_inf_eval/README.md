@@ -27,7 +27,7 @@ pip install -e .
 
    ```bash
    # Set your API configuration
-   backend_type='openai'  # or 'gemini', 'anthropic'
+   backend_type='openai' # or 'gemini', 'anthropic'
 
    # Configure model and dataset
    model_name='your_model_name'

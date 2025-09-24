@@ -31,16 +31,13 @@ Available tasks list: https://huggingface.co/docs/lighteval/en/available-tasks
 
 import argparse
 from datetime import timedelta
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
 
-import lighteval
 from lighteval.logging.evaluation_tracker import EvaluationTracker
 from lighteval.models.transformers.transformers_model import TransformersModelConfig
-from lighteval.models.vllm.vllm_model import VLLMModelConfig
 from lighteval.pipeline import ParallelismManager, Pipeline, PipelineParameters
-from lighteval.utils.utils import EnvConfig
 from lighteval.utils.imports import is_accelerate_available
+from lighteval.utils.utils import EnvConfig
+
 
 def run_evaluation(checkpoint_path: str, tasks: list, batch_size: int, output_dir: str):
     """
@@ -63,9 +60,8 @@ def run_evaluation(checkpoint_path: str, tasks: list, batch_size: int, output_di
     # Initialize Accelerator if available for distributed evaluation
     if is_accelerate_available():
         from accelerate import Accelerator, InitProcessGroupKwargs
-        accelerator = Accelerator(
-            kwargs_handlers=[InitProcessGroupKwargs(timeout=timedelta(seconds=3000))]
-        )
+
+        accelerator = Accelerator(kwargs_handlers=[InitProcessGroupKwargs(timeout=timedelta(seconds=3000))])
     else:
         accelerator = None
 
@@ -101,25 +97,33 @@ def run_evaluation(checkpoint_path: str, tasks: list, batch_size: int, output_di
     # Return raw results dictionary for further processing or analysis
     return pipeline.get_results()
 
+
 def main():
     parser = argparse.ArgumentParser(description="Evaluate an LLM with lighteval")
     parser.add_argument(
-        "--checkpoint-path", "-cp", type=str, required=True,
-        help="Path to the HuggingFace-compatible model checkpoint."
+        "--checkpoint-path",
+        "-cp",
+        type=str,
+        required=True,
+        help="Path to the HuggingFace-compatible model checkpoint.",
     )
     parser.add_argument(
-        "--output-dir", "-od", type=str, default="./out-lighteval",
-        help="Directory to store output results and logs."
+        "--output-dir",
+        "-od",
+        type=str,
+        default="./out-lighteval",
+        help="Directory to store output results and logs.",
     )
     parser.add_argument(
-        "--tasks", "-t", type=str,
+        "--tasks",
+        "-t",
+        type=str,
         default="lighteval|gsm8k|5|0,leaderboard|arc:challenge|10|0,lighteval|arc:easy|10|0",
         help="""Comma-separated list of tasks to evaluate. Format: suite|task|fewshot|truncate_flag.
-See: https://huggingface.co/docs/lighteval/en/quicktour for details."""
+See: https://huggingface.co/docs/lighteval/en/quicktour for details.""",
     )
     parser.add_argument(
-        "--batch-size", "-bs", type=int, default=16,
-        help="Batch size to use during inference."
+        "--batch-size", "-bs", type=int, default=16, help="Batch size to use during inference."
     )
     args = parser.parse_args()
 
@@ -129,6 +133,7 @@ See: https://huggingface.co/docs/lighteval/en/quicktour for details."""
         batch_size=args.batch_size,
         output_dir=args.output_dir,
     )
+
 
 if __name__ == "__main__":
     main()
