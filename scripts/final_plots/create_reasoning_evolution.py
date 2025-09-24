@@ -37,6 +37,8 @@ parser.add_argument(
 parser.add_argument("--base_model_names_to_plot", nargs="+", default=["Qwen/Qwen3-0.6B", "Qwen/Qwen3-1.7B"])
 args = parser.parse_args()
 
+assert len(args.base_model_names_to_plot) == 2, "Only two base models together are supported for this script"
+
 train_dataset_names2xticks = {
     "pw": [1, 5, 9],
     "gsminf": [2, 5, 10, 15, 20],
@@ -60,6 +62,11 @@ with open(args.final_ckpts_yaml_path) as f:
     synthetic_train_ckpts = final_ckpts_yaml["synthetic_train_ckpts"]
 
 DIFFICULTY = "difficulty"
+
+# Increase font sizes for better readability, since we plot two models
+LABEL_FONT_SIZE = plotting_utils.LABEL_FONT_SIZE + 5
+TICK_FONT_SIZE = plotting_utils.TICK_FONT_SIZE + 5
+LEGEND_FONT_SIZE = plotting_utils.LEGEND_FONT_SIZE + 5
 
 
 def get_colormap(training_dataset_name):
@@ -240,10 +247,8 @@ def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: 
             xticks = train_dataset_names2xticks[train_dataset_name]
             ax.set_xlim(xticks[0], max_difficulty)
             ax.set_xticks(xticks)
-            ax.set_xticklabels(xticks, fontsize=plotting_utils.TICK_FONT_SIZE)
-            ax.set_xlabel(
-                train_dataset_names2xlabel[train_dataset_name], fontsize=plotting_utils.LABEL_FONT_SIZE
-            )
+            ax.set_xticklabels(xticks, fontsize=TICK_FONT_SIZE)
+            ax.set_xlabel(train_dataset_names2xlabel[train_dataset_name], fontsize=LABEL_FONT_SIZE)
             ax.tick_params(axis="x", which="major")
             ax.tick_params(axis="x", which="minor")
 
@@ -252,14 +257,14 @@ def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: 
             if j == 0:
                 yticks = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
                 ax.set_yticks(yticks)
-                ax.set_yticklabels(yticks, fontsize=plotting_utils.TICK_FONT_SIZE)
-                ax.set_ylabel(metric.capitalize(), fontsize=plotting_utils.LABEL_FONT_SIZE)
+                ax.set_yticklabels(yticks, fontsize=TICK_FONT_SIZE)
+                ax.set_ylabel(metric.capitalize(), fontsize=LABEL_FONT_SIZE)
             else:
                 ax.set_yticklabels([])
 
             ax.set_title(
                 plotting_utils.MODEL_NAME2ALIAS[base_model_name],
-                fontsize=plotting_utils.LABEL_FONT_SIZE,
+                fontsize=LABEL_FONT_SIZE,
                 fontweight="bold",
             )
 
@@ -276,9 +281,9 @@ def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: 
             location="bottom",  # pad=0.7
         )
         cbar_label = f"{plotting_utils.TRAIN_DATASET_ALIAS2NAME[train_dataset_name]} training steps"
-        cbar.set_label(cbar_label, fontsize=plotting_utils.LABEL_FONT_SIZE)
+        cbar.set_label(cbar_label, fontsize=LABEL_FONT_SIZE)
         cbar.ax.tick_params(
-            labelsize=plotting_utils.TICK_FONT_SIZE,
+            labelsize=TICK_FONT_SIZE,
             labelcolor="black",
         )
         cbar.ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f"{int(x // 1000):d}" + "K"))
@@ -307,7 +312,7 @@ def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: 
     #     )
     fig.legend(
         handles=legend_handles,
-        fontsize=plotting_utils.LEGEND_FONT_SIZE,
+        fontsize=LEGEND_FONT_SIZE,
         loc="upper center",
         ncol=len(legend_handles),
         frameon=True,
