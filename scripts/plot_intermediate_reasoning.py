@@ -331,8 +331,19 @@ def create_complexity_breakdown_plot(data: dict[str, Any], output_dir: str):
                         # Get full completion rate
                         full_key = f"{complexity}_evidence_at_least_{complexity}_found"
                         if full_key in breakdown:
-                            completed, total = breakdown[full_key].split("/")
-                            completion_rate = int(completed) / int(total)
+                            full_value = breakdown[full_key]
+                            if isinstance(full_value, str) and "/" in full_value:
+                                completed, total = full_value.split("/")
+                                completion_rate = int(completed) / int(total)
+                            else:
+                                # Handle case where it's just a count
+                                questions_key = f"{complexity}_evidence_questions"
+                                total_questions = breakdown.get(questions_key, 1)
+                                completion_rate = (
+                                    (full_value if isinstance(full_value, int) else 0) / total_questions
+                                    if total_questions > 0
+                                    else 0
+                                )
 
                             complexity_data.append(
                                 {
@@ -353,8 +364,19 @@ def create_complexity_breakdown_plot(data: dict[str, Any], output_dir: str):
                         # Get full completion rate
                         full_key = f"{complexity}_fact_at_least_{complexity}_found"
                         if full_key in breakdown:
-                            completed, total = breakdown[full_key].split("/")
-                            completion_rate = int(completed) / int(total)
+                            full_value = breakdown[full_key]
+                            if isinstance(full_value, str) and "/" in full_value:
+                                completed, total = full_value.split("/")
+                                completion_rate = int(completed) / int(total)
+                            else:
+                                # Handle case where it's just a count
+                                questions_key = f"{complexity}_fact_questions"
+                                total_questions = breakdown.get(questions_key, 1)
+                                completion_rate = (
+                                    (full_value if isinstance(full_value, int) else 0) / total_questions
+                                    if total_questions > 0
+                                    else 0
+                                )
 
                             complexity_data.append(
                                 {
@@ -375,8 +397,19 @@ def create_complexity_breakdown_plot(data: dict[str, Any], output_dir: str):
                         # Get full completion rate
                         full_key = f"{complexity}_step_at_least_{complexity}_found"
                         if full_key in breakdown:
-                            completed, total = breakdown[full_key].split("/")
-                            completion_rate = int(completed) / int(total)
+                            full_value = breakdown[full_key]
+                            if isinstance(full_value, str) and "/" in full_value:
+                                completed, total = full_value.split("/")
+                                completion_rate = int(completed) / int(total)
+                            else:
+                                # Handle case where it's just a count
+                                questions_key = f"{complexity}_step_questions"
+                                total_questions = breakdown.get(questions_key, 1)
+                                completion_rate = (
+                                    (full_value if isinstance(full_value, int) else 0) / total_questions
+                                    if total_questions > 0
+                                    else 0
+                                )
 
                             complexity_data.append(
                                 {

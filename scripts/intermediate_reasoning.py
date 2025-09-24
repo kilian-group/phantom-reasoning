@@ -137,6 +137,181 @@ class IntermediateReasoningAnalyzer:
         # Exact substring match only
         return entity_lower in text_lower
 
+    def _extract_supporting_sentence(self, question: dict, title: str, sent_id: int) -> str:
+        """Extract the actual supporting sentence from HotpotQA context."""
+        context = question.get("context", [])
+
+        # Find the paragraph with matching title
+        for paragraph_title, sentences in context:
+            if paragraph_title == title:
+                # Check if sent_id is valid for this paragraph
+                if 0 <= sent_id < len(sentences):
+                    return sentences[sent_id].strip()
+                break
+
+        return ""  # Return empty if not found
+
+    def _sentence_mentioned_in_text(self, sentence: str, text: str) -> bool:
+        """Check if key terms from a sentence are mentioned in the reasoning text.
+
+        Uses proximity constraint: found terms must appear within sentence-level proximity
+        (roughly within 100 characters of each other) to ensure coherent mention.
+        """
+        if not sentence or not text:
+            return False
+
+        # Convert to lowercase for case-insensitive matching
+        sentence_lower = sentence.lower().strip()
+        text_lower = text.lower()
+
+        # For short sentences, use direct substring matching
+        if len(sentence_lower) <= 20:
+            return sentence_lower in text_lower
+
+        # Extract key terms from the sentence
+        key_terms = self._extract_key_terms(sentence_lower)
+
+        if not key_terms:
+            return False
+
+        # Find positions of key terms in the reasoning text
+        term_positions = []
+        for term in key_terms:
+            pos = text_lower.find(term)
+            if pos != -1:
+                term_positions.append((term, pos))
+
+        # Check if we have enough terms found
+        match_ratio = len(term_positions) / len(key_terms)
+        if match_ratio < 0.5:  # Less than 50% of terms found
+            return False
+
+        # Proximity constraint: check if >match_ratio of terms appear in some 2-sentence window
+        # This handles cases where the same word can appear multiple times
+        if len(term_positions) >= 2:
+            # Split text into sentences using periods as delimiters
+            sentences = [s.strip() for s in text_lower.split(".") if s.strip()]
+
+            if len(sentences) < 2:
+                # If less than 2 sentences, all terms are effectively in the same "window"
+                return True
+
+            # Check each possible 2-sentence window
+            for start_sent in range(len(sentences) - 1):
+                end_sent = start_sent + 1  # 2-sentence window
+
+                # Combine the sentences in this window
+                window_text = (sentences[start_sent] + " " + sentences[end_sent]).lower()
+
+                # Count how many key terms appear in this window
+                terms_in_window = 0
+                for term in key_terms:
+                    if term in window_text:
+                        terms_in_window += 1
+
+                # Check if this window contains enough terms (≥50% threshold)
+                window_ratio = terms_in_window / len(key_terms)
+                if window_ratio >= 0.5:  # Use consistent 50% threshold for proximity
+                    return True
+
+            # No 2-sentence window contains enough terms
+            return False
+
+        return True
+
+    def _extract_key_terms(self, sentence: str) -> list[str]:
+        """Extract key terms from a sentence, filtering out common stop words.
+
+        Stopwords are categorized as:
+        - Articles: the, a, an
+        - Conjunctions: and, or, but
+        - Prepositions: in, on, at, to, for, of, with, by, as
+        - Common verbs: is, was, are, were, be, been, being, have, has, had, do, does, did
+        - Modal verbs: will, would, could, should, may, might, can
+        - Pronouns: it, its, he, she, his, her, they, them, their,
+          this, that, these, those, i, you, we, us, me, him
+        """
+        import re
+
+        # Categorized stopwords (common words that don't carry semantic meaning)
+        stopwords = {
+            # Articles
+            "the",
+            "a",
+            "an",
+            # Conjunctions
+            "and",
+            "or",
+            "but",
+            # Prepositions
+            "in",
+            "on",
+            "at",
+            "to",
+            "for",
+            "of",
+            "with",
+            "by",
+            "as",
+            # Common verbs (copula and auxiliaries)
+            "is",
+            "was",
+            "are",
+            "were",
+            "be",
+            "been",
+            "being",
+            "have",
+            "has",
+            "had",
+            "do",
+            "does",
+            "did",
+            # Modal verbs
+            "will",
+            "would",
+            "could",
+            "should",
+            "may",
+            "might",
+            "can",
+            # Pronouns
+            "it",
+            "its",
+            "he",
+            "she",
+            "his",
+            "her",
+            "they",
+            "them",
+            "their",
+            "this",
+            "that",
+            "these",
+            "those",
+            "i",
+            "you",
+            "we",
+            "us",
+            "me",
+            "him",
+        }
+
+        # Extract words, keeping numbers, names, and meaningful terms
+        # Remove punctuation but keep apostrophes in contractions
+        words = re.findall(r"\b\w+(?:'\w+)?\b", sentence.lower())
+
+        key_terms = []
+        for word in words:
+            # Keep the word if it's:
+            # 1. Not a stopword
+            # 2. Longer than 2 characters (unless it's a number)
+            # 3. Contains digits (years, dates, etc.)
+            if (word not in stopwords and len(word) > 2) or any(char.isdigit() for char in word):
+                key_terms.append(word)
+
+        return key_terms
+
     def _answers_match(self, predicted: str, correct: str) -> bool:
         """Check if predicted answer matches the correct answer (case-insensitive)."""
         if not predicted or not correct:
@@ -193,10 +368,9 @@ class IntermediateReasoningAnalyzer:
                 # Check evidence mentions
                 evidence_found = []
                 for i, (subj, rel, obj) in enumerate(evidences):
-                    for entity in [subj, obj]:  # Check both subject and object
-                        if self._entity_mentioned_in_text(entity, reasoning_text):
-                            evidence_found.append((reasoning_text.lower().find(entity.lower()), i))
-                            break
+                    # Only check the object entity (third element of triplet)
+                    if self._entity_mentioned_in_text(obj, reasoning_text):
+                        evidence_found.append((reasoning_text.lower().find(obj.lower()), i))
 
                 # Check bridging entity mentions
                 bridging_found = []
@@ -343,12 +517,18 @@ class IntermediateReasoningAnalyzer:
                 fact_length = len(supporting_facts)
                 fact_breakdown[f"{fact_length}_fact_questions"] += 1
 
-                # Check supporting fact mentions - look for the title (first element)
+                # Check supporting fact mentions - look for the actual supporting sentences
                 fact_found = []
                 for i, fact in enumerate(supporting_facts):
                     title = fact[0]  # Title is the first element
-                    if self._entity_mentioned_in_text(title, reasoning_text):
-                        fact_found.append((reasoning_text.lower().find(title.lower()), i))
+                    sent_id = fact[1]  # Sentence ID is the second element
+
+                    # Find the actual supporting sentence from context
+                    supporting_sentence = self._extract_supporting_sentence(question, title, sent_id)
+                    if supporting_sentence and self._sentence_mentioned_in_text(
+                        supporting_sentence, reasoning_text
+                    ):
+                        fact_found.append((reasoning_text.lower().find(supporting_sentence.lower()[:50]), i))
 
                 # Count matches
                 if len(fact_found) > 0:
@@ -561,7 +741,7 @@ class IntermediateReasoningAnalyzer:
 
         # Structure results for JSON output
         output_data = {
-            "analysis_type": "intermediate_reasoning_both_folders",
+            "analysis_type": "intermediate_reasoning",
             "detailed_results": all_results,
         }
 
@@ -614,7 +794,7 @@ def main():
     results = analyzer.run_full_analysis()
 
     # Save detailed results
-    output_path = "scripts/intermediate_reasoning_analysis_both_folders_results.json"
+    output_path = "scripts/intermediate_reasoning_analysis_results.json"
     analyzer.save_detailed_results(results, output_path)
 
     logger.info("Analysis complete! Results saved to JSON file.")
