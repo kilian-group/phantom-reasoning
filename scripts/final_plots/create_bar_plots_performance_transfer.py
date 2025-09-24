@@ -29,9 +29,9 @@ data = {
         "MuSiQue": {"base": 0.0402, "format": 0.1983, "gsminf": 0.1629, "pw": 0.2878},
     },
     "Phi-4-mini-reasoning": {
-        "HotpotQA": {"base": 0.4871, "format": 1, "gsminf": 0.5431, "pw": 1},
-        "2Wiki": {"base": 0.6663, "format": 1, "gsminf": 0.6739, "pw": 1},
-        "MuSiQue": {"base": 0.2923, "format": 1, "gsminf": 0.3250, "pw": 1},
+        "HotpotQA": {"base": 0.4871, "format": 1, "gsminf": 0.5431, "pw": 0.6210},
+        "2Wiki": {"base": 0.6663, "format": 1, "gsminf": 0.6739, "pw": 0.7586},
+        "MuSiQue": {"base": 0.2923, "format": 1, "gsminf": 0.3250, "pw": 0.4469},
     },
 }
 
