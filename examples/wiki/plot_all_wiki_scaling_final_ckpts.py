@@ -66,6 +66,11 @@ base_model_names: set[str] = set()
 fig_width = len(eval_datasets) * 4
 fig, axes = plt.subplots(1, len(eval_datasets), figsize=(fig_width, 4))
 
+# Increase font sizes for better readability
+LABEL_FONT_SIZE = plotting_utils.LABEL_FONT_SIZE
+TICK_FONT_SIZE = plotting_utils.TICK_FONT_SIZE
+LEGEND_FONT_SIZE = plotting_utils.LEGEND_FONT_SIZE
+
 # Create a subfigure for each dataset
 for i, eval_dataset in enumerate(eval_datasets):
     split = "minidev"
@@ -131,10 +136,10 @@ for i, eval_dataset in enumerate(eval_datasets):
             )
             max_ckpt_number = max(max_ckpt_number, max(ckpt_numbers))
 
-    ax.set_xlabel("Training steps", fontsize=plotting_utils.LABEL_FONT_SIZE)
+    ax.set_xlabel("Training steps", fontsize=LABEL_FONT_SIZE)
     if i == 0:
-        ax.set_ylabel(metric.upper(), fontsize=plotting_utils.LABEL_FONT_SIZE)
-    ax.set_title(eval_dataset2name[eval_dataset], fontsize=plotting_utils.LABEL_FONT_SIZE, fontweight="bold")
+        ax.set_ylabel(metric.upper(), fontsize=LABEL_FONT_SIZE)
+    ax.set_title(eval_dataset2name[eval_dataset], fontsize=LABEL_FONT_SIZE, fontweight="bold")
     ax.set_xlim(1, max_ckpt_number)
     ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f"{int(x // 1000):d}" + "K"))
     ax.set_ylim(eval_dataset2ylims[eval_dataset])
@@ -175,7 +180,7 @@ for training_dataset_name in training_dataset_names:
 
 legend = fig.legend(
     handles=handles,
-    fontsize=plotting_utils.LEGEND_FONT_SIZE,
+    fontsize=LEGEND_FONT_SIZE,
     loc="upper center",
     ncol=len(training_dataset_names),
     frameon=True,
@@ -184,7 +189,7 @@ legend = fig.legend(
     bbox_to_anchor=(0.49, -0.02),
     bbox_transform=fig.transFigure,
     title="Train dataset",
-    title_fontsize=plotting_utils.LEGEND_FONT_SIZE,
+    title_fontsize=LEGEND_FONT_SIZE,
 )
 
 # Make the training dataset names bold and their specific color
