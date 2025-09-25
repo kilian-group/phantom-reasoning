@@ -4,9 +4,8 @@ import numpy as np
 from phantom_reasoner.utils import plotting_utils
 
 # Model and dataset names
-models = ["Qwen3-0.6B", "Qwen3-1.7B", "Qwen2.5-1.5B-Instruct", "Phi-4-mini-reasoning"]
-train_dataset_names = plotting_utils.TRAIN_DATASET_NAMES
-# train_dataset_names = ["base", "format", "gsminf", "pw"]
+models_in_matrix = [["Qwen3-0.6B", "Phi-4-mini-reasoning"], ["Qwen3-1.7B", "Qwen2.5-1.5B-Instruct"]]
+train_dataset_names = ["base", "gsminf", "pw"]
 eval_dataset_names = plotting_utils.EVAL_DATASET_NAMES
 
 LINE_WIDTH = 1
@@ -35,10 +34,14 @@ data = {
     },
 }
 
+LABEL_FONT_SIZE = plotting_utils.LABEL_FONT_SIZE + 2
+TICK_FONT_SIZE = plotting_utils.TICK_FONT_SIZE + 2
+LEGEND_FONT_SIZE = plotting_utils.LEGEND_FONT_SIZE + 2
 
-def create_bar_plot_for_model(model: str, yticks: list[float]):
-    fig, axes = plt.subplots(1, 3, figsize=(8, 4))
 
+def create_bar_plot_for_model(
+    model: str, yticks: list[float], axes: list[plt.Axes], show_yticks: bool, x_left: float, x_right: float
+):
     # Bar settings
     bar_width = 0.85
     x_pos = np.arange(len(train_dataset_names))
@@ -75,13 +78,11 @@ def create_bar_plot_for_model(model: str, yticks: list[float]):
         ax.set_yticks(yticks)
         # Only show y-axis tick labels for the left most subplots
         # So no y-axis tick labels for the other subplots
-        if j != 0:
-            ax.set_yticklabels([])
+        if show_yticks and j == 0:
+            ax.set_yticklabels(list(map(str, yticks)), fontsize=TICK_FONT_SIZE)
+            ax.set_ylabel("F1", fontsize=LABEL_FONT_SIZE)
         else:
-            ax.set_yticklabels(list(map(str, yticks)), fontsize=plotting_utils.TICK_FONT_SIZE)
-        # Only show y-axis label for the left most subplots
-        if j == 0:
-            ax.set_ylabel("F1", fontsize=plotting_utils.LABEL_FONT_SIZE)
+            ax.set_yticklabels([])
 
         # Don't show x-axis ticks and labels
         ax.set_xticks([])
@@ -97,23 +98,22 @@ def create_bar_plot_for_model(model: str, yticks: list[float]):
             spine.set_linewidth(LINE_WIDTH)
 
         # Set titles for top row (eval datasets)
-        ax.set_title(dataset, fontsize=plotting_utils.LABEL_FONT_SIZE, fontweight="bold", pad=10)
+        ax.set_title(dataset, fontsize=LABEL_FONT_SIZE, fontweight="bold")
 
     # Get the positions of the first and last subplot in this row
-    ax_left = axes[0].get_position()
-    ax_right = axes[2].get_position()
-    LEFT_OFFSET = 0.04
-    RIGHT_OFFSET = 0.08
+    LEFT_OFFSET = 0.0
+    RIGHT_OFFSET = 0.0
     BRACKET_Y_OFFSET = 0.05
 
     # Calculate positions
+    ax_left = axes[0].get_position()
     y_pos = ax_left.y0 - BRACKET_Y_OFFSET
     BRACKET_HEIGHT = 0.015
 
     # Draw left vertical line
     fig.add_artist(
         plt.Line2D(
-            [ax_left.x0 - LEFT_OFFSET, ax_left.x0 - LEFT_OFFSET],
+            [x_left - LEFT_OFFSET, x_left - LEFT_OFFSET],
             [y_pos, y_pos + BRACKET_HEIGHT],
             transform=fig.transFigure,
             color="black",
@@ -124,7 +124,7 @@ def create_bar_plot_for_model(model: str, yticks: list[float]):
     # Draw horizontal line
     fig.add_artist(
         plt.Line2D(
-            [ax_left.x0 - LEFT_OFFSET, ax_right.x1 + RIGHT_OFFSET],
+            [x_left - LEFT_OFFSET, x_right + RIGHT_OFFSET],
             [y_pos, y_pos],
             transform=fig.transFigure,
             color="black",
@@ -135,7 +135,7 @@ def create_bar_plot_for_model(model: str, yticks: list[float]):
     # Draw right vertical line
     fig.add_artist(
         plt.Line2D(
-            [ax_right.x1 + RIGHT_OFFSET, ax_right.x1 + RIGHT_OFFSET],
+            [x_right + RIGHT_OFFSET, x_right + RIGHT_OFFSET],
             [y_pos, y_pos + BRACKET_HEIGHT],
             transform=fig.transFigure,
             color="black",
@@ -144,18 +144,52 @@ def create_bar_plot_for_model(model: str, yticks: list[float]):
     )
 
     # Add the model name centered below the bracket
-    x_center = (ax_left.x0 + ax_right.x1) / 2
+    x_center = (x_left + x_right) / 2
     fig.text(
-        x_center + 0.02,
+        x_center,
         y_pos + BRACKET_HEIGHT,
         model,
-        fontsize=plotting_utils.LABEL_FONT_SIZE,
+        fontsize=LABEL_FONT_SIZE,
         fontweight="bold",
         verticalalignment="top",
         horizontalalignment="center",
         transform=fig.transFigure,
         bbox=dict(boxstyle="square,pad=0.3", facecolor="white", edgecolor="black", linewidth=LINE_WIDTH),
     )
+
+
+if __name__ == "__main__":
+    # Create a 2 x 6 subplot figure, where the first row is for Qwen3-0.6B and Phi-4-mini-reasoning,
+    # and the second row is for Qwen3-1.7B and Qwen2.5-1.5B-Instruct
+    # Select the axes
+    fig, axes = plt.subplots(2, 6, figsize=(12, 8))
+    for i, model_row in enumerate(models_in_matrix):
+        for j, model in enumerate(model_row):
+            yticks = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+            show_yticks = j == 0
+            # i is the row index, and j*3:(j+1)*3 is the column index
+            axes_slice = axes[i, j * 3 : (j + 1) * 3]
+            x_left = axes_slice[0].get_position().x0
+            x_right = axes_slice[-1].get_position().x1
+            if j == 0:
+                # Move the x a bit left
+                x_left -= 0.01
+                x_right -= 0.01
+            elif j == 1:
+                # Move the x a bit right
+                x_left += 0.045
+                x_right += 0.045
+            create_bar_plot_for_model(model, yticks, axes_slice, show_yticks, x_left, x_right)
+
+            # if j == 1, move all axes a bit right
+            if j == 1:
+                for ax in axes_slice:
+                    ax.set_position(
+                        ax.get_position().x0 + 0.05,
+                        ax.get_position().y0,
+                        ax.get_position().width,
+                        ax.get_position().height,
+                    )
 
     # Create legend with better styling
     from matplotlib.patches import Patch
@@ -173,11 +207,11 @@ def create_bar_plot_for_model(model: str, yticks: list[float]):
     fig.legend(
         handles=legend_elements,
         loc="upper center",
-        fontsize=plotting_utils.LABEL_FONT_SIZE,
+        fontsize=LABEL_FONT_SIZE,
         frameon=True,
         fancybox=False,
         edgecolor="black",
-        bbox_to_anchor=(0.53, 0.9),  # Move just below the title at the top center
+        bbox_to_anchor=(0.53, 0.93),  # Move just below the title at the top center
         ncol=len(train_dataset_names),
     )
 
@@ -185,20 +219,11 @@ def create_bar_plot_for_model(model: str, yticks: list[float]):
     plt.subplots_adjust(
         left=0.08,  # where the left subplot y-labels are, increase to move them away from left figure edge
         right=0.98,  # where the right subplot edges are, increase to move them closer to right figure edge
-        top=0.9,  # where the top subplot edges are, increase to move them closer to top figure edge
+        top=0.82,  # where the top subplot edges are, increase to move them closer to top figure edge
         bottom=0.1,  # where the bottom subplot edges are, increase to move them closer to bottom figure edge
-        hspace=0.05,  # horizontal space between subplots, increase to move them away
+        hspace=0.35,  # horizontal space between subplots, increase to move them away
         wspace=0.05,  # vertical space between subplots, increase to move them away
     )
-    # plt.tight_layout()
 
-    plt.savefig(f"f1_transfer_performance_{model}.pdf", dpi=300)
+    plt.savefig("f1_transfer_performance_all.pdf", dpi=300, bbox_inches="tight")
     plt.close()
-
-
-if __name__ == "__main__":
-    for model in models:
-        yticks = [0.0, 0.2, 0.4, 0.6, 0.8]
-        if model == "Qwen3-1.7B" or model == "Phi-4-mini-reasoning":
-            yticks += [1.0]
-        create_bar_plot_for_model(model, yticks)
