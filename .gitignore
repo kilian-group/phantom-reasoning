@@ -184,5 +184,6 @@ nohup.out
 *.zip
 *.sub
 evals/
+share/
 models/
 *.pdf
