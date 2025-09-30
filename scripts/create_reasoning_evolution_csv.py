@@ -5,8 +5,6 @@ import re
 from collections import OrderedDict
 from pathlib import Path
 
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 
 
@@ -36,9 +34,9 @@ def extract_model_size(model_name):
     return "0.6B"  # Default to 0.6B if unclear
 
 
-def load_experiment_data(experiment_dir):
+def load_experiment_data(experiment_dir, preds_subdir):
     """Load all training checkpoint predictions for one experiment."""
-    preds_dir = experiment_dir / "out-msq500" / "preds" / "cot"
+    preds_dir = experiment_dir / preds_subdir
     if not preds_dir.exists():
         print(f"Warning: {preds_dir} does not exist")
         return {}
@@ -64,9 +62,9 @@ def load_experiment_data(experiment_dir):
     return OrderedDict(sorted(checkpoint_data.items()))
 
 
-def load_ground_truth_msq():
+def load_ground_truth_msq(gt_file_path):
     """Load MuSiQue ground truth data."""
-    gt_file = Path("eval/datasets/msq500/musique_ans_v1.0_minidev.jsonl")
+    gt_file = Path(gt_file_path)
 
     ground_truth = {}
     with open(gt_file) as f:
@@ -128,196 +126,6 @@ def analyze_msq_decomposition_for_checkpoint(predictions, ground_truth):
     return breakdown
 
 
-def create_experiment_subplots(all_experiment_results, output_dir):
-    """Create subplots showing training progression for each experiment."""
-    # Create 2x2 subplot grid
-    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-    fig.suptitle("Training Progression Across Multiple Experiments", fontsize=16, fontweight="bold")
-
-    for idx, (experiment_name, experiment_results) in enumerate(all_experiment_results.items()):
-        row = idx // 2
-        col = idx % 2
-        ax = axes[row, col]
-
-        # Define positions outside the loops
-        positions = list(range(1, 5))  # Positions 1-4
-
-        # Separate by model size and plot both
-        model_sizes = ["0.6B", "1.7B"]
-        colors_by_size = {"0.6B": plt.cm.Blues, "1.7B": plt.cm.Oranges}
-
-        for model_size in model_sizes:
-            # Filter data for this model size
-            size_filtered = {k: v for k, v in experiment_results.items() if k[1] == model_size}
-            if not size_filtered:
-                continue
-
-            # Get checkpoint order and create colormap with more obvious color gradient
-            checkpoints = [k[0] for k in sorted(size_filtered.keys())]
-            colors = colors_by_size[model_size](np.linspace(0.2, 1.0, len(checkpoints)))
-
-            # For each checkpoint, calculate average success rate across all complexities for each position
-            for i, (checkpoint_key, results) in enumerate(sorted(size_filtered.items())):
-                breakdown = results["breakdown"]
-                checkpoint_info = results["info"]
-                color = colors[i]
-
-                # Calculate success rate for each position (1-4) averaged across complexities
-                position_rates = []
-
-                for pos in positions:
-                    total_found = 0
-                    total_questions = 0
-
-                    # Aggregate across all complexities that have this position
-                    for complexity in [2, 3, 4]:
-                        if complexity in breakdown and pos <= complexity:
-                            complexity_total = breakdown[complexity]["total"]
-                            if pos <= len(breakdown[complexity]["found"]):
-                                complexity_found = breakdown[complexity]["found"][
-                                    pos - 1
-                                ]  # Convert to 0-indexed
-                                total_found += complexity_found
-                                total_questions += complexity_total
-
-                    if total_questions > 0:
-                        position_rates.append(total_found / total_questions)
-                    else:
-                        position_rates.append(0.0)
-
-                # Plot this checkpoint's line with simplified legend (just training steps)
-                label = checkpoint_info["name"]
-                ax.plot(
-                    positions,
-                    position_rates,
-                    "o-",
-                    color=color,
-                    label=label,
-                    linewidth=2,
-                    markersize=6,
-                    alpha=0.8,
-                )
-
-        # Create a cleaner experiment title using model + size format
-        if "Qwen3-0.6B" in experiment_name:
-            title = "Qwen3-0.6B"
-        elif "Qwen3-1.7B" in experiment_name:
-            title = "Qwen3-1.7B"
-        elif "Qwen2.5-1.5B" in experiment_name:
-            title = "Qwen2.5-1.5B"
-        elif "Phi4" in experiment_name:
-            title = "Phi4-mini"
-        else:
-            title = experiment_name
-
-        ax.set_title(title, fontsize=12, fontweight="bold")
-        ax.set_xlabel("Intermediate answers found")
-        ax.set_ylabel("Success Rate")
-        ax.set_ylim(0, 1.1)
-        ax.set_xlim(0.5, 4.5)
-        ax.set_xticks(positions)
-        ax.grid(True, alpha=0.3)
-
-        # Add legend to each subplot to show training steps
-        ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left", fontsize=7)
-
-    plt.tight_layout()
-    plt.savefig(f"{output_dir}/multiple_training_experiments.png", dpi=300, bbox_inches="tight")
-    plt.close()
-
-    print(f"Multi-experiment plot saved to {output_dir}/multiple_training_experiments.png")
-
-
-def create_single_training_progression_plot(all_experiment_results: dict, output_dir: Path):
-    """Create a single plot showing training progression for Qwen3-0.6B experiment."""
-    # Set font to Fira Code and increase all text sizes
-    plt.rcParams["font.family"] = "monospace"
-    plt.rcParams["font.monospace"] = ["Fira Code", "Courier New", "monospace"]
-    plt.rcParams["font.size"] = 16
-    plt.rcParams["axes.labelsize"] = 18
-    plt.rcParams["xtick.labelsize"] = 16
-    plt.rcParams["ytick.labelsize"] = 16
-    plt.rcParams["legend.fontsize"] = 14
-
-    # Create figure with exact 3:2 aspect ratio
-    fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-
-    # Find Qwen3-0.6B experiment
-    qwen_experiment = None
-    for exp_name, exp_results in all_experiment_results.items():
-        if "Qwen3-0.6B" in exp_name:
-            qwen_experiment = exp_results
-            break
-
-    if qwen_experiment is None:
-        print("Warning: No Qwen3-0.6B experiment found for single plot")
-        return
-
-    # Get only 0.6B model data and create colormap
-    size_filtered = {k: v for k, v in qwen_experiment.items() if k[1] == "0.6B"}
-    checkpoints = [k[0] for k in sorted(size_filtered.keys())]
-    colors = plt.cm.viridis(np.linspace(0.2, 1.0, len(checkpoints)))
-
-    # Define positions once (1-4)
-    positions = list(range(1, 5))
-
-    # For each checkpoint, plot the training progression
-    for i, (checkpoint_key, results) in enumerate(sorted(size_filtered.items())):
-        breakdown = results["breakdown"]
-        checkpoint_info = results["info"]
-        color = colors[i]
-
-        # Calculate success rate for each position (1-4) averaged across complexities
-        position_rates = []
-
-        for pos in positions:
-            total_found = 0
-            total_questions = 0
-
-            # Aggregate across all complexities that have this position
-            for complexity in [2, 3, 4]:
-                if complexity in breakdown and pos <= complexity:
-                    complexity_total = breakdown[complexity]["total"]
-                    if pos <= len(breakdown[complexity]["found"]):
-                        complexity_found = breakdown[complexity]["found"][pos - 1]  # Convert to 0-indexed
-                        total_found += complexity_found
-                        total_questions += complexity_total
-
-            if total_questions > 0:
-                position_rates.append(total_found / total_questions)
-            else:
-                position_rates.append(0.0)
-
-        # Plot this checkpoint's line
-        ax.plot(
-            positions,
-            position_rates,
-            "o-",
-            color=color,
-            label=checkpoint_info["name"],
-            linewidth=2.5,
-            markersize=8,
-            alpha=0.8,
-        )
-
-    ax.set_xlabel("Intermediate answers found")
-    ax.set_ylabel("Success Rate")
-    ax.set_ylim(0, 1.1)
-    ax.set_xlim(0.5, 4.5)
-    ax.set_xticks(positions)
-    ax.grid(True, alpha=0.3)
-    ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
-
-    plt.tight_layout()
-    plt.savefig(f"{output_dir}/training_progression_msq.png", dpi=300, bbox_inches="tight")
-    plt.close()
-
-    # Reset rcParams to default
-    plt.rcParams.update(plt.rcParamsDefault)
-
-    print(f"Single training progression plot saved to {output_dir}/training_progression_msq.png")
-
-
 def extract_model_name_from_experiment(experiment_name: str) -> str:
     """Extract clean model name from experiment directory name."""
     if "Qwen3-0.6B" in experiment_name:
@@ -376,19 +184,24 @@ def create_detailed_csv(all_experiment_results, output_dir):
 
 
 def main():
-    """Main function to analyze multiple training experiments."""
+    """Main function to analyze multiple training experiments and generate CSV."""
+    # File paths
     checkpoints_base_dir = Path("eval/training_checkpoints")
+    ground_truth_file = "eval/datasets/msq500/musique_ans_v1.0_minidev.jsonl"
+    preds_subdir = "out-msq500/preds/cot"
     output_dir = Path("scripts/plots")
+
+    # Create output directory
     output_dir.mkdir(exist_ok=True)
 
     # Find all experiment directories
     experiment_dirs = [
-        d for d in checkpoints_base_dir.iterdir() if d.is_dir() and (d / "out-msq500").exists()
+        d for d in checkpoints_base_dir.iterdir() if d.is_dir() and (d / preds_subdir).exists()
     ]
     experiment_dirs.sort()
 
     print("Loading ground truth data...")
-    ground_truth = load_ground_truth_msq()
+    ground_truth = load_ground_truth_msq(ground_truth_file)
 
     print("Analyzing training experiments...")
     all_experiment_results = {}
@@ -397,7 +210,7 @@ def main():
         exp_name = exp_dir.name
         print(f"  Processing experiment: {exp_name}")
 
-        checkpoint_data = load_experiment_data(exp_dir)
+        checkpoint_data = load_experiment_data(exp_dir, preds_subdir)
         if not checkpoint_data:
             print(f"    Warning: No data found for {exp_name}")
             continue
@@ -414,14 +227,7 @@ def main():
 
         all_experiment_results[exp_name] = experiment_results
 
-    print("Creating subplot visualization...")
-    create_experiment_subplots(all_experiment_results, output_dir)
-
-    # Create single training progression plot for Qwen3-0.6B
-    print("Creating single training progression plot...")
-    create_single_training_progression_plot(all_experiment_results, output_dir)
-
-    print("Creating detailed CSV file...")
+    print("Creating reasoning evolution CSV...")
     create_detailed_csv(all_experiment_results, output_dir)
 
     print("\n=== Analysis Complete ===")
