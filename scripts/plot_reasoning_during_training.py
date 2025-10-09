@@ -237,7 +237,7 @@ for i, train_dataset_name in enumerate(train_dataset_names):
     # Get model name between args.dataset/ and /grpo in the string using re
     model_name = re.search(f"{args.dataset}/(.*)/grpo", model_list[0]).group(1)
     ax.set_title(
-        plotting_utils.MODEL_ALIASES[model_name],
+        model_name,
         fontsize=plotting_utils.LABEL_FONT_SIZE,
         fontweight="bold",
     )
