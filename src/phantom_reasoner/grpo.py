@@ -36,6 +36,7 @@ from phantom_reasoner.datasets_for_grpo import (
     HotpotQADataset,
     MuSiQueDataset,
     PhantomWikiDataset,
+    ReasoningGymDataset,
     TwoWikiDataset,
 )
 from phantom_reasoner.trainers.custom_grpo_trainer import CustomGRPOTrainer
@@ -149,7 +150,7 @@ def reward_with_metric_single_string(
 
 def get_reward_func(training_mode: str, reward_type_name: str) -> typing.Callable:
     match training_mode:
-        case "pw" | "gsminfinite":
+        case "pw" | "gsminfinite" | "reasoninggym":
             match reward_type_name:
                 case "exact_match":
                     f = partial(reward_with_metric, exact_match)
@@ -258,6 +259,8 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
             dataset_for_grpo = PhantomWikiDataset(script_args)
         case "gsminfinite":
             dataset_for_grpo = GSMInfiniteDataset(script_args)
+        case "reasoninggym":
+            dataset_for_grpo = ReasoningGymDataset(script_args)
         case "hp":
             dataset_for_grpo = HotpotQADataset(script_args)
         case "2wiki":

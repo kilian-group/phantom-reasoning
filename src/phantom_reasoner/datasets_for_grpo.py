@@ -297,6 +297,189 @@ class GSMInfiniteDataset(DatasetForGRPO):
                 raise ValueError(f"Invalid {prompt_method=}")
 
 
+class ReasoningGymDataset(DatasetForGRPO):
+    """
+    Loader for Reasoning Gym style data.
+
+    Directory layout example:
+      train: <base_path>/<split>/train.jsonl   e.g., reasoning_gym_train/aiw/train.jsonl
+      eval:  <base_path>/<split>/eval.jsonl    (or any *.jsonl you provide via eval base path)
+
+    Each JSONL record:
+      {
+        "question": "<text>",
+        "answer": "<number as string or int>",
+        "metadata": {
+            "source_dataset": "<split name like 'aiw'>",
+            "source_index": <int>,
+            "task_type": "<string>",
+            "difficulty": {...}
+        }
+      }
+    """
+
+    def __init__(self, script_args: GRPOScriptArguments):
+        super().__init__(script_args)
+
+    # Base instruction. Examples will be injected dynamically by split list.
+    COT_INSTRUCTION = f"""
+    You are given the following problem:
+    (BEGIN PROBLEM)
+    {{question}}
+    (END PROBLEM)
+
+    You will be provided a question on the above problem. Your response must end with the final answer enclosed in tags: <answer>FINAL_ANSWER</answer>
+
+    Here are some examples:
+    (START OF EXAMPLES)
+    {{examples}}
+    (END OF EXAMPLES)
+    Answer: """  # noqa: F541, E501
+
+    # Registry of CoT examples by split/task family. Keep terse numeric endings.
+    # Fill or extend as you add more splits.
+    EXAMPLES_BY_SPLIT: dict[str, str] = {
+        "family_relationships": (
+            """
+            Example 1:
+            Question: Robert is married to Hannah. They have a child called James. James is married to Nova. They have children called Anna and Sage.
+            What relation is Anna to James? Answer with a single word.
+            Answer: James and Nova are the parents of Anna, so Anna is James’s child. The child is female, so the relation is daughter. <answer>daughter</answer>.
+
+            Example 2:
+            Question: Logan is married to Barbara. They have a child called Robert. Robert is married to Linda. They have a child called Andrew. Thomas is married to Grace. They have a child called Linda.
+            What relation is Thomas to Andrew? Answer with a single word.
+            Answer: Thomas is the father of Linda, and Linda is the mother of Andrew. Therefore Thomas is Andrew’s grandfather. <answer>grandfather</answer>.
+
+            Example 3:
+            Question: Jack is married to Lily. They have a child called Harry. Harry is married to Aria. They have a child called David. Alexander is married to Winter. They have a child called Aria.
+            How is Aria related to Alexander? Provide the relationship in one word.
+            Answer: Alexander and Winter have a child named Aria. Therefore Aria is Alexander’s daughter. <answer>daughter</answer>.
+            """  # noqa: F541, E501
+        ),
+        "knights_knaves": (
+            """
+            """
+        ),
+    }
+
+    @staticmethod
+    def build_cot_examples(selected_splits: list[str]) -> str:
+        """Concatenate examples based on the active split list."""
+        buf = []
+        for s in selected_splits:
+            ex = ReasoningGymDataset.EXAMPLES_BY_SPLIT.get(s)
+            if ex:
+                buf.append(ex)
+        return "".join(buf).strip()
+
+    def get_prompt(self, selected_splits: list[str]) -> PromptTemplate:
+        """Get CoT prompt template with examples assembled from selected_splits."""
+        examples = self.build_cot_examples(selected_splits)
+        return PromptTemplate(
+            input_variables=["question"],
+            template=self.COT_INSTRUCTION.format(examples=examples, question="{question}"),
+        )
+
+    def get_dataset(self, is_eval: bool) -> Dataset:
+        if is_eval:
+            base_path = self.script_args.eval_dataset_name
+            split_list = self.script_args.eval_split_list
+        else:
+            base_path = self.script_args.dataset_name
+            split_list = self.script_args.split_list
+
+        prompt_method = self.script_args.prompt_method
+
+        # If not provided, infer split names from dirs under base_path.
+        if split_list is None:
+            split_list = [d for d in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, d))]
+
+        # Precompute prompt templates
+        cot_prompt_template = self.get_prompt(split_list)
+
+        all_ds = []
+        for split_name in split_list:
+            split_dir = os.path.join(base_path, split_name)
+            if not os.path.isdir(split_dir):
+                logger.warning(f"[ReasoningGym] Missing split dir: {split_dir}")
+                continue
+
+            # default filename convention; allow any *.jsonl
+            for filename in glob.glob(os.path.join(split_dir, "*.jsonl")):
+                ds: Dataset = load_dataset("json", data_files=filename, split="train")
+
+                def _answer_str(x: dict[str, Any]) -> str:
+                    a = x.get("answer")
+                    if isinstance(a, (int, float)):
+                        return str(a)
+                    if isinstance(a, str):
+                        # keep only first numeric token before newline or period if needed
+                        m = re.search(r"[-+]?\d+(\.\d+)?", a)
+                        return m.group(0) if m else a.strip()
+                    raise ValueError(f"Unsupported answer type: {type(a)}")
+
+                def _difficulty(x: dict[str, Any]) -> str | None:
+                    md = x.get("metadata") or {}
+                    return md.get("task_type")
+
+                def _sample_id(x: dict[str, Any]) -> str | None:
+                    md = x.get("metadata") or {}
+                    idx = md.get("source_index")
+                    return f"{split_name}:{idx}" if idx is not None else None
+
+                def add_prompt_formatting_rg(x: dict[str, Any]) -> dict[str, Any]:
+                    question = x["question"]
+
+                    prompt = self.get_prompt_for_sample(
+                        sample={"question": question, "active_splits": split_list},
+                        prompt_method=prompt_method,
+                        cot_prompt_template=cot_prompt_template,
+                    )
+
+                    return {
+                        "prompt": prompt,
+                        "answer": _answer_str(x),
+                        "prompt_method": prompt_method,
+                        "difficulty": _difficulty(x),
+                        "id": _sample_id(x),
+                        "source_split": split_name,
+                    }
+
+                ds = ds.map(add_prompt_formatting_rg, desc=f"Formatting RG prompts [{split_name}]")
+                all_ds.append(ds)
+
+        if len(all_ds) == 0:
+            raise RuntimeError("No data loaded from Reasoning-Gym. Check base_path and split_list.")
+
+        combined = concatenate_datasets(all_ds)
+        logger.info(f"*** Loaded {is_eval=} dataset {base_path}::{split_list} with {len(combined)} samples.")
+        return combined
+
+    def get_prompt_for_sample(
+        self,
+        sample: dict[str, Any],
+        prompt_method: str,
+        cot_prompt_template: PromptTemplate,
+    ) -> CONVO_T:
+        """
+        Build conversational prompt for a Reasoning-Gym sample.
+        Args:
+            sample: expects keys {"question", "active_splits"}
+            prompt_method: "zeroshot" or "cot"
+            cot_prompt_template: PromptTemplate already bound with dynamic examples
+        """
+        question = sample["question"]
+
+        match prompt_method:
+            case "zeroshot":
+                return [{"role": "user", "content": f"Question: {question}\nAnswer: "}]
+            case "cot":
+                return [{"role": "user", "content": cot_prompt_template.format(question=question)}]
+            case _:
+                raise ValueError(f"Invalid prompt_method={prompt_method!r}")
+
+
 class WikiDataset(DatasetForGRPO):
     """Parent class for wiki datasets.
 
