@@ -66,11 +66,15 @@ conda activate $CONDA_ENV_NAME
 4. Create a symlink to the data and runs directories.
 
 ```bash
-# shared data
-ln -s /anvil/projects/x-$ANVIL_PROJECT_ID/phantom-reasoning/data .
 # experiment runs in scratch, not shared
 mkdir -p $RUN_BASE_DIR/runs
-ln -s $RUN_BASE_DIR/runs .
+ln -s $RUN_BASE_DIR ./scratch
+
+# shared data
+ln -s /anvil/projects/x-$ANVIL_PROJECT_ID/phantom-reasoning/data .
+
+# shared models and evals
+ln -s /anvil/projects/x-$ANVIL_PROJECT_ID/phantom-reasoning ./share
 ```
 
 5. Run a GRPO experiment on Qwen3-1.7B model:

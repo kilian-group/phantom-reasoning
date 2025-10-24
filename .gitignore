@@ -183,7 +183,7 @@ data
 nohup.out
 *.zip
 *.sub
-evals/
-share/
+share
+scratch
 models/
 *.pdf
