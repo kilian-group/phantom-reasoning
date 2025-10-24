@@ -416,7 +416,8 @@ class ReasoningGymDataset(DatasetForGRPO):
                     if isinstance(a, str):
                         # keep only first numeric token before newline or period if needed
                         m = re.search(r"[-+]?\d+(\.\d+)?", a)
-                        return m.group(0) if m else a.strip()
+                        val = m.group(0) if m else a.strip()
+                        return re.sub(r"\s+", " ", val).strip().lower()
                     raise ValueError(f"Unsupported answer type: {type(a)}")
 
                 def _difficulty(x: dict[str, Any]) -> str | None:
@@ -439,7 +440,7 @@ class ReasoningGymDataset(DatasetForGRPO):
 
                     return {
                         "prompt": prompt,
-                        "answer": _answer_str(x),
+                        "answer": [_answer_str(x)],
                         "prompt_method": prompt_method,
                         "difficulty": _difficulty(x),
                         "id": _sample_id(x),
