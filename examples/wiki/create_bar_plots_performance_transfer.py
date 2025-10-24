@@ -1,5 +1,6 @@
 import argparse
 import json
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,7 +16,11 @@ parser.add_argument("--final_ckpts_yaml_path", type=str, required=True)
 parser.add_argument("--base_model_preds_dir", type=str, default="out__train=base__eval=wiki")
 parser.add_argument("--pw_model_preds_dir", type=str, default="out__train=pw__eval=wiki")
 parser.add_argument("--gsminf_model_preds_dir", type=str, default="out__train=gsminf__eval=wiki")
+parser.add_argument("--figures_dir", type=str, default="scripts/final_plots/figures")
 args = parser.parse_args()
+
+figures_dir = Path(args.figures_dir)
+figures_dir.mkdir(parents=True, exist_ok=True)
 
 with open(args.final_ckpts_yaml_path) as f:
     final_ckpts_yaml = yaml.safe_load(f)
@@ -274,8 +279,10 @@ def load_data(
             std_data[model][eval_name]["gsminf"] = std(dfs_of_ckpt_paths["f1"])
 
     # Also save the data to a json file
-    with open("f1_transfer_performance_all.json", "w") as f:
-        json.dump({"mean_data": mean_data, "std_data": std_data}, f)
+    save_path = Path(args.figures_dir) / "f1_transfer_performance_all.json"
+    with open(save_path, "w") as f:
+        json.dump({"mean_data": mean_data, "std_data": std_data}, f, indent=4)
+        f.write("\n")
     return mean_data, std_data
 
 
@@ -344,6 +351,8 @@ if __name__ == "__main__":
         wspace=0.05,  # vertical space between subplots, increase to move them away
     )
 
-    plt.savefig("f1_transfer_performance_all.pdf", dpi=300, bbox_inches="tight")
-    print("Saved bar plot to f1_transfer_performance_all.pdf")
+    save_path = Path(args.figures_dir) / "f1_transfer_performance_all.pdf"
+    plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    plt.savefig(save_path.with_suffix(".png"), dpi=300, bbox_inches="tight")
+    print(f"Saved bar plot to {save_path} and {save_path.with_suffix('.png')}")
     plt.close()
