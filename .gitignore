@@ -176,14 +176,19 @@ cython_debug/
 
 # Custom
 cachedir
+nohup.out
+*.sub
+
+## Symlinks for data and training ckpts
+data
+share
+scratch
+
+## Outputs
 out*
 logs
 runs*
-data
-nohup.out
 *.zip
-*.sub
-share
-scratch
-models/
 *.pdf
+*.json
+*.png
