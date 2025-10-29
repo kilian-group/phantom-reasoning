@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Script to run all checkpoints of the specified directory on the Wiki datasets (HP, 2Wiki, MSQ)
-# Usage: ./scripts/eval/other_eval_all_ckpts.sh <path_to_checkpoint_parent_dir> <dataset> <split> <base_model_name> <training_dataset_name>
+# Usage: ./scripts/eval/wiki_eval_all_ckpts.sh <path_to_checkpoint_parent_dir> <dataset> <split> <base_model_name> <training_dataset_name>
 
 if [ "$#" -lt 1 ]; then
     echo "Usage: $0 <path_to_checkpoint_parent_dir> <dataset> <split> <base_model_name> <training_dataset_name>"
