@@ -33,10 +33,7 @@ agg_dict = {
     "completion_tokens": [
         "mean",
         lambda x: x.quantile(0.5),
-        lambda x: x.quantile(0.75),
         lambda x: x.quantile(0.90),
-        lambda x: x.quantile(0.95),
-        lambda x: x.quantile(0.99),
     ],
 }
 
@@ -46,10 +43,7 @@ acc = df_preds.groupby(["_model", "_split", "_seed"]).agg(agg_dict)
 acc.columns = metrics + [
     "completion_tokens_mean",
     "completion_tokens_median",
-    "completion_tokens_75",
     "completion_tokens_90",
-    "completion_tokens_95",
-    "completion_tokens_99",
 ]
 
 print(tabulate(acc, headers="keys", tablefmt="github"))
