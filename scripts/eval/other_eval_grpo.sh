@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
-# NOTE: hacked together
-# Script to run the Qwen3 family of models on the Wiki datasets (HP, 2Wiki, MSQ)
-# Usage: ./scripts/eval/other_eval_grpo.sh <output_dir> <dataset> <split>
-# Split can be minidev (500 examples) or dev (~11K examples)
+# Script to evaluate LLMs on the Wiki datasets (HP, 2Wiki, MSQ)
+
+if [ "$#" -lt 1 ]; then
+    echo "Usage: $0 <output_dir> <dataset> <split>"
+    echo "<dataset> can be hp500, 2wiki500, msq500"
+    echo "<split> should be minidev (500 examples), others not supported yet"
+    echo "Set MODEL_NAMES env variable to a space-separated list of model names to evaluate"
+    exit 1
+fi
 
 OUTPUT_DIR=$1
 DATASET=$2
@@ -23,12 +28,20 @@ if [[ ! " ${DATASET_LIST[@]} " =~ " ${DATASET} " ]]; then
     exit 1
 fi
 
-MODEL_NAMES=(
-    "Qwen/Qwen3-0.6B"
-    "Qwen/Qwen3-1.7B"
-    "Qwen/Qwen2.5-1.5B-Instruct"
-    "microsoft/Phi-4-mini-reasoning"
-)
+# If MODEL_NAMES is not set, use the default list of models
+if [ -z "$MODEL_NAMES" ]; then
+    MODEL_NAMES=(
+        "Qwen/Qwen3-0.6B"
+        "Qwen/Qwen3-1.7B"
+        "Qwen/Qwen2.5-1.5B-Instruct"
+        "microsoft/Phi-4-mini-reasoning"
+    )
+    echo "Using default model list: ${MODEL_NAMES[*]}"
+else
+    # MODEL_NAMES is a space-separated list of model names
+    MODEL_NAMES=($(echo $MODEL_NAMES | tr ' ' '\n'))
+    echo "Using model list from env variable: ${MODEL_NAMES[*]}"
+fi
 
 for model_name in ${MODEL_NAMES[@]}; do
     CUDA_VISIBLE_DEVICES=0 python examples/wiki/pred.py \
