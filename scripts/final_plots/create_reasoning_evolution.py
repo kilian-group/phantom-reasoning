@@ -5,7 +5,9 @@ A subplot is created for each training dataset, showing performance vs difficult
 Example usage:
 ```bash
 python scripts/final_plots/create_reasoning_evolution.py \
-    --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml
+    --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml \
+    --base_model_names_to_plot "Qwen/Qwen3-0.6B" "Qwen/Qwen3-1.7B" \
+    --figures_dir "scripts/final_plots/figures"
 ```
 """  # noqa: E501
 
@@ -35,6 +37,7 @@ parser.add_argument(
     "--final_ckpts_yaml_path", type=str, required=True, help="Path to the final ckpts yaml file"
 )
 parser.add_argument("--base_model_names_to_plot", nargs="+", default=["Qwen/Qwen3-0.6B", "Qwen/Qwen3-1.7B"])
+parser.add_argument("--figures_dir", type=str, default="scripts/final_plots/figures")
 args = parser.parse_args()
 
 assert len(args.base_model_names_to_plot) == 2, "Only two base models together are supported for this script"
@@ -161,7 +164,7 @@ def get_acc_mean_std(
             raise ValueError(f"Invalid train dataset name: {train_dataset_name}")
 
 
-def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: list[dict], save_path: str):
+def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: list[dict], save_path: Path):
     """
     Plots a 1 x (num_train_dataset_names * num_base_model_names) subplot figure
     for training evolution for each training dataset.
@@ -300,16 +303,6 @@ def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: 
             linewidth=1.5,
         )
     ]
-    # for train_dataset_name in train_dataset_names:
-    #     legend_handles.append(
-    #         lines.Line2D(
-    #             [0],
-    #             [0],
-    #             color=plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR[train_dataset_name]],
-    #             label=plotting_utils.TRAIN_DATASET_ALIAS2NAME[train_dataset_name],
-    #             linewidth=1.5,
-    #         )
-    #     )
     fig.legend(
         handles=legend_handles,
         fontsize=LEGEND_FONT_SIZE,
@@ -321,81 +314,13 @@ def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: 
         bbox_to_anchor=(0.515, 0.2),  # Move below the plots
     )
 
-    # # Add model name to the bottom of the figure
-    # ax_left = axs[0].get_position()
-    # ax_right = axs[-1].get_position()
-    # LEFT_OFFSET = 0.0
-    # RIGHT_OFFSET = 0.0
-
-    # # Calculate positions
-    # y_pos = ax_left.y0 - 0.15
-    # BRACKET_HEIGHT = 0.015
-
-    # # Draw left vertical line
-    # fig.add_artist(
-    #     plt.Line2D(
-    #         [ax_left.x0 - LEFT_OFFSET, ax_left.x0 - LEFT_OFFSET],
-    #         [y_pos, y_pos + BRACKET_HEIGHT],
-    #         transform=fig.transFigure,
-    #         color="black",
-    #         linewidth=plotting_utils.LINE_WIDTH,
-    #     )
-    # )
-
-    # # Draw horizontal line
-    # fig.add_artist(
-    #     plt.Line2D(
-    #         [ax_left.x0 - LEFT_OFFSET, ax_right.x1 + RIGHT_OFFSET],
-    #         [y_pos, y_pos],
-    #         transform=fig.transFigure,
-    #         color="black",
-    #         linewidth=plotting_utils.LINE_WIDTH,
-    #     )
-    # )
-
-    # # Draw right vertical line
-    # fig.add_artist(
-    #     plt.Line2D(
-    #         [ax_right.x1 + RIGHT_OFFSET, ax_right.x1 + RIGHT_OFFSET],
-    #         [y_pos, y_pos + BRACKET_HEIGHT],
-    #         transform=fig.transFigure,
-    #         color="black",
-    #         linewidth=plotting_utils.LINE_WIDTH,
-    #     )
-    # )
-    # # Add the model name centered below the bracket
-    # x_center = (ax_left.x0 + ax_right.x1) / 2
-    # fig.text(
-    #     x_center + 0.02,
-    #     y_pos + BRACKET_HEIGHT,
-    #     plotting_utils.MODEL_NAME2ALIAS[base_model_name],
-    #     fontsize=plotting_utils.LABEL_FONT_SIZE,
-    #     fontweight="bold",
-    #     verticalalignment="top",
-    #     horizontalalignment="center",
-    #     transform=fig.transFigure,
-    #     bbox=dict(
-    #         boxstyle="square,pad=0.3",
-    #         facecolor="white",
-    #         edgecolor="black",
-    #         linewidth=plotting_utils.LINE_WIDTH,
-    #     ),
-    # )
-
-    print(f"Saving to {save_path}")
-    plt.savefig(save_path, bbox_inches="tight", dpi=300)
+    plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    plt.savefig(save_path.with_suffix(".png"), dpi=300, bbox_inches="tight")
+    print(f"Saved reasoning evolution plot to {save_path} and {save_path.with_suffix('.png')}")
 
 
 if __name__ == "__main__":
     str_for_model_names = "__".join([m.replace("/", "--") for m in args.base_model_names_to_plot])
-    save_path = f"reasoning_evolution_{str_for_model_names}.pdf"
+    save_path = Path(args.figures_dir) / f"reasoning_evolution_{str_for_model_names}.pdf"
+    os.makedirs(args.figures_dir, exist_ok=True)
     plot_training_evolution(args.base_model_names_to_plot, synthetic_train_ckpts, save_path)
-    # for base_model_name in base_model_names:
-    #     if base_model_name not in args.base_model_names_to_plot:
-    #         continue
-
-    #     save_path = f"reasoning_evolution_{base_model_name.replace('/', '--')}.pdf"
-    #     print("--------------------------------")
-    #     print(f"Plotting reasoning evolution for {base_model_name}")
-    #     print("--------------------------------")
-    #     plot_training_evolution(base_model_name, synthetic_train_ckpts, save_path)

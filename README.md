@@ -341,14 +341,35 @@ MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --fi
 	bash scripts/eval/gsminf_eval_grpo.sh out__train=gsminf__eval=gsminf
 ```
 
-### GRPO training performance evolution
+### Reasoning evolution plots
 
-TODO reasoning evolution
-
-Evaluate all training checkpoints on evaluation splits of PhantomWiki and plot how model performance evolves as a function of question difficulty, as training progresses.
+Each question in synthetic evaluation datasets of PhantomWiki and GSM-Infinite have a corresponding measure of question difficulty.
+We can thus evaluate all intermediate training checkpoints on evaluation splits of PhantomWiki and GSM-infinite, and plot how model performance evolves as a function of question difficulty as training progresses.
 
 ```bash
-./scripts/eval/pw_eval_all_ckpts.sh /path/to/checkpoint/parent <base_model_name> <training_dataset_name>
-# for example, for this Qwen3-0.6B trained model:
-./scripts/eval/pw_eval_all_ckpts.sh runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot Qwen/Qwen3-0.6B pw
+bash scripts/eval/pw_eval_all_ckpts.sh \
+	./scratch/runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags> \
+	Qwen/Qwen3-1.7B \
+	pw
+
+bash scripts/eval/gsminf_eval_all_ckpts.sh \
+	./scratch/runs/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags> \
+	Qwen/Qwen3-1.7B \
+	gsminf
 ```
+
+#### Evaluating trained checkpoints
+
+After evaluating all intermediate training checkpoints of paths listed in `./scripts/final_plots/final_ckpts.yaml`, we provide a script to plot model performance as a function of question difficulty, with darker lines indicating later intermediate training checkpoints.
+For any model that we trained with 2 different training random seeds, we only plot intermediate checkpoints for the first path.
+
+```bash
+python scripts/final_plots/create_reasoning_evolution.py \
+    --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml \
+    --base_model_names_to_plot "Qwen/Qwen3-0.6B" "Qwen/Qwen3-1.7B" \
+    --figures_dir "scripts/final_plots/figures"
+```
+
+<p align="center">
+  <img src="scripts/final_plots/figures/reasoning_evolution_Qwen--Qwen3-0.6B__Qwen--Qwen3-1.7B.png" alt="Reasoning evolution (performance as a function of question difficulty, as training progresses)"/>
+</p>
