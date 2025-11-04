@@ -256,19 +256,50 @@ python examples/wiki/create_bar_plots_performance_transfer.py \
   <img src="scripts/final_plots/figures/f1_transfer_performance_all.png" alt="Transfer performance bar plot"/>
 </p>
 
-TODO other plots
-
-### PhantomWiki datasets
-
-We can evaluate LLMs on PhantomWiki datasets with the `scripts/eval/pw_eval_grpo.sh` script:
+We can further evaluate all intermediate training checkpoints on the real-world wiki datasets to visualize if training with PhantomWiki and GSM-Infinite is causing overfitting.
 
 ```bash
-TODO fix below
-# Assuming you have 1 GPU
-MODEL_NAMES="Qwen/Qwen3-1.7B" bash scripts/eval/pw_eval_grpo.sh \
-	out__eval=wiki \
+# Replace hp500 with 2wiki500, msq500
+bash scripts/eval/wiki_eval_all_ckpts.sh \
+	./scratch/runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags> \
 	hp500 \
-	minidev
+	minidev \
+	Qwen/Qwen3-1.7B \
+	pw
+
+bash scripts/eval/wiki_eval_all_ckpts.sh \
+	./scratch/runs/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags> \
+	hp500 \
+	minidev \
+	Qwen/Qwen3-1.7B \
+	gsminf
+```
+
+After evaluating all intermediate training checkpoints of paths listed in `./scripts/final_plots/final_ckpts.yaml`, we provide a script to plot transfer performance as a function of training steps.
+
+```bash
+# NOTE: --dataset and --split flags are ignored, and the script creates a combined plot for hp500, 2wiki500, msq500
+python examples/wiki/plot_all_wiki_scaling_final_ckpts.py \
+    --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml \
+    --base_model_names_to_plot "Qwen/Qwen3-0.6B" "Qwen/Qwen3-1.7B" \
+    --data_dir data \
+    --dataset hp500 \
+    --split minidev \
+	--figures_dir "scripts/final_plots/figures"
+```
+
+<p align="center">
+  <img src="scripts/final_plots/figures/f1_v_training_steps_Qwen--Qwen3-0.6B__Qwen--Qwen3-1.7B.png" alt="Transfer performance as a function of training steps"/>
+</p>
+
+### PhantomWiki evaluation data
+
+We can evaluate LLMs on PhantomWiki datasets with the `scripts/eval/pw_eval_grpo.sh` script.
+This script requires `phantom-wiki[eval]` to be installed from github source at `../phantom-wiki/`.
+
+```bash
+# Assuming you have 1 GPU
+MODEL_NAMES="Qwen/Qwen3-1.7B" bash scripts/eval/pw_eval_grpo.sh out__eval=pw
 ```
 
 #### Evaluating trained checkpoints
@@ -276,48 +307,43 @@ MODEL_NAMES="Qwen/Qwen3-1.7B" bash scripts/eval/pw_eval_grpo.sh \
 We can also evaluate all trained checkpoints and their base models listed in `scripts/final_plots/final_ckpts.yaml`.
 
 ```bash
-# Replace hp500 with 2wiki500, msq500
 MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name base) \
-	bash scripts/eval/wiki_eval_grpo.sh out__train=base__eval=wiki hp500 minidev
+	bash scripts/eval/pw_eval_grpo.sh out__train=base__eval=pw
 
 MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name pw) \
-	bash scripts/eval/wiki_eval_grpo.sh out__train=pw__eval=wiki hp500 minidev
+	bash scripts/eval/pw_eval_grpo.sh out__train=pw__eval=pw
 
 MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name gsminf) \
-	bash scripts/eval/wiki_eval_grpo.sh out__train=gsminf__eval=wiki hp500 minidev
+	bash scripts/eval/pw_eval_grpo.sh out__train=gsminf__eval=pw
 ```
 
-Since `phantom-wiki[eval]` is installed from github source, run the evaluation module like so:
+### GSM-Infinite evaluation dataset
+
+We can evaluate LLMs on GSM-Infinite questions with the `scripts/eval/gsminf_eval_grpo.sh` script.
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python -m phantom_eval \
-	--method cot \
-	--server vllm \
-	--inf_vllm_offline \
-	--model_name /path/to/model/checkpoint \
-	--dataset data/wiki-v1-easy-depth_20_size_25 \
-	--split_list depth_20_size_25_seed_1 depth_20_size_25_seed_2 depth_20_size_25_seed_3 \
-	--from_local \
-	--inf_vllm_tensor_parallel_size 1 \
-	--exclude_aggregation_questions \
-	-od /path/to/output_for_preds/
+# Assuming you have 1 GPU
+MODEL_NAMES="Qwen/Qwen3-1.7B" bash scripts/eval/gsminf_eval_grpo.sh out__eval=gsminf
 ```
 
-Evaluating on just 1 GPU is faster than multiple GPUs due to communication overhead, so we can specify to only use the first GPU.
+#### Evaluating trained checkpoints
 
-Then get numbers for the leaderboard:
+We can also evaluate all trained checkpoints and their base models listed in `scripts/final_plots/final_ckpts.yaml`.
 
 ```bash
-python /path/to/phantom-wiki-installation/eval/format_leaderboard.py \
-	-od /path/to/output_for_preds/ \
-	--model_list /path/to/model/checkpoint \
-	--size_list 25 \
-	--method_list cot \
-	--dataset data/wiki-v1-easy-depth_20_size_25 \
-	--from_local
+MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name base) \
+	bash scripts/eval/gsminf_eval_grpo.sh out__train=base__eval=gsminf
+
+MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name pw) \
+	bash scripts/eval/gsminf_eval_grpo.sh out__train=pw__eval=gsminf
+
+MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name gsminf) \
+	bash scripts/eval/gsminf_eval_grpo.sh out__train=gsminf__eval=gsminf
 ```
 
 ### GRPO training performance evolution
+
+TODO reasoning evolution
 
 Evaluate all training checkpoints on evaluation splits of PhantomWiki and plot how model performance evolves as a function of question difficulty, as training progresses.
 
@@ -325,22 +351,4 @@ Evaluate all training checkpoints on evaluation splits of PhantomWiki and plot h
 ./scripts/eval/pw_eval_all_ckpts.sh /path/to/checkpoint/parent <base_model_name> <training_dataset_name>
 # for example, for this Qwen3-0.6B trained model:
 ./scripts/eval/pw_eval_all_ckpts.sh runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot Qwen/Qwen3-0.6B pw
-```
-
-### Scaling plots for wiki datasets
-
-Evaluate all training checkpoints on evaluation datasets of various wiki datasets (HP, 2Wiki, MSQ) and plot how model performance on wiki datasets evolves as training progresses.
-
-```bash
-./scripts/eval/wiki_eval_all_ckpts.sh /path/to/checkpoint/parent <dataset> <split> <base_model_name> <training_dataset_name>
-# for example, for this Qwen3-0.6B trained model:
-./scripts/eval/wiki_eval_all_ckpts.sh runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot hp500 minidev Qwen/Qwen3-0.6B pw
-```
-
-### GSM-Infinite evaluation
-
-We evaluate on the huggingface evaluation set of GSM-Infinite as follows:
-
-```bash
-./scripts/eval/gsminf_eval_grpo.py /path/to/output_for_preds/
 ```

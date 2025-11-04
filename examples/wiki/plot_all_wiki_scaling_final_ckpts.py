@@ -7,7 +7,8 @@ Example usage:
 NOTE: The script plots for all wiki, so dataset and split are ignored even though they are required.
 ```bash
 python examples/wiki/plot_all_wiki_scaling_final_ckpts.py \
-    --final_ckpts_yaml_path final_ckpts.yaml \
+    --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml \
+    --base_model_names_to_plot "Qwen/Qwen3-0.6B" "Qwen/Qwen3-1.7B" \
     --data_dir data \
     --dataset hp500 \
     --split minidev
@@ -17,6 +18,7 @@ By default, --data_dir is `/share/nikola/phantom-reasoning/data`.
 
 import json
 import os
+from pathlib import Path
 
 import matplotlib.lines as lines
 import matplotlib.pyplot as plt
@@ -31,6 +33,7 @@ from phantom_reasoner.utils import plotting_utils
 parser = get_parser()
 parser.add_argument("--final_ckpts_yaml_path", type=str, required=True)
 parser.add_argument("--base_model_names_to_plot", nargs="+", default=["Qwen/Qwen3-0.6B", "Qwen/Qwen3-1.7B"])
+parser.add_argument("--figures_dir", type=str, default="scripts/final_plots/figures")
 args = parser.parse_args()
 
 eval_datasets = ["hp500", "2wiki500", "msq500"]
@@ -222,8 +225,9 @@ plt.subplots_adjust(
 )
 
 str_for_model_names = "__".join([m.replace("/", "--") for m in args.base_model_names_to_plot])
-save_path = os.path.join(f"f1_v_training_steps_{str_for_model_names}.pdf")
-plt.savefig(save_path, bbox_inches="tight", dpi=300)
-print(f"Saved scaling plot to {save_path}")
+save_path = Path(args.figures_dir) / f"f1_v_training_steps_{str_for_model_names}.pdf"
+plt.savefig(save_path, dpi=300, bbox_inches="tight")
+plt.savefig(save_path.with_suffix(".png"), dpi=300, bbox_inches="tight")
+print(f"Saved bar plot to {save_path} and {save_path.with_suffix('.png')}")
 
 plt.close()

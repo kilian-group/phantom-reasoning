@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Script to run all checkpoints of the specified directory on the Wiki datasets (HP, 2Wiki, MSQ)
-# Usage: ./scripts/eval/wiki_eval_all_ckpts.sh <path_to_checkpoint_parent_dir> <dataset> <split> <base_model_name> <training_dataset_name>
+# Script to evaluate all checkpoints of the specified directory on the Wiki datasets (HP, 2Wiki, MSQ)
 
 if [ "$#" -lt 1 ]; then
     echo "Usage: $0 <path_to_checkpoint_parent_dir> <dataset> <split> <base_model_name> <training_dataset_name>"
+    echo "<dataset> can be hp500, 2wiki500, msq500"
+    echo "<split> should be minidev (500 examples), others not supported yet"
     exit 1
 fi
 
@@ -13,14 +14,14 @@ SPLIT=$3
 BASE_MODEL_NAME=$4
 TRAINING_DATASET_NAME=$5
 
+shift 5
+cmd_args=$@
+
 DATASET_LIST=(
     "hp500"
     "2wiki500"
     "msq500"
 )
-
-shift 5
-cmd_args=$@
 
 # If dataset not in DATASET_LIST, complain
 if [[ ! " ${DATASET_LIST[@]} " =~ " ${DATASET} " ]]; then
@@ -68,7 +69,7 @@ do
 done
 
 # Evaluate the final model
-python examples/wiki/pred.py \
+CUDA_VISIBLE_DEVICES=0 python examples/wiki/pred.py \
     --data_dir data/ \
     --dataset $DATASET \
     --split $SPLIT \
