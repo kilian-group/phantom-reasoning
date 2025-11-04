@@ -76,7 +76,7 @@ ln -s /anvil/projects/x-$ANVIL_PROJECT_ID/phantom-reasoning/data .
 On clusters without data in shared storage, please copy dataset splits from the G2 cluster as described below.
 
 <details>
-  <summary><strong>PhantomWiki</strong></summary>
+  <summary><h4 style="display:inline-block">PhantomWiki</h4></summary>
 
 PhantomWiki paper used 3×3 evaluation splits available on Huggingface at `kilian-group/phantom-wiki-v1`: `depth_20_size_{50,500,5000}_seed_{1,2,3}`.
 
@@ -102,7 +102,7 @@ cd ..
 </details>
 
 <details>
-  <summary><strong>GSM-Infinite</strong></summary>
+  <summary><h4 style="display:inline-block">GSM-Infinite</h4></summary>
 
 We have generated GSM-infinite data and stored it on G2. See `gsm_realistic/README.md` for instructions to generate your own data.
 
@@ -120,7 +120,7 @@ cd ..
 </details>
 
 <details>
-  <summary><strong>Real-world Wiki Datasets</strong></summary>
+  <summary><h4 style="display:inline-block">Real-world Wiki Datasets</h4></summary>
 
 We collected HotpotQA (`hp`), 2Wiki (`2wiki`), and Musique (`msq`) datasets, and subsampled 500 questions from the evaluation dataset in `hp500, 2wiki500, msq500`.
 
@@ -193,19 +193,24 @@ ln -s /anvil/projects/x-$ANVIL_PROJECT_ID/phantom-reasoning share
 
    Checkpoints and final model are saved at `./scratch/runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags>`.
 
-> \[!NOTE\] YAML configurations for other datasets:
-> TODO add reasoning gym
->
-> - `recipes/Qwen/Qwen3-1.7B/grpo/config_gsminfinite_4gpu.yaml`
-> - `recipes/Qwen/Qwen3-1.7B/grpo/config_hp_4gpu.yaml` (on HotpotQA training data splits)
-> - `recipes/Qwen/Qwen3-1.7B/grpo/config_2wiki_4gpu.yaml` (on 2Wiki training data splits)
-> - `recipes/Qwen/Qwen3-1.7B/grpo/config_msq_4gpu.yaml` (on Musique training data splits)
+<details>
+<summary><strong>YAML configurations for other datasets: TODO add reasoning gym</strong></summary>
 
-> \[!NOTE\] Similarly, YAML configurations for other LLMs:
->
-> - `recipes/Qwen/Qwen3-0.6B/grpo/config_pw_4gpu.yaml`
-> - `recipes/Qwen/Qwen2.5-1.5B-Instruct/grpo/config_pw_4gpu.yaml`
-> - `recipes/microsoft/Phi-4-mini-reasoning/grpo/config_pw_4gpu.yaml`
+- `recipes/Qwen/Qwen3-1.7B/grpo/config_gsminfinite_4gpu.yaml`
+- `recipes/Qwen/Qwen3-1.7B/grpo/config_hp_4gpu.yaml` (on HotpotQA training data splits)
+- `recipes/Qwen/Qwen3-1.7B/grpo/config_2wiki_4gpu.yaml` (on 2Wiki training data splits)
+- `recipes/Qwen/Qwen3-1.7B/grpo/config_msq_4gpu.yaml` (on Musique training data splits)
+
+</details>
+
+<details>
+<summary><strong>Similarly, YAML configurations for other LLMs:</strong></summary>
+
+- `recipes/Qwen/Qwen3-0.6B/grpo/config_pw_4gpu.yaml`
+- `recipes/Qwen/Qwen2.5-1.5B-Instruct/grpo/config_pw_4gpu.yaml`
+- `recipes/microsoft/Phi-4-mini-reasoning/grpo/config_pw_4gpu.yaml`
+
+</details>
 
 ## LLM evaluation instructions
 
@@ -225,7 +230,8 @@ MODEL_NAMES="Qwen/Qwen3-1.7B" bash scripts/eval/wiki_eval_grpo.sh \
 	minidev
 ```
 
-#### Evaluating trained checkpoints
+<details>
+<summary><h4 style="display:inline-block">Evaluating trained checkpoints</h4></summary>
 
 We can also evaluate all trained checkpoints and their base models listed in `scripts/final_plots/final_ckpts.yaml`.
 
@@ -291,6 +297,7 @@ python examples/wiki/plot_all_wiki_scaling_final_ckpts.py \
 <p align="center">
   <img src="scripts/final_plots/figures/f1_v_training_steps_Qwen--Qwen3-0.6B__Qwen--Qwen3-1.7B.png" alt="Transfer performance as a function of training steps"/>
 </p>
+</details>
 
 ### PhantomWiki evaluation data
 
@@ -302,7 +309,8 @@ This script requires `phantom-wiki[eval]` to be installed from github source at 
 MODEL_NAMES="Qwen/Qwen3-1.7B" bash scripts/eval/pw_eval_grpo.sh out__eval=pw
 ```
 
-#### Evaluating trained checkpoints
+<details>
+<summary><h4 style="display:inline-block">Evaluating trained checkpoints</h4></summary>
 
 We can also evaluate all trained checkpoints and their base models listed in `scripts/final_plots/final_ckpts.yaml`.
 
@@ -317,6 +325,8 @@ MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --fi
 	bash scripts/eval/pw_eval_grpo.sh out__train=gsminf__eval=pw
 ```
 
+</details>
+
 ### GSM-Infinite evaluation dataset
 
 We can evaluate LLMs on GSM-Infinite questions with the `scripts/eval/gsminf_eval_grpo.sh` script.
@@ -326,7 +336,8 @@ We can evaluate LLMs on GSM-Infinite questions with the `scripts/eval/gsminf_eva
 MODEL_NAMES="Qwen/Qwen3-1.7B" bash scripts/eval/gsminf_eval_grpo.sh out__eval=gsminf
 ```
 
-#### Evaluating trained checkpoints
+<details>
+<summary><h4 style="display:inline-block">Evaluating trained checkpoints</h4></summary>
 
 We can also evaluate all trained checkpoints and their base models listed in `scripts/final_plots/final_ckpts.yaml`.
 
@@ -340,6 +351,8 @@ MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --fi
 MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name gsminf) \
 	bash scripts/eval/gsminf_eval_grpo.sh out__train=gsminf__eval=gsminf
 ```
+
+</details>
 
 ### Reasoning evolution plots
 
@@ -358,7 +371,8 @@ bash scripts/eval/gsminf_eval_all_ckpts.sh \
 	gsminf
 ```
 
-#### Evaluating trained checkpoints
+<details>
+<summary><h4 style="display:inline-block">Evaluating trained checkpoints</h4></summary>
 
 After evaluating all intermediate training checkpoints of paths listed in `./scripts/final_plots/final_ckpts.yaml`, we provide a script to plot model performance as a function of question difficulty, with darker lines indicating later intermediate training checkpoints.
 For any model that we trained with 2 different training random seeds, we only plot intermediate checkpoints for the first path.
@@ -373,3 +387,5 @@ python scripts/final_plots/create_reasoning_evolution.py \
 <p align="center">
   <img src="scripts/final_plots/figures/reasoning_evolution_Qwen--Qwen3-0.6B__Qwen--Qwen3-1.7B.png" alt="Reasoning evolution (performance as a function of question difficulty, as training progresses)"/>
 </p>
+
+</details>
