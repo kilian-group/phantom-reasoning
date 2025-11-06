@@ -388,4 +388,23 @@ python scripts/final_plots/create_reasoning_evolution.py \
   <img src="scripts/final_plots/figures/reasoning_evolution_Qwen--Qwen3-0.6B__Qwen--Qwen3-1.7B.png" alt="Reasoning evolution (performance as a function of question difficulty, as training progresses)"/>
 </p>
 
+We also provide a script to visualize how frequently the model chain-of-thoughts mention intermediate hop answers on msq500 dataset.
+The visualization shows how training on synthetic data improves the LLMs' multi-hop reasoning performance on real-world benchmarks like Musique.
+First, we create a CSV file with fraction of intermediate answers found in training checkpoints.
+Second, we plot the fraction of intermediate answers of msq500 dataset found, as training progresses.
+
+```bash
+# TODO: 1. Create CSV
+
+# 2. Plot
+python scripts/final_plots/create_reasoning_evolution_msq500.py \
+    --csv_path scripts/final_plots/figures/reasoning_evolution_msq500.csv \
+    --base_model_names_to_plot "Qwen/Qwen3-0.6B" "Qwen/Qwen3-1.7B" \
+    --figures_dir "scripts/final_plots/figures"
+```
+
+<p align="center">
+  <img src="scripts/final_plots/figures/reasoning_evolution_msq500_Qwen3-0.6B__Qwen3-1.7B.png" alt="Reasoning evolution on Musique(performance as a function of intermediate answers, as training progresses)"/>
+</p>
+
 </details>

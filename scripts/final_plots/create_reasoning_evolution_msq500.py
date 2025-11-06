@@ -5,9 +5,14 @@ A subplot is created for each base model, showing performance vs kth intermediat
 Example usage:
 ```bash
 python scripts/final_plots/create_reasoning_evolution_msq500.py \
-    --csv_path scripts/final_plots/reasoning_evolution_msq500.csv
+    --csv_path scripts/final_plots/figures/reasoning_evolution_msq500.csv \
+    --base_model_names_to_plot "Qwen/Qwen3-0.6B" "Qwen/Qwen3-1.7B" \
+    --figures_dir "scripts/final_plots/figures"
 ```
 """  # noqa: E501
+
+import os
+from pathlib import Path
 
 import matplotlib.lines as lines
 import matplotlib.pyplot as plt
@@ -33,6 +38,7 @@ parser.add_argument(
     default=["Qwen3-0.6B", "Qwen3-1.7B"],
     help="Base model names to plot",
 )
+parser.add_argument("--figures_dir", type=str, default="scripts/final_plots/figures")
 args = parser.parse_args()
 
 train_dataset_names2xticks = {
@@ -67,7 +73,7 @@ def get_colormap(training_dataset_name):
     return COLORMAP
 
 
-def plot_training_evolution(base_model_names: list[str], csv_path: str, save_path: str):
+def plot_training_evolution(base_model_names: list[str], csv_path: str, save_path: Path):
     """
     Plots a 1 x (num_base_model_names) subplot figure
     for training evolution for each training dataset.
@@ -192,11 +198,13 @@ def plot_training_evolution(base_model_names: list[str], csv_path: str, save_pat
         bbox_to_anchor=(0.7, 0.4),  # Move in the middle of the plots
     )
 
-    print(f"Saving to {save_path}")
     plt.savefig(save_path, bbox_inches="tight", dpi=300)
+    plt.savefig(save_path.with_suffix(".png"), bbox_inches="tight", dpi=300)
+    print(f"Saved reasoning evolution plot to {save_path} and {save_path.with_suffix('.png')}")
 
 
 if __name__ == "__main__":
     str_for_model_names = "__".join([m.replace("/", "--") for m in args.base_model_names_to_plot])
-    save_path = f"reasoning_evolution_msq500_{str_for_model_names}.pdf"
+    save_path = Path(args.figures_dir) / f"reasoning_evolution_msq500_{str_for_model_names}.pdf"
+    os.makedirs(args.figures_dir, exist_ok=True)
     plot_training_evolution(args.base_model_names_to_plot, args.csv_path, save_path)
