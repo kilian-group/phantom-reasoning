@@ -1,13 +1,19 @@
 # Phantom Reasoning
 
-## Setup instructions
+We train LLMs with GRPO on synthetic multi-hop reasoning datasets such as PhantomWiki and GSM-Infinite, and show performance improvement to real-world multi-hop datasets such as HotpotQA, 2Wiki, and Musique.
 
-Refer to cluster-specific instructions on [AIDA](docs/README_aida.md) and [Anvil](docs/README_anvil.md) and [Empire](docs/README_empire.md).
+## Installation
 
-### Install `phantom-reasoning` in development mode
+The Anvil cluster provides shared conda installation, which we recommend over installing in your home directory.
+This avoids python path conflicts and saves limited memory in `~/`.
 
-This repo uses external dependencies like SWI-Prolog.
-From the root directory of this package:
+1. Load the shared conda installation.
+
+```bash
+./scripts/anvil/load_modules_cuda.sh
+```
+
+2. Install SWI-prolog, python, uv package manager, phantom-wiki, phantom-reasoning, flash-attn, and pre-commit.
 
 ```bash
 # Assuming you are in ./phantom-reasoning git root repository
@@ -17,7 +23,6 @@ export CONDA_ENV_NAME="phantom-reasoning" # or whatever the name of your conda e
 conda create -n $CONDA_ENV_NAME
 conda activate $CONDA_ENV_NAME
 
-# Install SWI-prolog
 conda install conda-forge::swi-prolog
 conda install python=3.12
 pip install uv
@@ -32,222 +37,374 @@ git clone git@github.com:anmolkabra/phantom-reasoning.git
 cd phantom-reasoning
 uv pip install -e ".[dev]"
 
+# NOTE as of 2025-08-11: flash-attn does not seem to work on Anvil because of old GLIBC version 2.28
+# (flash-attn==2.8.2 requires GLIBC 2.32 or higher)
 uv pip install flash-attn --no-build-isolation
 
 pre-commit install
 ```
 
-## PhantomWiki data
+3. Set environment variables in the conda environment, so they are automatically loaded on activating the environment. We assume these flags are set later in the README.
 
-PhantomWiki paper used 3\*3 evaluation splits on Huggingface at `"kilian-group/phantom-wiki-v1"`: `depth_20_size_{50,500,5000}_seed_{1,2,3}`.
+```bash
+conda env config vars set ANVIL_PROJECT_ID="nairr250102"
+conda env config vars set RUN_BASE_DIR="$SCRATCH/phantom-reasoning"
+conda env config vars set HF_HOME="$SCRATCH/huggingface"
+conda env config vars set CONDA_ENV_NAME=$CONDA_ENV_NAME # so the env name is available automatically when activated
 
-**NOTE**: For this project, we are using smaller universes, easy mode, no aggregation questions.
-These are the easiest settings, due to small context length requirements for LLMs and easy questions, hence low GPU loads.
+conda deactivate
+conda activate $CONDA_ENV_NAME
+```
 
-Concretely, we will use splits `depth_20_size_25_seed_*` created with `--easy-mode`.
-We reserve seeds 1 through 10 for evaluation.
-We will use seeds 11+ for training.
+## Dataset splits
 
-For these purposes, `depth_20_size_25_seed_{1,...,100}` are on G2 at `/share/nikola/phantom-wiki/data/wiki-v1-easy-depth_20_size_25.zip`.
-We recommend copying them to `data/`:
+We use several datasets for training and evaluating multi-hop reasoning:
+
+- **PhantomWiki**: A synthetic, large-scale multi-hop QA dataset with variable universe size, depth, and seed. Used for both training and in-depth evaluation of reasoning skills.
+
+- **GSM-Infinite**: An extension of GSM8K with high-complexity arithmetic and compositional reasoning questions. Used for both training and in-depth evaluation of arithmetic skills of models.
+
+- **HotpotQA, 2Wiki, Musique**: Real-world Wikipedia-based datasets that require multi-hop reasoning over unstructured text. Used to evaluate real-world transfer and generalization to natural language settings.
+
+All datasets are split into training and evaluation sets to test both in-domain and out-of-domain generalization.
+The Anvil cluster contains these splits in shared storage, which we symlink under `data/`:
+
+```bash
+ln -s /anvil/projects/x-$ANVIL_PROJECT_ID/phantom-reasoning/data .
+```
+
+On clusters without data in shared storage, please copy dataset splits from the G2 cluster as described below.
+
+<details>
+  <summary><h4 style="display:inline-block">PhantomWiki</h4></summary>
+
+PhantomWiki paper used 3×3 evaluation splits available on Huggingface at `kilian-group/phantom-wiki-v1`: `depth_20_size_{50,500,5000}_seed_{1,2,3}`.
+
+> \[!NOTE\]
+> For this project, we use smaller universes, easy mode, and no aggregation questions. These are the easiest settings, due to small context length requirements for LLMs and easy questions, resulting in low GPU loads.
+
+Specifically, we use splits `depth_20_size_25_seed_*` created with `--easy-mode`.
+
+- **Seeds 1-10**: reserved for evaluation
+- **Seeds 11+**: used for training
+
+The datasets `depth_20_size_25_seed_{1,...,100}` are found on G2 at `/share/nikola/phantom-wiki/data/wiki-v1-easy-depth_20_size_25.zip`.
 
 ```bash
 mkdir -p data/
-cp /share/nikola/phantom-wiki/data/wiki-v1-easy-depth_20_size_25.zip data/
-# To transfer to another cluster: scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-wiki/data/wiki-v1-easy-depth_20_size_25.zip data/
+scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-wiki/data/wiki-v1-easy-depth_20_size_25.zip data/
+
 cd data/
 unzip wiki-v1-easy-depth_20_size_25.zip
 cd ..
 ```
 
-### GSM-infinite data
+</details>
 
-We have generated GSM-infinite data and stored on G2. See `gsm_realistic/README.md` for instructions to generate your own data.
+<details>
+  <summary><h4 style="display:inline-block">GSM-Infinite</h4></summary>
+
+We have generated GSM-infinite data and stored it on G2. See `gsm_realistic/README.md` for instructions to generate your own data.
 
 ```bash
 mkdir -p data/
-cp /share/nikola/phantom-reasoning/data/gsm-infinite-train.zip data/
-cp /share/nikola/phantom-reasoning/data/gsm-infinite-eval.zip data/
-# To transfer to another cluster: scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/gsm-infinite-train.zip data/
+scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/gsm-infinite-train.zip data/
+scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/gsm-infinite-eval.zip data/
+
 cd data/
 unzip gsm-infinite-train.zip
 unzip gsm-infinite-eval.zip
 cd ..
 ```
 
-### Real-world wiki datasets
+</details>
 
-Copy HotpotQA (hp), 2wiki (2wiki), Musique (MSQ) datasets:
+<details>
+  <summary><h4 style="display:inline-block">Real-world Wiki Datasets</h4></summary>
+
+We collected HotpotQA (`hp`), 2Wiki (`2wiki`), and Musique (`msq`) datasets, and subsampled 500 questions from the evaluation dataset in `hp500, 2wiki500, msq500`.
 
 ```bash
 mkdir -p data/
-for d in "hp" "2wiki" "msq"; do cp /share/nikola/phantom-reasoning/data/${d}.zip data/; done
-# To transfer to another cluster: for d in "hp" "2wiki" "msq"; do scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/${d}.zip data/; done
+for d in "hp" "2wiki" "msq"; do scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/${d}.zip data/; done
+for d in "hp" "2wiki" "msq"; do scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/${d}500.zip data/; done
+
 cd data/
 for d in "hp" "2wiki" "msq"; do unzip ${d}.zip; done
+for d in "hp" "2wiki" "msq"; do unzip ${d}500.zip; done
 cd ..
-```
-
-## Training on multi-hop reasoning datasets
-
-> \[!NOTE\]
-> If you are in multiple projects in the `mlcore` org, you will also need to set the `WANDB_PROJECT` environment variable. You can automatically load environment variables when your conda environment activates:
->
-> ```bash
-> conda env config vars set WANDB_ENTITY="mlcore"
-> conda env config vars set WANDB_PROJECT="phantom-reasoning"
-> ```
-
-### GRPO settings
-
-Recommendations for GRPO fine-tuning a Qwen3-1.7B model:
-
-- 4 GPUs like A100s or H100s. 4 A6000s on G2 should also suffice, but you might need to adjust the batch size to avoid Out-Of-Memory errors.
-  - `--gres=gpu:a100:4` on AIDA cluster.
-  - `--gres=gpu:4` on Anvil cluster.
-  - `--gres=gpu:a6000:4` on G2 cluster.
-  - `--gres=gpu:4` on Empire cluster.
-- `--mem=100GB` memory
-- `-n 8` cores
-- `-N 1` node
-- `-t 24:00:00` hours
-
-```bash
-conda activate $CONDA_ENV_NAME
-
-bash scripts/create_train_grpo__vllm_colocate.sh <cluster_name>
-
-bash scripts/train_grpo__vllm_colocate.sub \
-	/path/to/accelerate/config/file.yaml \
-	/path/to/training/config/file.yaml
-```
-
-For example, running the following command full-finetunes a Qwen/Qwen3-1.7B model using GRPO on PhantomWiki data.
-Checkpoints are saved at `runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags>/checkpoint-XX/`, and the final model is saved at `runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags>/`
-
-```bash
-conda activate $CONDA_ENV_NAME
-
-bash scripts/create_train_grpo__vllm_colocate.sh anvil
-
-# Train on PhantomWiki data
-bash scripts/train_grpo__vllm_colocate.sub \
-	recipes/accelerate_configs/zero1.yaml \
-	recipes/Qwen/Qwen3-1.7B/grpo/config_pw_4gpu.yaml
-
-# Train on GSM-infinite data
-bash scripts/train_grpo__vllm_colocate.sub \
-	recipes/accelerate_configs/zero1.yaml \
-	recipes/Qwen/Qwen3-1.7B/grpo/config_gsminfinite_4gpu.yaml
-```
-
-<details>
-
-<summary>SFT settings (TODO)</summary>
-
-### SFT on traces settings
-
-From https://github.com/huggingface/open-r1?tab=readme-ov-file#sft:
-
-```bash
-ACCELERATE_LOG_LEVEL=info accelerate launch --num_processes 3 --config_file recipes/accelerate_configs/zero3.yaml \
-	src/phantom_reasoner/sft_on_traces.py \
-	--config recipes/Qwen/Qwen2.5-1.5B-Instruct/sft/config_demo.yaml
-```
-
-> \[!NOTE\]
-> Add CLI arguments before `--config_file` to override the arguments in `zero3.yaml`
-
-### SFT on docs settings
-
-- Anmol's settings for full-finetuning https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct model:
-  - `--gres=gpu:a100:4` on AIDA cluster. 4 A6000s on G2 should suffice. At bf16, accelerate-zero1, 1.5B model with the default settings uses ~70GB GPU memory.
-  - `--mem=100GB` memory
-  - `-n 8` cores
-
-```bash
-./scripts/train_sft_on_docs.sh \
-	/path/to/accelerate/config/file.yaml \
-	/path/to/training/config/file.yaml
-```
-
-For example, running the following command full-finetunes a 1.5B model using SFT on PhantomWiki documents with Zeroshot prompt.
-The multi-gpu config distributes model and data across all GPUs.
-Checkpoints are saved at `runs/Qwen/Qwen2.5-1.5B-Instruct/sft_on_docs/$USER/MMDD__<flags>/checkpoint-XX`.
-
-```bash
-./scripts/train_sft_on_docs.sh \
-	recipes/accelerate_configs/multi_gpu.yaml \
-	recipes/Qwen/Qwen2.5-1.5B-Instruct/sft_on_docs/config_base.yaml
 ```
 
 </details>
 
-## PhantomWiki evaluation
+## LLM training instructions
 
-Since `phantom-wiki[eval]` is installed from github source, run the evaluation module like so:
+We describe training instructions specific to the Anvil cluster, which contain all trained checkpoints.
+To train models on other clusters---please refer to cluster-specific instructions on [AIDA](docs/README_aida.md) and [Empire](docs/README_empire.md).
 
-```bash
-CUDA_VISIBLE_DEVICES=0 python -m phantom_eval \
-	--method cot \
-	--server vllm \
-	--inf_vllm_offline \
-	--model_name /path/to/model/checkpoint \
-	--dataset data/wiki-v1-easy-depth_20_size_25 \
-	--split_list depth_20_size_25_seed_1 depth_20_size_25_seed_2 depth_20_size_25_seed_3 \
-	--from_local \
-	--inf_vllm_tensor_parallel_size 1 \
-	--exclude_aggregation_questions \
-	-od /path/to/output_for_preds/
-```
-
-Evaluating on just 1 GPU is faster than multiple GPUs due to communication overhead, so we can specify to only use the first GPU.
-
-Then get numbers for the leaderboard:
+1. Setup environment variables for model checkpoints and wandb. To set up wandb logging, run `wandb login` and paste the API key from your account's organization.
 
 ```bash
-python /path/to/phantom-wiki-installation/eval/format_leaderboard.py \
-	-od /path/to/output_for_preds/ \
-	--model_list /path/to/model/checkpoint \
-	--size_list 25 \
-	--method_list cot \
-	--dataset data/wiki-v1-easy-depth_20_size_25 \
-	--from_local
+conda env config vars set USER_EMAIL="user@email.com" # for emailing when slurm allocations become available
+conda env config vars set WANDB_ENTITY="organization"
+conda env config vars set WANDB_PROJECT="phantom-reasoning"
 ```
 
-### GRPO training performance evolution
-
-Evaluate all training checkpoints on evaluation splits of PhantomWiki and plot how model performance evolves as a function of question difficulty, as training progresses.
+2. Create a symlink to directories with training checkpoints.
 
 ```bash
-./scripts/eval/pw_eval_all_ckpts.sh /path/to/checkpoint/parent <base_model_name> <training_dataset_name>
-# for example, for this Qwen3-0.6B trained model:
-./scripts/eval/pw_eval_all_ckpts.sh runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot Qwen/Qwen3-0.6B pw
+# experiment runs in scratch, linked to ./scratch
+mkdir -p $RUN_BASE_DIR/runs
+ln -s $RUN_BASE_DIR ./scratch
+
+# shared models and evals linked to ./share
+ln -s /anvil/projects/x-$ANVIL_PROJECT_ID/phantom-reasoning share
 ```
 
-### Scaling plots for wiki datasets
+> \[!NOTE\] We trained several LLMs on PhantomWiki and GSM-infinite data, and share all checkpoints and predictions in paths listed in `./scripts/final_plots/final_ckpts.yaml`.
 
-Evaluate all training checkpoints on evaluation datasets of various wiki datasets (HP, 2Wiki, MSQ) and plot how model performance on wiki datasets evolves as training progresses.
+3. Run a GRPO training experiment on Qwen3-1.7B model with PhantomWiki data. We provide a script `./scripts/create_train_grpo__vllm_colocate.sh <cluster_name>` to create a bash slurm submission file, adding default variables for the specified cluster. This script creates `./scripts/train_grpo__vllm_colocate.sub` that executes a training job on a configuration. For instance,
+
+   1. Using `salloc`:
+
+   ```bash
+   salloc -A $ANVIL_PROJECT_ID-ai -p ai --gres=gpu:4 -n 16 -N 1 --mem=100GB -t 12:00:00 --mail-type=all --mail-user=$USER_EMAIL
+
+   # After getting an allocation:
+   ./scripts/anvil/load_modules_cuda.sh
+   conda activate $CONDA_ENV_NAME
+
+   ./scripts/create_train_grpo__vllm_colocate.sh anvil
+
+   ./scripts/train_grpo__vllm_colocate.sub \
+   	recipes/accelerate_configs/zero1.yaml \
+   	recipes/Qwen/Qwen3-1.7B/grpo/config_pw_4gpu.yaml
+   ```
+
+   2. Using `sbatch`:
+
+   ```bash
+   ./scripts/create_train_grpo__vllm_colocate.sh anvil
+
+   ./scripts/train_grpo__vllm_colocate.sub \
+   	recipes/accelerate_configs/zero1.yaml \
+   	recipes/Qwen/Qwen3-1.7B/grpo/config_pw_4gpu.yaml
+   ```
+
+   Checkpoints and final model are saved at `./scratch/runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags>`.
+
+<details>
+<summary><strong>YAML configurations for other datasets: TODO add reasoning gym</strong></summary>
+
+- `recipes/Qwen/Qwen3-1.7B/grpo/config_gsminfinite_4gpu.yaml`
+- `recipes/Qwen/Qwen3-1.7B/grpo/config_hp_4gpu.yaml` (on HotpotQA training data splits)
+- `recipes/Qwen/Qwen3-1.7B/grpo/config_2wiki_4gpu.yaml` (on 2Wiki training data splits)
+- `recipes/Qwen/Qwen3-1.7B/grpo/config_msq_4gpu.yaml` (on Musique training data splits)
+
+</details>
+
+<details>
+<summary><strong>Similarly, YAML configurations for other LLMs:</strong></summary>
+
+- `recipes/Qwen/Qwen3-0.6B/grpo/config_pw_4gpu.yaml`
+- `recipes/Qwen/Qwen2.5-1.5B-Instruct/grpo/config_pw_4gpu.yaml`
+- `recipes/microsoft/Phi-4-mini-reasoning/grpo/config_pw_4gpu.yaml`
+
+</details>
+
+## LLM evaluation instructions
+
+We evaluate LLMs on evaluation splits of various datasets, such as 500 questions from evaluation splits of HotpotQA, 2wiki, and Musique that exist in `./data/hp500, ./data/2wiki500, ./data/msq500`.
+We provide code to load these splits, get LLM predictions, and tabulate results in CSV files and output to the terminal.
+
+### Real-world Wiki datasets
+
+We can evaluate LLMs on real-world wiki datasets with the `scripts/eval/wiki_eval_grpo.sh` script:
 
 ```bash
-./scripts/eval/other_eval_all_ckpts.sh /path/to/checkpoint/parent <dataset> <split> <base_model_name> <training_dataset_name>
-# for example, for this Qwen3-0.6B trained model:
-./scripts/eval/other_eval_all_ckpts.sh runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-0.6B/grpo/$USER/MMDD__curr=random__prompt=cot hp500 minidev Qwen/Qwen3-0.6B pw
+# Assuming you have 1 GPU
+# Replace hp500 with 2wiki500, msq500
+MODEL_NAMES="Qwen/Qwen3-1.7B" bash scripts/eval/wiki_eval_grpo.sh \
+	out__eval=wiki \
+	hp500 \
+	minidev
 ```
 
-### GSM-Infinite evaluation
+<details>
+<summary><h4 style="display:inline-block">Evaluating trained checkpoints</h4></summary>
 
-We evaluate on the huggingface evaluation set of GSM-Infinite as follows:
+We can also evaluate all trained checkpoints and their base models listed in `scripts/final_plots/final_ckpts.yaml`.
 
 ```bash
-./scripts/eval/gsminf_eval_grpo.py /path/to/output_for_preds/
+# Replace hp500 with 2wiki500, msq500
+MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name base) \
+	bash scripts/eval/wiki_eval_grpo.sh out__train=base__eval=wiki hp500 minidev
+
+MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name pw) \
+	bash scripts/eval/wiki_eval_grpo.sh out__train=pw__eval=wiki hp500 minidev
+
+MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name gsminf) \
+	bash scripts/eval/wiki_eval_grpo.sh out__train=gsminf__eval=wiki hp500 minidev
 ```
 
-## Lighteval (GSM8k, ARC etc.)
+For LLMs trained with PhantomWiki and GSM-Infinite, we provide a script to plot transfer performance to real-world wiki datasets:
 
 ```bash
-python -m phantom_reasoner.utils.benchmarks \
-	-cp /path/to/checkpoint \
-	-t "leaderboard|arc:challenge|2|0,lighteval|arc:easy|2|0" \
-	-od ./out-lighteval
+python examples/wiki/create_bar_plots_performance_transfer.py \
+	--final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml \
+	--base_model_preds_dir "out__train=base__eval=wiki" \
+	--pw_model_preds_dir "out__train=pw__eval=wiki" \
+	--gsminf_model_preds_dir "out__train=gsminf__eval=wiki" \
+	--figures_dir "scripts/final_plots/figures"
 ```
+
+<p align="center">
+  <img src="scripts/final_plots/figures/f1_transfer_performance_all.png" alt="Transfer performance bar plot"/>
+</p>
+
+We can further evaluate all intermediate training checkpoints on the real-world wiki datasets to visualize if training with PhantomWiki and GSM-Infinite is causing overfitting.
+
+```bash
+# Replace hp500 with 2wiki500, msq500
+bash scripts/eval/wiki_eval_all_ckpts.sh \
+	./scratch/runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags> \
+	hp500 \
+	minidev \
+	Qwen/Qwen3-1.7B \
+	pw
+
+bash scripts/eval/wiki_eval_all_ckpts.sh \
+	./scratch/runs/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags> \
+	hp500 \
+	minidev \
+	Qwen/Qwen3-1.7B \
+	gsminf
+```
+
+After evaluating all intermediate training checkpoints of paths listed in `./scripts/final_plots/final_ckpts.yaml`, we provide a script to plot transfer performance as a function of training steps.
+
+```bash
+# NOTE: --dataset and --split flags are ignored, and the script creates a combined plot for hp500, 2wiki500, msq500
+python examples/wiki/plot_all_wiki_scaling_final_ckpts.py \
+    --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml \
+    --base_model_names_to_plot "Qwen/Qwen3-0.6B" "Qwen/Qwen3-1.7B" \
+    --data_dir data \
+    --dataset hp500 \
+    --split minidev \
+	--figures_dir "scripts/final_plots/figures"
+```
+
+<p align="center">
+  <img src="scripts/final_plots/figures/f1_v_training_steps_Qwen--Qwen3-0.6B__Qwen--Qwen3-1.7B.png" alt="Transfer performance as a function of training steps"/>
+</p>
+</details>
+
+### PhantomWiki evaluation data
+
+We can evaluate LLMs on PhantomWiki datasets with the `scripts/eval/pw_eval_grpo.sh` script.
+This script requires `phantom-wiki[eval]` to be installed from github source at `../phantom-wiki/`.
+
+```bash
+# Assuming you have 1 GPU
+MODEL_NAMES="Qwen/Qwen3-1.7B" bash scripts/eval/pw_eval_grpo.sh out__eval=pw
+```
+
+<details>
+<summary><h4 style="display:inline-block">Evaluating trained checkpoints</h4></summary>
+
+We can also evaluate all trained checkpoints and their base models listed in `scripts/final_plots/final_ckpts.yaml`.
+
+```bash
+MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name base) \
+	bash scripts/eval/pw_eval_grpo.sh out__train=base__eval=pw
+
+MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name pw) \
+	bash scripts/eval/pw_eval_grpo.sh out__train=pw__eval=pw
+
+MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name gsminf) \
+	bash scripts/eval/pw_eval_grpo.sh out__train=gsminf__eval=pw
+```
+
+</details>
+
+### GSM-Infinite evaluation dataset
+
+We can evaluate LLMs on GSM-Infinite questions with the `scripts/eval/gsminf_eval_grpo.sh` script.
+
+```bash
+# Assuming you have 1 GPU
+MODEL_NAMES="Qwen/Qwen3-1.7B" bash scripts/eval/gsminf_eval_grpo.sh out__eval=gsminf
+```
+
+<details>
+<summary><h4 style="display:inline-block">Evaluating trained checkpoints</h4></summary>
+
+We can also evaluate all trained checkpoints and their base models listed in `scripts/final_plots/final_ckpts.yaml`.
+
+```bash
+MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name base) \
+	bash scripts/eval/gsminf_eval_grpo.sh out__train=base__eval=gsminf
+
+MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name pw) \
+	bash scripts/eval/gsminf_eval_grpo.sh out__train=pw__eval=gsminf
+
+MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name gsminf) \
+	bash scripts/eval/gsminf_eval_grpo.sh out__train=gsminf__eval=gsminf
+```
+
+</details>
+
+### Reasoning evolution plots
+
+Each question in synthetic evaluation datasets of PhantomWiki and GSM-Infinite have a corresponding measure of question difficulty.
+We can thus evaluate all intermediate training checkpoints on evaluation splits of PhantomWiki and GSM-infinite, and plot how model performance evolves as a function of question difficulty as training progresses.
+
+```bash
+bash scripts/eval/pw_eval_all_ckpts.sh \
+	./scratch/runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags> \
+	Qwen/Qwen3-1.7B \
+	pw
+
+bash scripts/eval/gsminf_eval_all_ckpts.sh \
+	./scratch/runs/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags> \
+	Qwen/Qwen3-1.7B \
+	gsminf
+```
+
+<details>
+<summary><h4 style="display:inline-block">Evaluating trained checkpoints</h4></summary>
+
+After evaluating all intermediate training checkpoints of paths listed in `./scripts/final_plots/final_ckpts.yaml`, we provide a script to plot model performance as a function of question difficulty, with darker lines indicating later intermediate training checkpoints.
+For any model that we trained with 2 different training random seeds, we only plot intermediate checkpoints for the first path.
+
+```bash
+python scripts/final_plots/create_reasoning_evolution.py \
+    --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml \
+    --base_model_names_to_plot "Qwen/Qwen3-0.6B" "Qwen/Qwen3-1.7B" \
+    --figures_dir "scripts/final_plots/figures"
+```
+
+<p align="center">
+  <img src="scripts/final_plots/figures/reasoning_evolution_Qwen--Qwen3-0.6B__Qwen--Qwen3-1.7B.png" alt="Reasoning evolution (performance as a function of question difficulty, as training progresses)"/>
+</p>
+
+We also provide a script to visualize how frequently the model chain-of-thoughts mention intermediate hop answers on msq500 dataset.
+The visualization shows how training on synthetic data improves the LLMs' multi-hop reasoning performance on real-world benchmarks like Musique.
+First, we create a CSV file with fraction of intermediate answers found in training checkpoints.
+Second, we plot the fraction of intermediate answers of msq500 dataset found, as training progresses.
+
+```bash
+# TODO: 1. Create CSV
+
+# 2. Plot
+python scripts/final_plots/create_reasoning_evolution_msq500.py \
+    --csv_path scripts/final_plots/figures/reasoning_evolution_msq500.csv \
+    --base_model_names_to_plot "Qwen/Qwen3-0.6B" "Qwen/Qwen3-1.7B" \
+    --figures_dir "scripts/final_plots/figures"
+```
+
+<p align="center">
+  <img src="scripts/final_plots/figures/reasoning_evolution_msq500_Qwen3-0.6B__Qwen3-1.7B.png" alt="Reasoning evolution on Musique(performance as a function of intermediate answers, as training progresses)"/>
+</p>
+
+</details>

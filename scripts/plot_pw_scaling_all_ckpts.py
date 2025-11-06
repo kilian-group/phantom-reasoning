@@ -14,6 +14,7 @@ python scripts/plot_pw_scaling_all_ckpts.py \
 ```
 """
 
+import json
 import os
 import re
 
@@ -25,6 +26,7 @@ from tabulate import tabulate
 parser = get_parser()
 parser.add_argument("--base_model_name", type=str, required=True)
 parser.add_argument("--training_dataset_name", type=str, required=True)
+parser.add_argument("--model_list", nargs="+", required=True)
 args = parser.parse_args()
 output_dir = args.output_dir
 method = args.method
@@ -32,6 +34,7 @@ dataset = args.dataset
 from_local = args.from_local
 base_model_name = args.base_model_name
 training_dataset_name = args.training_dataset_name
+model_list = args.model_list
 
 # Get curriculum name from output_dir using regex
 # output_dir is in the format "__curr=<curr>__"
@@ -44,9 +47,15 @@ metrics = ["EM", "precision", "recall", "f1"]
 
 df_preds = get_evaluation_data(output_dir, method, dataset, from_local=from_local)
 df_preds["checkpoint_number"] = df_preds["_model"].str.extract(r"checkpoint-(\d+)")
+
 # base_model_name will not have a checkpoint number extracted, so manually
 # assign checkpoint number 0 to the base model, then convert to int
+# final model is checkpoint-<global_step> where <global_step> is from the json file
 df_preds.loc[df_preds["_model"] == base_model_name, "checkpoint_number"] = 0
+with open(os.path.join(model_list[0], "trainer_state.json")) as f:
+    trainer_state = json.load(f)
+    global_step = int(trainer_state["global_step"])
+    df_preds.loc[df_preds["_model"] == model_list[0], "checkpoint_number"] = global_step
 df_preds["checkpoint_number"] = df_preds["checkpoint_number"].astype(int)
 
 df_preds["completion_tokens"] = df_preds["usage"].apply(lambda x: x["completion_tokens"])

@@ -12,33 +12,12 @@ split_list:
     "depth_20_size_25_seed_18",
     "depth_20_size_25_seed_19",
     "depth_20_size_25_seed_20",
-    "depth_20_size_25_seed_21",
-    "depth_20_size_25_seed_22",
-    "depth_20_size_25_seed_23",
-    "depth_20_size_25_seed_24",
-    "depth_20_size_25_seed_25",
-    "depth_20_size_25_seed_26",
-    "depth_20_size_25_seed_27",
-    "depth_20_size_25_seed_28",
-    "depth_20_size_25_seed_29",
-    "depth_20_size_25_seed_30",
-    "depth_20_size_25_seed_31",
-    "depth_20_size_25_seed_32",
-    "depth_20_size_25_seed_33",
-    "depth_20_size_25_seed_34",
-    "depth_20_size_25_seed_35",
-    "depth_20_size_25_seed_36",
-    "depth_20_size_25_seed_37",
-    "depth_20_size_25_seed_38",
-    "depth_20_size_25_seed_39",
-    "depth_20_size_25_seed_40",
-    "depth_20_size_25_seed_41",
   ]
 from_local: true
 eval_dataset_name: "data/wiki-v1-easy-depth_20_size_25"
 eval_split_list: ["depth_20_size_25_seed_2"]
 eval_from_local: true
-reward_func_names: ["f1"]
+reward_func_names: ["binary_format"]
 data_curriculum: "random"
 prompt_method: "cot"
 

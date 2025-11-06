@@ -1,115 +1,83 @@
+"""
+Script for evaluating the accuracy of the generated answers on the GSM-Infinite dataset.
+
+Example usage:
+```bash
+python eval_realistic.py --output-dir OUTPUT_DIR --model-name MODEL_NAME --save-dataset SAVE_DATASET
+```
+"""
 import argparse
 import json
 import os
 
+import numpy as np
+import pandas as pd
 from phantom_eval.agents.cot import CoTAgent
+from tabulate import tabulate
 
 
-def preprocess_line(line):
-    replies = line["replies"]
-    return replies
-    # value = line["answer_q"]
-    # return [get_prompt(reply, value) for reply in replies]
-
-
-def is_integer(s):
-    try:
-        int(s)
-        return True
-    except ValueError:
-        return False
-
-
-def safe_parse_int(text: str):
-    try:
-        return int(CoTAgent.parse_answer(text)), None
-    except Exception as e:
-        return None, e
-
-
-def criteriaoutput(generatedtext, inputexample):
-    correctedanswers = 0
-    totalanswers = 0
-    # parsing the answer key
-    # print(f"Length of generatedtext: {len(generatedtext)}")
+def criteriaoutput(generatedtext: list[str], inputexample: dict) -> tuple[int, list[int | None]]:
+    """
+    Returns a tuple of (number of correct answers, list of generated answers).
+    Each generated text is parsed and matched with the answer text from the solution.
+    """
+    num_correct_answers = 0
+    all_generated_answers: list[int | None] = []
     for i in range(len(generatedtext)):
-        totalanswers += 1
+        # Get the answer text from solution
         idx_answer_start = inputexample["solution"].find("Answer: ")
         idx_answer_end = inputexample["solution"].find(".", idx_answer_start)
         answer_text = inputexample["solution"][idx_answer_start + len("Answer: ") : idx_answer_end]
         answer_text = int(answer_text.lower())
-        parsed_int, err = safe_parse_int(generatedtext[i])
-        if parsed_int is None:
-            is_correct = False
-            answer_generated_text = "PARSE_ERROR"
-        else:
-            answer_generated_text = parsed_int
-            is_correct = answer_generated_text == answer_text
 
-        correctedanswers += int(is_correct)
-        if err:
-            print(f"[PARSE_ERR] {type(err).__name__}: {err}")
-    return correctedanswers, totalanswers
+        try:
+            # Parse the answer from the generated text
+            answer_generated_text = int(CoTAgent.parse_answer(generatedtext[i]))
+            num_correct_answers += int(answer_generated_text == answer_text)
+        except Exception:
+            answer_generated_text = None
+            # print(f"[PARSE_ERR] {type(e).__name__}: {e}")
+        finally:
+            all_generated_answers.append(answer_generated_text)
+
+    return num_correct_answers, all_generated_answers
 
 
-def postprocess_line(line, extractions):
-    corrected, total = criteriaoutput(extractions, line)
-    line["correct_num"] = corrected
-    line["reply_answers"] = [""] * total
-
-    return line
+def postprocess_line(input_example: dict, generatedtext: list[str]) -> dict:
+    """
+    Postprocess the input example dictionary with the generated text, adding two keys:
+    - correct_num: number of correct answers
+    - reply_answers: list of generated answers
+    """
+    num_correct_answers, all_generated_answers = criteriaoutput(generatedtext, input_example)
+    input_example["correct_num"] = num_correct_answers
+    input_example["reply_answers"] = all_generated_answers
+    return input_example
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Eval with command line arguments.")
     parser.add_argument("--output-dir", "-od", type=str, help="Output directory", default="out")
-    parser.add_argument(
-        "--save-name",
-        type=str,
-        help="The name of the file saved for organizing the folders",
-        default="base",
-    )
-    parser.add_argument("--save-dataset", type=str, help="Save dataset name", default="base")
-    # parser.add_argument('--dataset-name', type=str,
-    # help="The name of the dataset for organizing the folders")
-    parser.add_argument("--num-samples", type=int, default=1, help="Number of samples to generate.")
-
+    parser.add_argument("--save-dataset", type=str, help="Save dataset name", default="medium")
     parser.add_argument("--length", type=str, default="0", help="noise context length")
-
     parser.add_argument(
-        "--filter-config",
-        type=json.loads,
-        help="Filter configuration as a JSON string.",
+        "--model-name",
+        type=str,
+        help="The name or path of the model to evaluate",
+        default="Qwen/Qwen3-0.6B",
     )
 
     args = parser.parse_args()
 
-    if args.num_samples == 1:
-        sample_nums = [None]
-    else:
-        sample_nums = [1 << i for i in range(args.num_samples.bit_length()) if (1 << i) < args.num_samples]
-
     length = args.length
     try:
-        os.makedirs(args.output_dir, exist_ok=True)
-        file_path = os.path.join(args.output_dir, f"{args.save_dataset}-{args.save_name}_{str(length)}.json")
+        file_path = os.path.join(
+            args.output_dir, f"{args.save_dataset}-{args.model_name.replace('/', '--')}_{str(length)}.json"
+        )
         with open(file_path) as f:
             unprocessed_dataset = json.load(f)
-        filter_config = args.filter_config
-        if filter_config:
-            filtered_datasets = []
-            for config in filter_config:
-                current_filter = {key: value for key, value in config.items() if key not in ["percentage"]}
-                filtered_subset = [
-                    example
-                    for example in unprocessed_dataset
-                    if all(example[key] == value for key, value in current_filter.items())
-                ]
-                filtered_datasets.append(filtered_subset)
 
-            unprocessed_dataset = [example for sublist in filtered_datasets for example in sublist]
-
-        def process_dataset(unprocessed_dataset, filter=None):
+        def process_dataset(unprocessed_dataset):
             results = []
             count_dict = {}
             correct_dict = {}
@@ -118,18 +86,13 @@ if __name__ == "__main__":
             num_samples = len(unprocessed_dataset[0]["replies"])
 
             len_dataset = len(unprocessed_dataset)
-            # len_dataset = 1
 
             for i in range(len_dataset):
-                submission_list.extend(preprocess_line(unprocessed_dataset[i]))
-
-            extractions = submission_list
-
-            for i in range(0, len_dataset):
+                submission_list.extend(unprocessed_dataset[i]["replies"])
                 results.append(
                     postprocess_line(
                         unprocessed_dataset[i],
-                        [extractions[j] for j in range(i * num_samples, (i + 1) * num_samples)],
+                        [submission_list[j] for j in range(i * num_samples, (i + 1) * num_samples)],
                     )
                 )
 
@@ -145,44 +108,34 @@ if __name__ == "__main__":
 
             sorted_keys = sorted(count_dict.keys())
 
-            for sample_num in sample_nums:
-                file_sample_suffix = ""
-                if sample_num is not None:
-                    file_sample_suffix = f"-sample-{sample_num}"
-                else:
-                    sample_num = 1
-
-                os.makedirs(args.output_dir, exist_ok=True)  # Create directory if it doesn't exist
-                save_file_path = os.path.join(
-                    args.output_dir, f"result_{args.save_dataset}_{args.save_name}{file_sample_suffix}.txt"
+            save_file_path = os.path.join(
+                args.output_dir, "scores", f"{args.save_dataset}_{args.model_name.replace('/', '--')}.csv"
+            )
+            os.makedirs(os.path.dirname(save_file_path), exist_ok=True)
+            # Save the scores per op to a csv file
+            records = []
+            for op in sorted_keys:
+                records.append(
+                    {
+                        "model_name": args.model_name,
+                        "difficulty": op,
+                        "accuracy": np.mean(correct_dict[op]),
+                        "num_correct": np.sum(correct_dict[op]),
+                        "count": len(correct_dict[op]),
+                    }
                 )
-                with open(save_file_path, "a+") as file:
-                    for op in sorted_keys:
-                        correctnum = 0.0
-                        for elem in correct_dict[op]:
-                            correctnum += 1.0 - (1.0 - elem) ** sample_num
-                        output_line = f"length: {length}, op: {op}, acc: \
-                            {format(correctnum/count_dict[op], '.4f').rstrip('0').rstrip('.')}"
+            df = pd.DataFrame(records)
+            df.to_csv(save_file_path, index=False)
+            print(f"Saved to {save_file_path}")
 
-                        if filter:
-                            output_line += f", num_examples: {len(correct_dict[op])}"
-                            for key, value in filter.items():
-                                output_line += f", {key}: {value}"
-
-                        output_line += "\n"
-                        file.write(output_line)
+            # Print the overall accuracy by model name
+            acc = df.groupby("model_name")["num_correct"].agg("sum") / df.groupby("model_name")["count"].agg(
+                "sum"
+            )
+            print(tabulate(acc.reset_index(), headers="keys", tablefmt="github"))
 
         process_dataset(unprocessed_dataset)
 
-        if filter_config:
-            for config in filter_config:
-                current_filter = {key: value for key, value in config.items() if key not in ["percentage"]}
-                filtered_subset = [
-                    example
-                    for example in unprocessed_dataset
-                    if all(example[key] == value for key, value in current_filter.items())
-                ]
-                process_dataset(filtered_subset, filter=current_filter)
     except Exception as e:
         print(e)
         raise
