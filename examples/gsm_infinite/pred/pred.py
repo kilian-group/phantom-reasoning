@@ -10,34 +10,9 @@ from no_rag_pipeline import NoRAGPipeline
 
 from phantom_reasoner.datasets_for_grpo import GSMInfiniteDataset
 
-# def dump_dict_to_json(data: dict, filename: str):
-#     """Dumps a Python dictionary to a JSON file, creating the directory if needed.
-
-#     Args:
-#         data: The Python dictionary to be dumped.
-#         filename: The name of the JSON file to be created (e.g., "data/output.json").
-#     """
-#     try:
-#         # Extract the directory path from the filename
-#         directory = os.path.dirname(filename)
-
-#         # Create the directory if it doesn't exist
-#         if directory and not os.path.exists(directory):
-#             os.makedirs(directory)
-#             print(f"Created directory: {directory}")
-
-#             print(f"Successfully dumped dictionary to {filename}")
-#     except (TypeError, OSError) as e:
-#         print(f"Error dumping dictionary to JSON: {e}")
-
-
-# print(get_payload(100, 2))
 if __name__ == "__main__":
-    # parser = argparse.ArgumentParser(description="Run benchmark tests and organize results")
-    # parser.add_argument('--model-name', type=str, help="The name of the model for organizing the folders")
     parser = argparse.ArgumentParser(description="Sample with command line arguments.")
     parser.add_argument("--output-dir", "-od", type=str, help="Output directory", default="out")
-    # TODO change save-name to model-name and replace the / with --
     parser.add_argument("--save-name", type=str, help="Save model name", default="base")
     parser.add_argument("--save-dataset", type=str, help="Save dataset name", default="base")
     parser.add_argument(
@@ -127,8 +102,6 @@ if __name__ == "__main__":
     # for length in [0, 8000, 16000, 32000, 64000, 128000]:
     length = args.length
     try:
-        # opset = set(args.op_range)
-        # unprocessed_dataset = unprocessed_dataset.filter(lambda example: example["op"] in opset)
         if os.path.isdir(args.dataset_name):
             base = os.path.join(args.dataset_name, "zero_context", "realistic", "medium")
             requested = {
@@ -166,41 +139,14 @@ if __name__ == "__main__":
             ]
             return ex
 
-        def _print_split_debug(name, ds):
-            return
-            # try:
-            #     ex0 = ds[0] if len(ds) > 0 else {}
-            #     cols = list(ds.features.keys()) if hasattr(ds, "features") else list(ex0.keys())
-            #     has_msgs = isinstance(ex0.get("messages"), list)
-            #     print(f"[debug] split={name} n={len(ds)} columns={cols} messages_present={has_msgs}")
-            #     if has_msgs:
-            #         head = ex0["messages"][:1]
-            #         print(f"[debug] split={name} messages_head={head}")
-            # except Exception as e:
-            #     print(f"[debug] split={name} debug error: {e}")
-
-        # # print available splits before normalization
-        # try:
-        #     print(f"[debug] available_splits(before)={list(full_dataset.keys())}")
-        # except Exception:
-        #     print("[debug] single dataset loaded")
-
         # map normalization over all splits
         if isinstance(full_dataset, DatasetDict):
             for sname in list(full_dataset.keys()):
-                _print_split_debug(sname, full_dataset[sname])
                 full_dataset[sname] = full_dataset[sname].map(
                     _ensure_messages, desc=f"ensure_messages::{sname}"
                 )
-                _print_split_debug(sname + "::after", full_dataset[sname])
         else:
-            _print_split_debug("single", full_dataset)
             full_dataset = full_dataset.map(_ensure_messages, desc="ensure_messages::single")
-            _print_split_debug("single::after", full_dataset)
-
-        available = list(full_dataset.keys()) if isinstance(full_dataset, DatasetDict) else ["single"]
-        # print(f"[debug] available_splits(after)={available}")
-        # === End normalization ===
 
         filter_config = args.filter_config
         if filter_config:
@@ -229,16 +175,6 @@ if __name__ == "__main__":
                     for split in subsets
                 ]
             )
-        # unprocessed_dataset = concatenate_datasets([full_dataset[split].\
-        # select(range(min(args.limit, len(full_dataset[split])))) for split in subsets])
-        # unprocessed_dataset = load_from_disk(
-        #     f"{args.dataset_name}_{length}",
-        #     # data_dir=f"o
-        #     # split=str(length),
-        # )
-        # with open(args.dataset_name, 'r') as f:
-        #     unprocessed_dataset = json.load(f)[str(length)]
-        # print(unprocessed_dataset)
 
         # TODO change the queries to elicit <answer> and </answer>
         len_dataset = len(unprocessed_dataset)
