@@ -1,32 +1,28 @@
 #!/usr/bin/env bash
-# Script to evaluate LLMs on the GSM Infinite datasets
-# Usage: ./scripts/eval/gsminf_eval_grpo.sh <output_dir>
+# Script to run gsm infinite evaluation on all checkpoints of the specified directory
 
 if [ "$#" -lt 1 ]; then
-    echo "Usage: $0 <output_dir>"
-    echo "Set MODEL_NAMES env variable to a space-separated list of model names to evaluate"
+    echo "Usage: $0 <path_to_checkpoint_parent_dir> <base_model_name> <training_dataset_name>"
     exit 1
 fi
 
-OUTPUT_DIR=$1
+CHECKPOINT_PARENT_DIR=$1
+BASE_MODEL_NAME=$2
+TRAINING_DATASET_NAME=$3
 
-shift 1
+shift 3
 cmd_args=$@
 
-# If MODEL_NAMES is not set, use the default list of models
-if [ -z "$MODEL_NAMES" ]; then
-    MODEL_NAMES=(
-        "Qwen/Qwen3-0.6B"
-        "Qwen/Qwen3-1.7B"
-        "Qwen/Qwen2.5-1.5B-Instruct"
-        "microsoft/Phi-4-mini-reasoning"
-    )
-    echo "Using default model list: ${MODEL_NAMES[*]}"
-else
-    # MODEL_NAMES is a space-separated list of model names
-    MODEL_NAMES=($(echo $MODEL_NAMES | tr ' ' '\n'))
-    echo "Using model list from env variable: ${MODEL_NAMES[*]}"
-fi
+# checkpoints are in the format "CHECKPOINT_PARENT_DIR/checkpoint-<number>"
+# Go over all checkpoints, and run evaluation script on them
+OUT_DIR="$CHECKPOINT_PARENT_DIR/out-gsminf"
+
+DATASET="data/gsm-infinite-eval"
+ops_start=2
+ops_end=30
+ops_stride=1
+numbers=$(seq "$ops_start" "$ops_stride" "$ops_end")
+ops=$(echo "$numbers" | paste -s -d, -)
 
 mkdir -p logs
 PORT=8001
@@ -62,19 +58,12 @@ eval_model_on_gsm_infinite() {
         sleep 5
     done
 
-    dataset_name="data/gsm-infinite-eval"
-    ops_start=2
-    ops_end=30
-    ops_stride=1
-    numbers=$(seq "$ops_start" "$ops_stride" "$ops_end")
-    ops=$(echo "$numbers" | paste -s -d, -)
-
-    echo "Running $model_name with length: 0, dataset: $dataset_name, save-dataset: medium"
+    echo "Running $model_name with length: 0, dataset: $DATASET, save-dataset: medium"
 
     save_name="$(echo "$model_name" | sed 's|/|--|g' | sed 's|^-*||')"
     python examples/gsm_infinite/pred/pred.py \
-        --output-dir "$OUTPUT_DIR" \
-        --dataset-name "$dataset_name" \
+        --output-dir "$OUT_DIR" \
+        --dataset-name "$DATASET" \
         --model-name "$model_name" \
         --save-dataset "medium" \
         --save-name="$save_name" \
@@ -89,7 +78,7 @@ eval_model_on_gsm_infinite() {
 
     echo "Calculating accuracy..."
     python examples/gsm_infinite/pred/eval_realistic.py \
-        --output-dir "$OUTPUT_DIR" \
+        --output-dir "$OUT_DIR" \
         --save-dataset "medium" \
         --model-name "$model_name"
 
@@ -97,11 +86,21 @@ eval_model_on_gsm_infinite() {
     pkill -f "vllm.entrypoints.openai.api_server"
 }
 
-for model_name in ${MODEL_NAMES[@]}
+# Evaluate the base model
+eval_model_on_gsm_infinite "$BASE_MODEL_NAME"
+
+# Evaluate all models in the checkpoint parent directory
+for ckpt in $CHECKPOINT_PARENT_DIR/checkpoint-*
 do
-    eval_model_on_gsm_infinite "$model_name"
+    if [ -d "$ckpt" ]; then
+        echo "Evaluating checkpoint: $ckpt"
+        eval_model_on_gsm_infinite "$ckpt"
+    fi
 done
+
+# Evaluate the final model
+eval_model_on_gsm_infinite "$CHECKPOINT_PARENT_DIR"
 
 # Print the overall accuracy per model
 python examples/gsm_infinite/format_model_accuracy.py \
-    --output-dir "$OUTPUT_DIR"
+    --output-dir "$OUT_DIR"

@@ -12,10 +12,12 @@ bash scripts/train_grpo__vllm_colocate.sub \
 
 import logging
 import os
+import random
 import shutil
 import typing
 from datetime import datetime
 from functools import partial
+from pathlib import Path
 
 import torch
 from datasets import Dataset
@@ -99,6 +101,15 @@ def reward_binary_format(
     return preds
 
 
+def reward_random(
+    completions: list[CONVO_T],
+    answer: list[list[str]],
+    prompt_method: list[str],
+    **kwargs,
+) -> list[float]:
+    return [random.random() for _ in completions]
+
+
 def reward_with_metric(
     metric: typing.Callable[[str, str], float],
     completions: list[CONVO_T],
@@ -162,6 +173,8 @@ def get_reward_func(training_mode: str, reward_type_name: str) -> typing.Callabl
                     f = partial(reward_with_metric, f1)
                 case "binary_format":
                     f = reward_binary_format
+                case "random":
+                    f = reward_random
                 case _:
                     raise ValueError(f"Invalid {reward_type_name=}")
         case "hp":
@@ -384,11 +397,18 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
     tokenizer.save_pretrained(training_args.output_dir)
     logger.info(f"*** Tokenizer saved to {training_args.output_dir}")
 
-    # Delete the last checkpoint to save space
+    # Delete the last checkpoint's optimizer state to save space
     last_checkpoint = get_last_checkpoint(training_args.output_dir)
     if last_checkpoint is not None:
-        logger.info(f"Removing checkpoint {last_checkpoint}")
-        shutil.rmtree(last_checkpoint, ignore_errors=True)
+        glob_optimizer_states = [str(x) for x in Path(last_checkpoint).glob("global_step*")]
+        for optimizer_state in glob_optimizer_states:
+            logger.info(f"Deleting optimizer state {optimizer_state}")
+            shutil.rmtree(optimizer_state, ignore_errors=True)
+    # # Delete the last checkpoint to save space
+    # last_checkpoint = get_last_checkpoint(training_args.output_dir)
+    # if last_checkpoint is not None:
+    #     logger.info(f"Removing checkpoint {last_checkpoint}")
+    #     shutil.rmtree(last_checkpoint, ignore_errors=True)
 
 
 if __name__ == "__main__":
