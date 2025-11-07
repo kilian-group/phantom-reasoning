@@ -37,6 +37,7 @@ dependencies = [
     "lighteval[math]",
     "wandb",
     "ujson", # needed for HotPotQA evaluation
+    "reasoning_gym",
 ]
 
 [project.optional-dependencies]
