@@ -421,7 +421,7 @@ class ReasoningGymDataset(DatasetForGRPO):
         def add_prompt_formatting_rg(x):
             return {
                 "prompt": self.get_prompt_for_sample(x, prompt_method),
-                "answer": x["answer"],
+                "answer": [str(x["answer"])],  # IMPORTANT: convert answer to list[str] for reward function
                 "prompt_method": prompt_method,
                 "difficulty": x["metadata"][difficulty_key],
                 "id": x["metadata"]["source_index"],
