@@ -7,8 +7,9 @@ import trl
 @dataclass
 class GRPOScriptArguments(trl.ScriptArguments):
     # Train dataset arguments
-    # TODO: change reasoninggym to rg-family_relationships, rg-knights_knaves
-    training_mode: Literal["pw", "gsminfinite", "reasoninggym", "hp", "2wiki", "msq"] = "pw"
+    training_mode: Literal[
+        "pw", "gsminfinite", "rg-family_relationships", "rg-knights_knaves", "hp", "2wiki", "msq"
+    ] = "pw"
     dataset_name: str = "kilian-group/phantom-wiki-v1"
     split_list: list[str] = field(
         default_factory=lambda: ["depth_20_size_50_seed_1", "depth_20_size_50_seed_2"]

@@ -164,10 +164,9 @@ class GSMInfiniteDataset(DatasetForGRPO):
     Answer: """  # noqa: F541, E501
 
     # From /share/nikola/phantom-reasoning/data/gsm-infinite-train.zip
-    # taken from
-    # - igsm_op2_ip20_force_True_15.jsonl
-    # - igsm_op7_ip20_force_True_3.jsonl
-    # - igsm_op16_ip20_force_True_0.jsonl
+    # Example 1: igsm_op2_ip20_force_True_15.jsonl
+    # Example 2: igsm_op7_ip20_force_True_3.jsonl
+    # Example 3: igsm_op16_ip20_force_True_0.jsonl
     COT_EXAMPLES = """
     Example 1:
     Question: What is the total number of adult animals in Maple Creek?
@@ -181,17 +180,6 @@ class GSMInfiniteDataset(DatasetForGRPO):
     Question: What is the total number of movies in Festival de Clairmont?
     Answer: Define upbeat metropolis comedy in Festival de Saint-Rivage as m; so m = 4. Define total number of movies in Festival de Saint-Rivage as k; so k = m = 4. Define intense detective thriller in Festival Lumi\u00e8re de Valmont as C; l = k - m = 4 - 4 = 0; so C = 3 + l = 3 + 0 = 3. Define total number of movies in Festival Lumi\u00e8re de Valmont as Q; so Q = C = 3. Define solemn period drama in R\u00eaves de Belleville as N; t = Q + C = 3 + 3 = 6; T = t + k = 6 + 4 = 10; so N = 4 + T = 4 + 10 = 14. Define total number of movies in R\u00eaves de Belleville as y; so y = N = 14. Define futuristic sci-fi movie in Festival de Clairmont as A; z = y + N = 14 + 14 = 28; q = z + C = 28 + 3 = 31; so A = 3 * q = 3 * 31 = 93. Define total number of movies in Festival de Clairmont as p; so p = A = 93. <answer>93</answer>.
     """  # noqa: F541, E501
-
-    def get_prompt(self) -> PromptTemplate:
-        """Get the Chain-of-Thought prompt template.
-
-        Returns:
-            A PromptTemplate object containing the Chain-of-Thought prompt template.
-        """
-        return PromptTemplate(
-            input_variables=["problem", "examples", "question"],
-            template=self.COT_INSTRUCTION,
-        )
 
     def get_dataset(self, is_eval: bool) -> Dataset:
         if is_eval:
@@ -302,183 +290,187 @@ class ReasoningGymDataset(DatasetForGRPO):
     Loader for Reasoning Gym style data.
 
     Directory layout example:
-      train: <base_path>/<split>/train.jsonl   e.g., reasoning_gym_train/aiw/train.jsonl
-      eval:  <base_path>/<split>/eval.jsonl    (or any *.jsonl you provide via eval base path)
+        train: <base_path>/train.jsonl
+        eval: <base_path>/eval.jsonl
 
     Each JSONL record:
       {
         "question": "<text>",
         "answer": "<number as string or int>",
         "metadata": {
-            "source_dataset": "<split name like 'aiw'>",
+            "source_dataset": "<dataset name like 'family_relationships' or 'knights_knaves'>",
             "source_index": <int>,
-            "task_type": "<string>",
-            "difficulty": {...}
+            ...
         }
       }
     """
 
-    def __init__(self, script_args: GRPOScriptArguments):
-        super().__init__(script_args)
-
     # Base instruction. Examples will be injected dynamically by split list.
     COT_INSTRUCTION = f"""
-    You are given the following problem:
-    (BEGIN PROBLEM)
-    {{question}}
-    (END PROBLEM)
-
-    You will be provided a question on the above problem. Your response must end with the final answer enclosed in tags: <answer>FINAL_ANSWER</answer>
+    You will be provided with a question. Your response must end with the final answer enclosed in tags: <answer>FINAL_ANSWER</answer>
 
     Here are some examples:
     (START OF EXAMPLES)
     {{examples}}
     (END OF EXAMPLES)
+
+    You are given the following problem:
+    Question: {{question}}
     Answer: """  # noqa: F541, E501
 
-    # Registry of CoT examples by split/task family. Keep terse numeric endings.
-    # Fill or extend as you add more splits.
-    EXAMPLES_BY_SPLIT: dict[str, str] = {
-        "family_relationships": (
+    RG_TASK2DIFFICULTY_KEY: dict[str, str | None] = {
+        "rg-family_relationships": "family_size",
+        "rg-knights_knaves": None,  # TODO: add difficulty key for knights_knaves
+    }
+
+    # Registry of CoT examples by RG task name
+    RG_TASK2COT_EXAMPLES: dict[str, str] = {
+        # From /share/nikola/phantom-reasoning/data/rg-family_relationships/train.jsonl
+        # Example 1: source_index=3091, family_size=3
+        # Example 2: source_index=4624, family_size=4
+        # Example 3: source_index=11671, family_size=5
+        # Example 4: source_index=7319, family_size=6
+        # Example 5: source_index=8442, family_size=7
+        # Example 6: source_index=3027, family_size=8
+        # Example 7: source_index=4706, family_size=9
+        # Example 8: source_index=7680, family_size=10
+        # Example 9: source_index=3729, family_size=11
+        # Example 10: source_index=1153, family_size=12
+        # Example 11: source_index=1972, family_size=13
+        "rg-family_relationships": (
             """
             Example 1:
-            Question: Robert is married to Hannah. They have a child called James. James is married to Nova. They have children called Anna and Sage.
-            What relation is Anna to James? Answer with a single word.
-            Answer: James and Nova are the parents of Anna, so Anna is James’s child. The child is female, so the relation is daughter. <answer>daughter</answer>.
+            Question: Harry is married to Emily. They have a child called Daniel.
+            What is Emily to Daniel? Respond only with the word that describes their relationship.
+            Answer: Harry and Emily are the parents of Daniel, so Emily is the mother of Daniel. <answer>mother</answer>
 
             Example 2:
-            Question: Logan is married to Barbara. They have a child called Robert. Robert is married to Linda. They have a child called Andrew. Thomas is married to Grace. They have a child called Linda.
-            What relation is Thomas to Andrew? Answer with a single word.
-            Answer: Thomas is the father of Linda, and Linda is the mother of Andrew. Therefore Thomas is Andrew’s grandfather. <answer>grandfather</answer>.
+            Question: James is married to Aria. They have a child called George. George is married to Olivia.
+            What is George to Olivia? Respond only with the word that describes their relationship.
+            Answer: Since George is married to Olivia, George is the husband of Olivia. <answer>husband</answer>
 
             Example 3:
-            Question: Jack is married to Lily. They have a child called Harry. Harry is married to Aria. They have a child called David. Alexander is married to Winter. They have a child called Aria.
-            How is Aria related to Alexander? Provide the relationship in one word.
-            Answer: Alexander and Winter have a child named Aria. Therefore Aria is Alexander’s daughter. <answer>daughter</answer>.
+            Question: John is married to Olivia. They have a child called Liam. Liam is married to Willow. They have a child called Logan.
+            What relation is John to Olivia? Answer with a single word.
+            Answer: John is married to Olivia, so John is the husband of Olivia. <answer>husband</answer>
+
+            Example 4:
+            Question: Ryder is married to Lily. They have a child called John. John is married to Aria. They have children called Noah and Daniel.
+            How is John related to Daniel? Provide the relationship in one word.
+            Answer: Noah and Daniel are children of John, so John is the father of Daniel. <answer>father</answer>
+
+            Example 5:
+            Question: Alexander is married to Lisa. They have a child called Joseph. Joseph is married to Luna. They have a child called Eleanor. William is married to Amelia. They have a child called Luna.
+            How is Eleanor related to Luna? Provide the relationship in one word.
+            Answer: Joseph is married to Luna, and together they have a child called Eleanor, so Eleanor is the daughter of Luna. <answer>daughter</answer>
+
+            Example 6:
+            Question: Charles is married to Eleanor. They have a child called Mason. Mason is married to Susan. They have children called Lucy and Ryder. Christopher is married to Patricia. They have a child called Susan.
+            What is Lucy to Mason? Respond only with the word that describes their relationship.
+            Answer: Lucy is the daughter of Mason, so Lucy is the daughter of Mason. <answer>daughter</answer>
+
+            Example 7:
+            Question: John is married to Barbara. They have children called Kai and Atlas. Atlas is married to River. Kai is married to Luna. They have a child called Joseph. Michael is married to Zoe. They have a child called Luna.
+            What is Luna to Kai? Respond only with the word that describes their relationship.
+            Answer: Luna is married to Kai, so Luna is the wife of Kai. <answer>wife</answer>
+
+            Example 8:
+            Question: Noah is married to Barbara. They have children called Aiden and Charles. Charles is married to Lisa. They have a child called River. Aiden is married to Lucy. They have a child called Atlas. Matthew is married to Sarah. They have a child called Lucy.
+            What relation is Noah to Atlas? Answer with a single word.
+            Answer: Noah has a child called Aiden. Moreover, Aiden is married to Lucy, who together have a child called Atlas. So Noah is the father of Aiden, and Aiden is the father of Atlas. Therefore, Noah is the grandfather of Atlas. <answer>grandfather</answer>
+
+            Example 9:
+            Question: Phoenix is married to Amelia. They have children called Lucas, Aiden and Sophia. Daniel is married to Willow. They have a child called Nova. Aiden is married to Grace. Lucas is married to Nova. They have a child called Sebastian. Sophia is married to Noah.
+            What relation is Sebastian to Lucas? Answer with a single word.
+            Answer: Lucas is married to Nova, and together they have a child called Sebastian. So Sebastian is the son of Lucas. <answer>son</answer>
+
+            Example 10:
+            Question: Sebastian is married to Ava. They have children called David, Aiden and Hannah. Thomas is married to Luna. They have a child called Karen. Aiden is married to Sky. David is married to Karen. They have a child called Matthew. Hannah is married to James. They have a child called Daniel.
+            What relation is Matthew to Karen? Answer with a single word.
+            Answer: David is married to Karen, and together they have a child called Matthew. So Matthew is the son of Karen. <answer>son</answer>
+
+            Example 11:
+            Question: Zion is married to Grace. They have children called Andrew, Logan and Patricia. Matthew is married to Emily. They have a child called Sophie. Logan is married to Nova. They have a child called Margaret. Andrew is married to Sophie. They have a child called Henry. Patricia is married to Lucas. They have a child called Karen.
+            How is Andrew related to Karen? Provide the relationship in one word.
+            Answer: Patricia has a child called Karen. Moreover, Andrew and Patricia are siblings, so Andrew is the uncle of Karen. <answer>uncle</answer>
             """  # noqa: F541, E501
         ),
-        "knights_knaves": (
+        "rg-knights_knaves": (
             """
-            """
+            """  # noqa: F541, E501
         ),
     }
 
-    @staticmethod
-    def build_cot_examples(selected_splits: list[str]) -> str:
-        """Concatenate examples based on the active split list."""
-        buf = []
-        for s in selected_splits:
-            ex = ReasoningGymDataset.EXAMPLES_BY_SPLIT.get(s)
-            if ex:
-                buf.append(ex)
-        return "".join(buf).strip()
-
-    def get_prompt(self, selected_splits: list[str]) -> PromptTemplate:
-        """Get CoT prompt template with examples assembled from selected_splits."""
-        examples = self.build_cot_examples(selected_splits)
-        return PromptTemplate(
-            input_variables=["question"],
-            template=self.COT_INSTRUCTION.format(examples=examples, question="{question}"),
-        )
+    def __init__(self, script_args: GRPOScriptArguments):
+        super().__init__(script_args)
 
     def get_dataset(self, is_eval: bool) -> Dataset:
         if is_eval:
             base_path = self.script_args.eval_dataset_name
-            split_list = self.script_args.eval_split_list
+            jsonl_file_path = os.path.join(base_path, "eval.jsonl")
         else:
             base_path = self.script_args.dataset_name
-            split_list = self.script_args.split_list
-
+            jsonl_file_path = os.path.join(base_path, "train.jsonl")
         prompt_method = self.script_args.prompt_method
 
-        # If not provided, infer split names from dirs under base_path.
-        if split_list is None:
-            split_list = [d for d in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, d))]
+        dataset: Dataset = load_dataset("json", data_files=jsonl_file_path, split="train")
 
-        # Precompute prompt templates
-        cot_prompt_template = self.get_prompt(split_list)
+        # Define a named function for better caching
+        difficulty_key = ReasoningGymDataset.RG_TASK2DIFFICULTY_KEY[self.script_args.training_mode]
 
-        all_ds = []
-        for split_name in split_list:
-            split_dir = os.path.join(base_path, split_name)
-            if not os.path.isdir(split_dir):
-                logger.warning(f"[ReasoningGym] Missing split dir: {split_dir}")
-                continue
+        def add_prompt_formatting_rg(x):
+            return {
+                "prompt": self.get_prompt_for_sample(x, prompt_method),
+                "answer": x["answer"],
+                "prompt_method": prompt_method,
+                "difficulty": x["metadata"][difficulty_key],
+                "id": x["metadata"]["source_index"],
+            }
 
-            # default filename convention; allow any *.jsonl
-            for filename in glob.glob(os.path.join(split_dir, "*.jsonl")):
-                ds: Dataset = load_dataset("json", data_files=filename, split="train")
+        dataset = dataset.map(
+            add_prompt_formatting_rg,
+            desc="Formatting ReasoningGym prompts",
+        )
 
-                def _answer_str(x: dict[str, Any]) -> str:
-                    a = x.get("answer")
-                    if isinstance(a, (int, float)):
-                        return str(a)
-                    if isinstance(a, str):
-                        # keep only first numeric token before newline or period if needed
-                        m = re.search(r"[-+]?\d+(\.\d+)?", a)
-                        val = m.group(0) if m else a.strip()
-                        return re.sub(r"\s+", " ", val).strip().lower()
-                    raise ValueError(f"Unsupported answer type: {type(a)}")
+        logger.info(f"*** Loaded {is_eval=} dataset from {jsonl_file_path} with {len(dataset)} samples.")
+        return dataset
 
-                def _difficulty(x: dict[str, Any]) -> str | None:
-                    md = x.get("metadata") or {}
-                    return md.get("task_type")
-
-                def _sample_id(x: dict[str, Any]) -> str | None:
-                    md = x.get("metadata") or {}
-                    idx = md.get("source_index")
-                    return f"{split_name}:{idx}" if idx is not None else None
-
-                def add_prompt_formatting_rg(x: dict[str, Any]) -> dict[str, Any]:
-                    question = x["question"]
-
-                    prompt = self.get_prompt_for_sample(
-                        sample={"question": question, "active_splits": split_list},
-                        prompt_method=prompt_method,
-                        cot_prompt_template=cot_prompt_template,
-                    )
-
-                    return {
-                        "prompt": prompt,
-                        "answer": [_answer_str(x)],
-                        "prompt_method": prompt_method,
-                        "difficulty": _difficulty(x),
-                        "id": _sample_id(x),
-                        "source_split": split_name,
-                    }
-
-                ds = ds.map(add_prompt_formatting_rg, desc=f"Formatting RG prompts [{split_name}]")
-                all_ds.append(ds)
-
-        if len(all_ds) == 0:
-            raise RuntimeError("No data loaded from Reasoning-Gym. Check base_path and split_list.")
-
-        combined = concatenate_datasets(all_ds)
-        logger.info(f"*** Loaded {is_eval=} dataset {base_path}::{split_list} with {len(combined)} samples.")
-        return combined
-
-    def get_prompt_for_sample(
-        self,
-        sample: dict[str, Any],
-        prompt_method: str,
-        cot_prompt_template: PromptTemplate,
-    ) -> CONVO_T:
+    def get_prompt_for_sample(self, sample: dict[str, Any], prompt_method: str) -> CONVO_T:
         """
-        Build conversational prompt for a Reasoning-Gym sample.
+        Get the prompt for a Reasoning-Gym sample, depending on the prompt method.
+
         Args:
-            sample: expects keys {"question", "active_splits"}
-            prompt_method: "zeroshot" or "cot"
-            cot_prompt_template: PromptTemplate already bound with dynamic examples
+            sample (dict[str, Any]): A sample from the dataset, with keys "question".
+            prompt_method (str): Either "zeroshot" or "cot".
+
+        Returns:
+            CONVO_T: A list of messages for the conversational-style prompt.
+                Each message is a dict with keys "role" and "content".
         """
         question = sample["question"]
 
         match prompt_method:
             case "zeroshot":
-                return [{"role": "user", "content": f"Question: {question}\nAnswer: "}]
+                prompt = [
+                    {
+                        "role": "user",
+                        "content": f"Question: {question}\nAnswer: ",
+                    },
+                ]
+                return prompt
             case "cot":
-                return [{"role": "user", "content": cot_prompt_template.format(question=question)}]
+                prompt_template = PromptTemplate(
+                    input_variables=["question"],
+                    template=ReasoningGymDataset.COT_INSTRUCTION,
+                )
+                return [
+                    {
+                        "role": "user",
+                        "content": prompt_template.format(question=question),
+                    },
+                ]
             case _:
-                raise ValueError(f"Invalid prompt_method={prompt_method!r}")
+                raise ValueError(f"Invalid {prompt_method=}")
 
 
 class WikiDataset(DatasetForGRPO):

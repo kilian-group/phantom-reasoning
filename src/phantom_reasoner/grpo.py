@@ -161,7 +161,23 @@ def reward_with_metric_single_string(
 
 def get_reward_func(training_mode: str, reward_type_name: str) -> typing.Callable:
     match training_mode:
-        case "pw" | "gsminfinite" | "reasoninggym":
+        case "pw" | "gsminfinite":
+            match reward_type_name:
+                case "exact_match":
+                    f = partial(reward_with_metric, exact_match)
+                case "precision":
+                    f = partial(reward_with_metric, precision)
+                case "recall":
+                    f = partial(reward_with_metric, recall)
+                case "f1":
+                    f = partial(reward_with_metric, f1)
+                case "binary_format":
+                    f = reward_binary_format
+                case "random":
+                    f = reward_random
+                case _:
+                    raise ValueError(f"Invalid {reward_type_name=}")
+        case training_mode if training_mode.startswith("rg-"):  # e.g. "rg-family_relationships"
             match reward_type_name:
                 case "exact_match":
                     f = partial(reward_with_metric, exact_match)
@@ -272,7 +288,7 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
             dataset_for_grpo = PhantomWikiDataset(script_args)
         case "gsminfinite":
             dataset_for_grpo = GSMInfiniteDataset(script_args)
-        case "reasoninggym":
+        case training_mode if training_mode.startswith("rg-"):  # e.g. "rg-family_relationships"
             dataset_for_grpo = ReasoningGymDataset(script_args)
         case "hp":
             dataset_for_grpo = HotpotQADataset(script_args)
