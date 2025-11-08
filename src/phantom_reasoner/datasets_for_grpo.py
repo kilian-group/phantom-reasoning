@@ -463,10 +463,11 @@ class ReasoningGymDataset(DatasetForGRPO):
                     input_variables=["question"],
                     template=ReasoningGymDataset.COT_INSTRUCTION,
                 )
+                examples = ReasoningGymDataset.RG_TASK2COT_EXAMPLES[self.script_args.training_mode]
                 return [
                     {
                         "role": "user",
-                        "content": prompt_template.format(question=question),
+                        "content": prompt_template.format(question=question, examples=examples),
                     },
                 ]
             case _:
