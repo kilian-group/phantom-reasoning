@@ -132,9 +132,6 @@ def reward_with_metric(
         for completion, method in zip(completions, prompt_method)
     ]
     rewards = [float(metric(pred, answer_sep.join(a))) for pred, a in zip(preds, answer)]
-    print(f"*** answer: {[answer_sep.join(a) for a in answer]}")
-    print(f"*** preds: {preds}")
-    print(f"*** rewards: {rewards}")
     return rewards
 
 
@@ -160,9 +157,6 @@ def reward_with_metric_single_string(
         for completion, method in zip(completions, prompt_method)
     ]
     rewards = [float(metric(pred, a)) for pred, a in zip(preds, answer)]
-    print(f"*** answer: {answer}")
-    print(f"*** preds: {preds}")
-    print(f"*** rewards: {rewards}")
     return rewards
 
 
