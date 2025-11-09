@@ -64,6 +64,8 @@ We use several datasets for training and evaluating multi-hop reasoning:
 
 - **GSM-Infinite**: An extension of GSM8K with high-complexity arithmetic and compositional reasoning questions. Used for both training and in-depth evaluation of arithmetic skills of models.
 
+- **ReasoningGym**: A synthetic data generating framework, supporting puzzles and QA tasks (language, math, etc.). Used for both training and in-depth evaluation of reasoning skills. We use `family_relationships` and `knights_knaves` tasks.
+
 - **HotpotQA, 2Wiki, Musique**: Real-world Wikipedia-based datasets that require multi-hop reasoning over unstructured text. Used to evaluate real-world transfer and generalization to natural language settings.
 
 All datasets are split into training and evaluation sets to test both in-domain and out-of-domain generalization.
@@ -115,6 +117,28 @@ cd data/
 unzip gsm-infinite-train.zip
 unzip gsm-infinite-eval.zip
 cd ..
+```
+
+</details>
+
+<details>
+  <summary><h4 style="display:inline-block">ReasoningGym</h4></summary>
+
+We have generated ReasoningGym data and stored it on G2:
+
+```bash
+mkdir -p data/
+for task in "family_relationships" "knights_knaves"; do scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/rg-$task.zip data/; done
+
+cd data/
+for task in "family_relationships" "knights_knaves"; do unzip rg-$task.zip; done
+cd ..
+```
+
+To generate your own data, run:
+
+```bash
+for task in "family_relationships" "knights_knaves"; do python scripts/generate_reasoning_gym_data.py --dataset $task --size 12500 --train_frac 0.8 -od data/rg-$task; done
 ```
 
 </details>

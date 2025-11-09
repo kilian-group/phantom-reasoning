@@ -38,6 +38,7 @@ from phantom_reasoner.datasets_for_grpo import (
     HotpotQADataset,
     MuSiQueDataset,
     PhantomWikiDataset,
+    ReasoningGymDataset,
     TwoWikiDataset,
 )
 from phantom_reasoner.trainers.custom_grpo_trainer import CustomGRPOTrainer
@@ -130,7 +131,8 @@ def reward_with_metric(
         format_pred(completion[0]["content"], method)
         for completion, method in zip(completions, prompt_method)
     ]
-    return [float(metric(pred, answer_sep.join(a))) for pred, a in zip(preds, answer)]
+    rewards = [float(metric(pred, answer_sep.join(a))) for pred, a in zip(preds, answer)]
+    return rewards
 
 
 def reward_with_metric_single_string(
@@ -154,28 +156,43 @@ def reward_with_metric_single_string(
         format_pred(completion[0]["content"], method)
         for completion, method in zip(completions, prompt_method)
     ]
-    # import pdb; pdb.set_trace()
-    return [float(metric(pred, a)) for pred, a in zip(preds, answer)]
+    rewards = [float(metric(pred, a)) for pred, a in zip(preds, answer)]
+    return rewards
 
 
 def get_reward_func(training_mode: str, reward_type_name: str) -> typing.Callable:
+    # Add a __name__ attribute because CustomGRPOTrainer uses the attribute
+    if reward_type_name == "binary_format":
+        f = reward_binary_format
+        f.__name__ = f"reward_{reward_type_name}"
+        return f
+    elif reward_type_name == "random":
+        f = reward_random
+        f.__name__ = f"reward_{reward_type_name}"
+        return f
+
+    # Handle main metrics for synthetic data
+    reward_type_name2synthetic_data_metric = {
+        "exact_match": exact_match,
+        "precision": precision,
+        "recall": recall,
+        "f1": f1,
+    }
+
     match training_mode:
-        case "pw" | "gsminfinite":
-            match reward_type_name:
-                case "exact_match":
-                    f = partial(reward_with_metric, exact_match)
-                case "precision":
-                    f = partial(reward_with_metric, precision)
-                case "recall":
-                    f = partial(reward_with_metric, recall)
-                case "f1":
-                    f = partial(reward_with_metric, f1)
-                case "binary_format":
-                    f = reward_binary_format
-                case "random":
-                    f = reward_random
-                case _:
-                    raise ValueError(f"Invalid {reward_type_name=}")
+        case "pw":
+            # PW has multiple answers per question, so use reward_with_metric
+            f = partial(reward_with_metric, reward_type_name2synthetic_data_metric[reward_type_name])
+        case "gsminfinite":
+            # GSM-Infinite has a single answer per question, so use reward_with_metric_single_string
+            f = partial(
+                reward_with_metric_single_string, reward_type_name2synthetic_data_metric[reward_type_name]
+            )
+        case training_mode if training_mode.startswith("rg-"):  # e.g. "rg-family_relationships"
+            # RG has a single answer per question, so use reward_with_metric_single_string
+            f = partial(
+                reward_with_metric_single_string, reward_type_name2synthetic_data_metric[reward_type_name]
+            )
         case "hp":
             match reward_type_name:
                 case "exact_match":
@@ -189,8 +206,6 @@ def get_reward_func(training_mode: str, reward_type_name: str) -> typing.Callabl
                 case "f1":
                     # NOTE: f1_score returns (f1, precision, recall)
                     f = partial(reward_with_metric_single_string, lambda x, y: f1_score_hp(x, y)[0])
-                case "binary_format":
-                    f = reward_binary_format
                 case _:
                     raise ValueError(f"Invalid {reward_type_name=}")
         case "2wiki":
@@ -215,8 +230,6 @@ def get_reward_func(training_mode: str, reward_type_name: str) -> typing.Callabl
                         reward_with_metric_single_string,
                         lambda x, y: score_pred_2wiki({"pred": x, "answer": y})["f1"],
                     )
-                case "binary_format":
-                    f = reward_binary_format
                 case _:
                     raise ValueError(f"Invalid {reward_type_name=}")
         case "msq":
@@ -231,8 +244,6 @@ def get_reward_func(training_mode: str, reward_type_name: str) -> typing.Callabl
                         reward_with_metric_single_string,
                         lambda x, y: score_pred_msq({"pred": x, "answer": y})["f1"],
                     )
-                case "binary_format":
-                    f = reward_binary_format
                 case _:
                     raise ValueError(f"Invalid {reward_type_name=}")
         case _:
@@ -271,6 +282,8 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
             dataset_for_grpo = PhantomWikiDataset(script_args)
         case "gsminfinite":
             dataset_for_grpo = GSMInfiniteDataset(script_args)
+        case training_mode if training_mode.startswith("rg-"):  # e.g. "rg-family_relationships"
+            dataset_for_grpo = ReasoningGymDataset(script_args)
         case "hp":
             dataset_for_grpo = HotpotQADataset(script_args)
         case "2wiki":
