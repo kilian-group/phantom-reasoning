@@ -3,7 +3,7 @@
 > \[!NOTE\]
 > See main README.md for instructions. These are old instructions from Yilun below, keeping for posterity.
 
-We evaluate models on G2 in the following way.
+We evaluate models on Unicorn in the following way.
 This is from: https://github.com/Infini-AI-Lab/gsm_infinite
 
 ### Initialization
@@ -55,7 +55,7 @@ python preprocess.py
    ```bash
    streamlit run app.py --server.address 0.0.0.0 --server.port 8502
    # On your local device:
-   ssh -L 8502:localhost:8502 net_id@g2-login-01.coecis.cornell.edu
+   ssh -L 8502:localhost:8502 net_id@unicorn-login-01.coecis.cornell.edu
    # Then open http://localhost:8502/ on browser to view the result.
    ```
 
