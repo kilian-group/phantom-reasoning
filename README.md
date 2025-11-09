@@ -94,7 +94,7 @@ The datasets `depth_20_size_25_seed_{1,...,100}` are found on Unicorn at `/share
 
 ```bash
 mkdir -p data/
-scp username@unicorn.coecis.cornell.edu:/share/nikola/phantom-wiki/data/wiki-v1-easy-depth_20_size_25.zip data/
+scp username@unicorn-login.coecis.cornell.edu:/share/nikola/phantom-wiki/data/wiki-v1-easy-depth_20_size_25.zip data/
 
 cd data/
 unzip wiki-v1-easy-depth_20_size_25.zip
@@ -110,8 +110,8 @@ We have generated GSM-infinite data and stored it on Unicorn. See `gsm_realistic
 
 ```bash
 mkdir -p data/
-scp username@unicorn.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/gsm-infinite-train.zip data/
-scp username@unicorn.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/gsm-infinite-eval.zip data/
+scp username@unicorn-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/gsm-infinite-train.zip data/
+scp username@unicorn-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/gsm-infinite-eval.zip data/
 
 cd data/
 unzip gsm-infinite-train.zip
@@ -128,7 +128,7 @@ We have generated ReasoningGym data and stored it on Unicorn:
 
 ```bash
 mkdir -p data/
-for task in "family_relationships" "knights_knaves"; do scp username@unicorn.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/rg-$task.zip data/; done
+for task in "family_relationships" "knights_knaves"; do scp username@unicorn-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/rg-$task.zip data/; done
 
 cd data/
 for task in "family_relationships" "knights_knaves"; do unzip rg-$task.zip; done
@@ -150,8 +150,8 @@ We collected HotpotQA (`hp`), 2Wiki (`2wiki`), and Musique (`msq`) datasets, and
 
 ```bash
 mkdir -p data/
-for d in "hp" "2wiki" "msq"; do scp username@unicorn.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/${d}.zip data/; done
-for d in "hp" "2wiki" "msq"; do scp username@unicorn.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/${d}500.zip data/; done
+for d in "hp" "2wiki" "msq"; do scp username@unicorn-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/${d}.zip data/; done
+for d in "hp" "2wiki" "msq"; do scp username@unicorn-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/${d}500.zip data/; done
 
 cd data/
 for d in "hp" "2wiki" "msq"; do unzip ${d}.zip; done
