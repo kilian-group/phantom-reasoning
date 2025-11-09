@@ -75,7 +75,7 @@ The Anvil cluster contains these splits in shared storage, which we symlink unde
 ln -s /anvil/projects/x-$ANVIL_PROJECT_ID/phantom-reasoning/data .
 ```
 
-On clusters without data in shared storage, please copy dataset splits from the G2 cluster as described below.
+On clusters without data in shared storage, please copy dataset splits from the Unicorn cluster as described below.
 
 <details>
   <summary><h4 style="display:inline-block">PhantomWiki</h4></summary>
@@ -90,11 +90,11 @@ Specifically, we use splits `depth_20_size_25_seed_*` created with `--easy-mode`
 - **Seeds 1-10**: reserved for evaluation
 - **Seeds 11+**: used for training
 
-The datasets `depth_20_size_25_seed_{1,...,100}` are found on G2 at `/share/nikola/phantom-wiki/data/wiki-v1-easy-depth_20_size_25.zip`.
+The datasets `depth_20_size_25_seed_{1,...,100}` are found on Unicorn at `/share/nikola/phantom-wiki/data/wiki-v1-easy-depth_20_size_25.zip`.
 
 ```bash
 mkdir -p data/
-scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-wiki/data/wiki-v1-easy-depth_20_size_25.zip data/
+scp username@unicorn-login.coecis.cornell.edu:/share/nikola/phantom-wiki/data/wiki-v1-easy-depth_20_size_25.zip data/
 
 cd data/
 unzip wiki-v1-easy-depth_20_size_25.zip
@@ -106,12 +106,12 @@ cd ..
 <details>
   <summary><h4 style="display:inline-block">GSM-Infinite</h4></summary>
 
-We have generated GSM-infinite data and stored it on G2. See `gsm_realistic/README.md` for instructions to generate your own data.
+We have generated GSM-infinite data and stored it on Unicorn. See `gsm_realistic/README.md` for instructions to generate your own data.
 
 ```bash
 mkdir -p data/
-scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/gsm-infinite-train.zip data/
-scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/gsm-infinite-eval.zip data/
+scp username@unicorn-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/gsm-infinite-train.zip data/
+scp username@unicorn-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/gsm-infinite-eval.zip data/
 
 cd data/
 unzip gsm-infinite-train.zip
@@ -124,11 +124,11 @@ cd ..
 <details>
   <summary><h4 style="display:inline-block">ReasoningGym</h4></summary>
 
-We have generated ReasoningGym data and stored it on G2:
+We have generated ReasoningGym data and stored it on Unicorn:
 
 ```bash
 mkdir -p data/
-for task in "family_relationships" "knights_knaves"; do scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/rg-$task.zip data/; done
+for task in "family_relationships" "knights_knaves"; do scp username@unicorn-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/rg-$task.zip data/; done
 
 cd data/
 for task in "family_relationships" "knights_knaves"; do unzip rg-$task.zip; done
@@ -150,8 +150,8 @@ We collected HotpotQA (`hp`), 2Wiki (`2wiki`), and Musique (`msq`) datasets, and
 
 ```bash
 mkdir -p data/
-for d in "hp" "2wiki" "msq"; do scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/${d}.zip data/; done
-for d in "hp" "2wiki" "msq"; do scp username@g2-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/${d}500.zip data/; done
+for d in "hp" "2wiki" "msq"; do scp username@unicorn-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/${d}.zip data/; done
+for d in "hp" "2wiki" "msq"; do scp username@unicorn-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/${d}500.zip data/; done
 
 cd data/
 for d in "hp" "2wiki" "msq"; do unzip ${d}.zip; done
