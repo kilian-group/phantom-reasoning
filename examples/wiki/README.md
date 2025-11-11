@@ -24,7 +24,7 @@ Here `DATASET` can be one of
 The datasets with 500 in the name include a smaller dev split to make evaluation easier. When using `hp500`, `2wiki500`, and `msq500`, please set `SPLIT` to `minidev`.
 
 > \[!TIP\]
-> On G2, you don't need to specify `--data_dir`. The default `--data_dir` is `/share/nikola/phantom-reasoning/data`, which contains the JSON files for all datasets.
+> On Unicorn, you don't need to specify `--data_dir`. The default `--data_dir` is `/share/nikola/phantom-reasoning/data`, which contains the JSON files for all datasets.
 
 > \[!NOTE\]
 > `pred.py` will automatically launch an LLM, so there is no need to run `vllm serve`.

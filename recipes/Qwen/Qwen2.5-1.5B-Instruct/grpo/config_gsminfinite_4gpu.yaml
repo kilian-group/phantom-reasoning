@@ -4,7 +4,7 @@ training_mode: "gsminfinite"
 split_list: ["medium"]
 eval_dataset_name: "data/gsm-infinite-eval/zero_context/realistic"
 eval_split_list: ["medium"]
-reward_func_names: ["f1"]
+reward_func_names: ["exact_match"]
 data_curriculum: "random"
 prompt_method: "cot"
 

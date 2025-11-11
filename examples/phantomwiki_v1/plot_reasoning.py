@@ -190,7 +190,7 @@ for metric in METRICS:
                 )
                 x = df_mean.columns
                 for model_name, row in df_mean.iterrows():
-                    if model_name.lower() not in model_list:
+                    if model_name.lower() not in map(str.lower, model_list):
                         continue
                     y = row
                     color = get_color(model_name, method, by_model=False)

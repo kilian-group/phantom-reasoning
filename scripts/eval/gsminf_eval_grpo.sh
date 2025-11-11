@@ -1,15 +1,32 @@
 #!/usr/bin/env bash
-# NOTE: hacked together
-# Script to run the Qwen3 family of models on the GSM Infinite datasets
+# Script to evaluate LLMs on the GSM Infinite datasets
 # Usage: ./scripts/eval/gsminf_eval_grpo.sh <output_dir>
+
+if [ "$#" -lt 1 ]; then
+    echo "Usage: $0 <output_dir>"
+    echo "Set MODEL_NAMES env variable to a space-separated list of model names to evaluate"
+    exit 1
+fi
 
 OUTPUT_DIR=$1
 
-MODEL_NAMES=(
-    "microsoft/Phi-4-mini-reasoning"
-    "runs__bs=4/data/wiki-v1-easy-depth_20_size_25/microsoft/Phi-4-mini-reasoning/grpo/ak2426/0909__curr=random__training_seed=1"
-    "runs__bs=4/data/wiki-v1-easy-depth_20_size_25/microsoft/Phi-4-mini-reasoning/grpo/ak2426/0909__curr=random__training_seed=2/checkpoint-1320"
-)
+shift 1
+cmd_args=$@
+
+# If MODEL_NAMES is not set, use the default list of models
+if [ -z "$MODEL_NAMES" ]; then
+    MODEL_NAMES=(
+        "Qwen/Qwen3-0.6B"
+        "Qwen/Qwen3-1.7B"
+        "Qwen/Qwen2.5-1.5B-Instruct"
+        "microsoft/Phi-4-mini-reasoning"
+    )
+    echo "Using default model list: ${MODEL_NAMES[*]}"
+else
+    # MODEL_NAMES is a space-separated list of model names
+    MODEL_NAMES=($(echo $MODEL_NAMES | tr ' ' '\n'))
+    echo "Using model list from env variable: ${MODEL_NAMES[*]}"
+fi
 
 mkdir -p logs
 PORT=8001
@@ -17,8 +34,9 @@ VLLM_BASE_URL="http://localhost:${PORT}/v1"
 export OPENAI_BASE_URL="${VLLM_BASE_URL}"
 export OPENAI_API_KEY="EMPTY"
 
-for model_name in ${MODEL_NAMES[@]}
-do
+eval_model_on_gsm_infinite() {
+    model_name=$1
+
     # Kill any processes running on port ${PORT}
     # Get the PID of the process running on port ${PORT}
     PID=$(lsof -i :${PORT} | awk 'NR>1 {print $2}')
@@ -44,7 +62,7 @@ do
         sleep 5
     done
 
-    dataset_name="InfiniAILab/gsm_infinite_medium"
+    dataset_name="data/gsm-infinite-eval"
     ops_start=2
     ops_end=30
     ops_stride=1
@@ -53,13 +71,13 @@ do
 
     echo "Running $model_name with length: 0, dataset: $dataset_name, save-dataset: medium"
 
-    save_name=$(echo "${model_name}" | sed 's/\//--/g') # replace slash in model_name with --
+    save_name="$(echo "$model_name" | sed 's|/|--|g' | sed 's|^-*||')"
     python examples/gsm_infinite/pred/pred.py \
         --output-dir "$OUTPUT_DIR" \
         --dataset-name "$dataset_name" \
         --model-name "$model_name" \
         --save-dataset "medium" \
-        --save-name "$save_name" \
+        --save-name="$save_name" \
         --backend-type "openai" \
         --num-samples 1 \
         --temperature 1 \
@@ -73,14 +91,17 @@ do
     python examples/gsm_infinite/pred/eval_realistic.py \
         --output-dir "$OUTPUT_DIR" \
         --save-dataset "medium" \
-        --save-name "$save_name" \
-        --num-samples 1 \
-        --length "0"
+        --model-name "$model_name"
 
     echo "Killing vLLM server..."
     pkill -f "vllm.entrypoints.openai.api_server"
+}
+
+for model_name in ${MODEL_NAMES[@]}
+do
+    eval_model_on_gsm_infinite "$model_name"
 done
 
 # Print the overall accuracy per model
-python examples/gsm_infinite/preprocess.py \
+python examples/gsm_infinite/format_model_accuracy.py \
     --output-dir "$OUTPUT_DIR"

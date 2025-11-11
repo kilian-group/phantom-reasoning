@@ -1,6 +1,6 @@
 # Creating GSM infinite dataset
 
-We create the dataset on G2 in the following way.
+We create the dataset on Unicorn in the following way.
 
 1. Get CPU allocation
 
