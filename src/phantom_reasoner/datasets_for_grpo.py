@@ -320,7 +320,7 @@ class ReasoningGymDataset(DatasetForGRPO):
 
     RG_TASK2DIFFICULTY_KEY: dict[str, str | None] = {
         "rg-family_relationships": "family_size",
-        "rg-knights_knaves": None,  # TODO: add difficulty key for knights_knaves
+        "rg-knights_knaves": "n_people",
     }
 
     # Registry of CoT examples by RG task name
@@ -397,6 +397,49 @@ class ReasoningGymDataset(DatasetForGRPO):
         ),
         "rg-knights_knaves": (
             """
+            Example 1:
+            Question: A very special island is inhabited only by angels and devils. Angels always tell the truth, and devils always lie. You meet 2 inhabitants: Lily, and Noah. According to Lily, "Noah is a devil". "Lily is an angel if and only if Lily is a devil" - Noah. So who is an angel and who is a devil? (Format your answer like: "Lily is a angel/devil, and Noah is a angel/devil")
+            Answer: Let's analyze the statements. Lily says "Noah is a devil". Noah says "Lily is an angel if and only if Lily is a devil", which is a contradiction. If Lily is an angel (tells truth), then Noah must be a devil (as Lily stated). Since Noah is a devil, he lies. His statement "Lily is an angel ↔ Lily is a devil" is a contradiction, which is false, and devils do lie, so this is consistent. Therefore, Lily is an angel and Noah is a devil. <answer>Lily is an angel, and Noah is a devil.</answer>
+
+            Example 2:
+            Question: A very special island is inhabited only by altruists and egoists. Altruists always tell the truth, and egoists always lie. You meet 2 inhabitants: James, and Matthew. "James is an altruist if and only if Matthew is an altruist," James claimed. Matthew stated, "Matthew is an altruist if and only if James is an egoist". So who is an altruist and who is an egoist? (Format your answer like: "James is a altruist/egoist, and Matthew is a altruist/egoist")
+            Answer: Let's test possibilities. If James is an altruist (tells truth), then his statement "James is altruist ↔ Matthew is altruist" means Matthew is also an altruist. But then Matthew's statement "Matthew is altruist ↔ James is egoist" would be false (since James is not egoist), contradicting Matthew being an altruist. So James must be an egoist (lies). His statement is false, so James and Matthew are different types. Since James is egoist, Matthew must be altruist. Matthew's statement "Matthew is altruist ↔ James is egoist" is true (both parts are true). <answer>James is an egoist, and Matthew is an altruist.</answer>
+
+            Example 3:
+            Question: A very special island is inhabited only by heroes and villains. heroes always tell the truth, and villains always lie. You meet 2 inhabitants: Joseph, and Sofia. "Sofia is a hero" - Joseph. Sofia stated, "if Joseph is a hero then Sofia is a hero". So who is a hero and who is a villain? (Format your answer like: "Joseph is a hero/villain, and Sofia is a hero/villain")
+            Answer: Assume Joseph is a hero (tells truth). Then Sofia is a hero (as Joseph stated). If Sofia is a hero, she tells truth. Her statement "if Joseph is hero then Sofia is hero" is true since both are heroes. This is consistent. <answer>Joseph is a hero, and Sofia is a hero.</answer>
+
+            Example 4:
+            Question: A very special island is inhabited only by heroes and villains. heroes always tell the truth, and villains always lie. You meet 2 inhabitants: Mia, and Alexander. Mia noted, "Alexander is a villain". In a statement by Alexander: "if Alexander is a hero then Mia is a villain". So who is a hero and who is a villain? (Format your answer like: "Mia is a hero/villain, and Alexander is a hero/villain")
+            Answer: Assume Alexander is a hero (tells truth). His statement "if Alexander is hero then Mia is villain" means Mia is a villain. But if Mia is a villain (lies), she says "Alexander is a villain", which is false, consistent with her lying. So Alexander is hero and Mia is villain. <answer>Mia is a villain, and Alexander is a hero.</answer>
+
+            Example 5:
+            Question: A very special island is inhabited only by knights and knaves. Knights always tell the truth, and knaves always lie. You meet 2 inhabitants: Aiden, and Harper. "Harper is a knight and Harper is a knave," Aiden claimed. Harper stated, "if Aiden is a knight then Aiden is a knave". So who is a knight and who is a knave? (Format your answer like: "Aiden is a knight/knave, and Harper is a knight/knave")
+            Answer: Aiden's statement "Harper is a knight AND Harper is a knave" is a contradiction, so it's false. Therefore Aiden is a knave. Since Aiden is a knave, Harper's statement "if Aiden is knight then Aiden is knave" has a false premise (Aiden is not a knight), making the conditional vacuously true. So Harper tells truth and is a knight. <answer>Aiden is a knave, and Harper is a knight.</answer>
+
+            Example 6:
+            Question: A very special island is inhabited only by heroes and villains. heroes always tell the truth, and villains always lie. You meet 2 inhabitants: Avery, and Logan. Avery asserted: "Logan is a hero". Logan noted, "Avery is a villain if and only if Logan is a hero". So who is a hero and who is a villain? (Format your answer like: "Avery is a hero/villain, and Logan is a hero/villain")
+            Answer: Assume Logan is a hero. Then Logan's statement "Avery is villain ↔ Logan is hero" means Avery is a villain. But if Avery is a villain (lies), she says "Logan is a hero", which would be true, contradicting her being a liar. So Logan must be a villain. Logan's statement "Avery is villain ↔ Logan is hero" is false. Since Logan is not a hero, for the biconditional to be false, Avery must also not be a villain. So Avery is a hero? But if Avery is a hero, she says "Logan is a hero", which is false. So Avery is a villain. Both are villains. <answer>Avery is a villain, and Logan is a villain.</answer>
+
+            Example 7:
+            Question: A very special island is inhabited only by heroes and villains. heroes always tell the truth, and villains always lie. You meet 2 inhabitants: William, and Evelyn. "Evelyn is a hero or William is a hero," William mentioned. Evelyn remarked, "William is a villain if and only if Evelyn is a hero". So who is a hero and who is a villain? (Format your answer like: "William is a hero/villain, and Evelyn is a hero/villain")
+            Answer: Assume William is a hero. Then "Evelyn is hero OR William is hero" is true (since William is hero). Evelyn's statement "William is villain ↔ Evelyn is hero" would be false (William is not villain), so Evelyn is a villain. But the biconditional "William is villain ↔ Evelyn is hero" is false when William is hero and Evelyn is villain, which checks out. Wait, let me reconsider. If William is hero and Evelyn is villain, the biconditional is false (left side false, right side false), so actually both sides are false, making it true. Let me try William is villain. William's statement "Evelyn is hero OR William is hero" is false, so both are villains. Evelyn's statement "William is villain ↔ Evelyn is hero" should be false (she lies). Left is true, right is false, so biconditional is false. Consistent. <answer>William is a villain, and Evelyn is a villain.</answer>
+
+            Example 8:
+            Question: A very special island is inhabited only by knights and knaves. Knights always tell the truth, and knaves always lie. You meet 2 inhabitants: Noah, and Joseph. "Joseph is a knave," Noah mentioned. Joseph said that if Joseph is a knight then Noah is a knave. So who is a knight and who is a knave? (Format your answer like: "Noah is a knight/knave, and Joseph is a knight/knave")
+            Answer: Assume Joseph is a knight. Joseph's statement "if Joseph is knight then Noah is knave" means Noah is a knave. If Noah is a knave (lies), he says "Joseph is a knave", which is false, consistent with lying. So Joseph is knight, Noah is knave. <answer>Noah is a knave, and Joseph is a knight.</answer>
+
+            Example 9:
+            Question: A very special island is inhabited only by pioneers and laggards. Pioneers always tell the truth, and laggards always lie. You meet 2 inhabitants: Elizabeth, and Zoey. As Elizabeth put it, "Zoey is a laggard if and only if Elizabeth is a pioneer". Zoey stated, "Elizabeth is a laggard or Zoey is a pioneer". So who is a pioneer and who is a laggard? (Format your answer like: "Elizabeth is a pioneer/laggard, and Zoey is a pioneer/laggard")
+            Answer: Assume Elizabeth is a pioneer (tells truth). Her statement "Zoey is laggard ↔ Elizabeth is pioneer" means Zoey is a laggard. If Zoey is a laggard (lies), her statement "Elizabeth is laggard OR Zoey is pioneer" should be false. Both parts are false, so the OR is false, meaning Zoey does lie. Consistent. <answer>Elizabeth is a pioneer, and Zoey is a laggard.</answer>
+
+            Example 10:
+            Question: A very special island is inhabited only by knights and knaves. Knights always tell the truth, and knaves always lie. You meet 2 inhabitants: Sophia, and James. Sophia commented, "if Sophia is a knight then James is a knight". "Sophia is a knight," James mentioned. So who is a knight and who is a knave? (Format your answer like: "Sophia is a knight/knave, and James is a knight/knave")
+            Answer: Assume Sophia is a knight. Her statement "if Sophia is knight then James is knight" means James is a knight. If James is a knight, he says "Sophia is a knight", which is true. Consistent. <answer>Sophia is a knight, and James is a knight.</answer>
+
+            Example 11:
+            Question: A very special island is inhabited only by sages and fools. Sages always tell the truth, and fools always lie. You meet 2 inhabitants: Isabella, and Sofia. "Sofia is a sage if and only if Isabella is a sage" - Isabella. Sofia was heard saying, "Isabella is a fool". So who is a sage and who is a fool? (Format your answer like: "Isabella is a sage/fool, and Sofia is a sage/fool")
+            Answer: Assume Isabella is a sage. Her statement "Sofia is sage ↔ Isabella is sage" means Sofia is also a sage. But if Sofia is a sage (tells truth), she says "Isabella is a fool", which is false. Contradiction. So Isabella is a fool. Isabella's statement "Sofia is sage ↔ Isabella is sage" is false. Since Isabella is fool (right side false), Sofia must be sage (left side true) for the biconditional to be false. If Sofia is sage, she says "Isabella is a fool", which is true. Consistent. <answer>Isabella is a fool, and Sofia is a sage.</answer>
             """  # noqa: F541, E501
         ),
     }
@@ -413,17 +456,46 @@ class ReasoningGymDataset(DatasetForGRPO):
             jsonl_file_path = os.path.join(base_path, "train.jsonl")
         prompt_method = self.script_args.prompt_method
 
-        dataset: Dataset = load_dataset("json", data_files=jsonl_file_path, split="train")
+        # Load JSONL file
+        # For knights_knaves, we need to manually load due to complex nested structures
+        # that cause PyArrow parsing issues
+        if self.script_args.training_mode == "rg-knights_knaves":
+            import json
+
+            data_list = []
+            with open(jsonl_file_path, encoding="utf-8") as f:
+                for line in f:
+                    data = json.loads(line)
+                    # Convert problematic nested list fields to strings to avoid PyArrow issues
+                    # We'll keep the original nested structure since we don't need these fields for training
+                    if "statements" in data.get("metadata", {}):
+                        data["metadata"]["statements"] = json.dumps(data["metadata"]["statements"])
+                    if "solution" in data.get("metadata", {}):
+                        data["metadata"]["solution"] = json.dumps(data["metadata"]["solution"])
+                    data_list.append(data)
+            dataset: Dataset = Dataset.from_list(data_list)
+        else:
+            dataset: Dataset = load_dataset("json", data_files=jsonl_file_path, split="train")
 
         # Define a named function for better caching
         difficulty_key = ReasoningGymDataset.RG_TASK2DIFFICULTY_KEY[self.script_args.training_mode]
 
         def add_prompt_formatting_rg(x):
+            # Get difficulty value based on the task's difficulty key
+            if difficulty_key is None:
+                difficulty_value = None
+            elif difficulty_key in x["metadata"]:
+                # Direct key in metadata (e.g., "family_size")
+                difficulty_value = x["metadata"][difficulty_key]
+            else:
+                # Nested in metadata["difficulty"] (e.g., "n_people")
+                difficulty_value = x["metadata"]["difficulty"][difficulty_key]
+
             return {
                 "prompt": self.get_prompt_for_sample(x, prompt_method),
                 "answer": str(x["answer"]),
                 "prompt_method": prompt_method,
-                "difficulty": x["metadata"][difficulty_key],
+                "difficulty": difficulty_value,
                 "id": x["metadata"]["source_index"],
             }
 
