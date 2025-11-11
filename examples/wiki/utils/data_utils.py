@@ -11,13 +11,14 @@ from phantom_eval import get_parser as get_base_parser
 logger = logging.getLogger(__name__)
 
 
-def load_data(data_dir: str, dataset: str, split: str) -> dict:
+def load_data(data_dir: str, dataset: str, split: str, **kwargs) -> dict:
     """Load data from disk.
 
     Args:
         data_dir: Path to the dataset directory
         dataset: Name of the dataset
         split: Dataset split (e.g., 'dev', 'train')
+        **kwargs: Additional arguments passed to dataset-specific loaders (for MuSiQue: intermediate_answers)
 
     Returns:
         dict: Dictionary containing:
@@ -30,7 +31,12 @@ def load_data(data_dir: str, dataset: str, split: str) -> dict:
         case "2wiki" | "2wiki500":
             return load_2wiki_data(os.path.join(data_dir, dataset), split)
         case "msq" | "msq500":
-            return load_msq_data(os.path.join(data_dir, dataset), split, answerable_only=True)
+            if kwargs.get("intermediate_answers", False):
+                return load_msq_data(
+                    os.path.join(data_dir, dataset), split, intermediate_answers=True, answerable_only=True
+                )
+            else:
+                return load_msq_data(os.path.join(data_dir, dataset), split, answerable_only=True)
         case _:
             raise ValueError(f"Invalid dataset: {dataset}")
 
@@ -184,17 +190,20 @@ def load_2wiki_data(data_path: str, split: str) -> dict:
 # ------------------------------------------------------------------------------------------------
 # MuSiQue
 # ------------------------------------------------------------------------------------------------
-def load_msq_data(data_path: str, split: str, answerable_only: bool = True) -> dict:
+def load_msq_data(
+    data_path: str, split: str, answerable_only: bool = True, intermediate_answers: bool = False
+) -> dict:
     """Load MuSiQue dataset from disk.
 
     Args:
         data_path: Path to the dataset directory
         split: Dataset split (e.g., 'train', 'dev')
         answerable_only: if True, use MuSiQue-Ans, otherwise use MuSiQue-Full
+        intermediate_answers: if True, preserve question_decomposition field and return dict keyed by id
 
     Returns:
         dict: Dictionary containing:
-            - qa_pairs: List of QA pairs with metadata
+            - qa_pairs: List or Dict (if intermediate_answers=True) of QA pairs with metadata
             - text: List of context paragraphs with metadata
     """
     if answerable_only:
@@ -204,7 +213,7 @@ def load_msq_data(data_path: str, split: str, answerable_only: bool = True) -> d
     logger.info(f"Loading MuSiQue dataset from {file_path}")
 
     # Convert to format similar to phantom-wiki
-    qa_pairs = []
+    qa_pairs = {} if intermediate_answers else []
     text_corpus = []
 
     with open(file_path) as f:
@@ -223,14 +232,19 @@ def load_msq_data(data_path: str, split: str, answerable_only: bool = True) -> d
                 }
             )
 
-            qa_pairs.append(
-                {
+            if intermediate_answers:
+                # Keep all fields from original data (including question_decomposition)
+                qa_data = group
+                qa_pairs[group["id"]] = qa_data
+            else:
+                # Extract only specific fields
+                qa_data = {
                     "id": group["id"],
                     "question": group["question"],
                     "answer": group["answer"],
                     "type": None,  # TODO: add type
                 }
-            )
+                qa_pairs.append(qa_data)
 
     # Log final statistics
     logger.info(f"Loaded {len(qa_pairs)} questions " f"and {len(text_corpus)} articles")
