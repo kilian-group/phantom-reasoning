@@ -26,7 +26,7 @@ def main(args: argparse.Namespace):
                     # ckpt["model"] will be like "Qwen/Qwen3-0.6B", so add to list
                     model_names = [ckpt["model"] for ckpt in synthetic_train_ckpts["ckpts"]]
                     break
-        case "pw" | "gsminf":
+        case "pw" | "gsminf" | "rg-family_relationships":
             # Search through all synthetic_train_ckpts and append the paths
             for synthetic_train_ckpts in config["synthetic_train_ckpts"]:
                 if synthetic_train_ckpts["dataset_name"] == args.dataset_name:
@@ -55,7 +55,7 @@ if __name__ == "__main__":
         "--dataset_name",
         type=str,
         required=True,
-        choices=["base", "pw", "gsminf"],
+        choices=["base", "pw", "gsminf", "rg-family_relationships"],
         help="Name of the dataset to extract model names for",
     )
     args = parser.parse_args()

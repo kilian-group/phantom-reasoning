@@ -32,25 +32,50 @@ synthetic_train_ckpts:
       - model: Qwen/Qwen3-0.6B
         paths:
           [
-            "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-0.6B/grpo/x-anmolkab/0909__curr=random__training_seed=1",
-            "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-0.6B/grpo/x-anmolkab/0909__curr=random__training_seed=2",
+            "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-0.6B/grpo/x-anmolkab/1108__curr=random__training_seed=1",
+            "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-0.6B/grpo/x-anmolkab/1110__curr=random__training_seed=2",
           ]
       - model: Qwen/Qwen3-1.7B
         paths:
           [
-            "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0909__curr=random__training_seed=1",
-            "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0910__curr=random__training_seed=2",
+            "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-1.7B/grpo/x-anmolkab/1108__curr=random__training_seed=1",
+            "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-1.7B/grpo/x-anmolkab/1110__curr=random__training_seed=2",
           ]
       - model: Qwen/Qwen2.5-1.5B-Instruct
         paths:
           [
-            "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0910__curr=random__training_seed=1",
-            "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0910__curr=random__training_seed=2",
+            "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/1109__curr=random__training_seed=1",
+            "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/1109__curr=random__training_seed=2",
           ]
       - model: microsoft/Phi-4-mini-reasoning
         paths: [
             # Only 1 seed for so far
-            "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/microsoft/Phi-4-mini-reasoning/grpo/ak2426/0921__curr=random__training_seed=1",
+            "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1109__curr=random__training_seed=1",
+          ]
+
+  - dataset_name: rg-family_relationships
+    dataset_path: data/rg-family_relationships
+    ckpts:
+      - model: Qwen/Qwen3-0.6B
+        paths:
+          [
+            "share/runs__rg/data/rg-family_relationships/Qwen/Qwen3-0.6B/grpo/x-anmolkab/1108__curr=random__training_seed=1",
+          ]
+      - model: Qwen/Qwen3-1.7B
+        paths:
+          [
+            "share/runs__rg/data/rg-family_relationships/Qwen/Qwen3-1.7B/grpo/x-anmolkab/1109__curr=random__training_seed=1",
+          ]
+      - model: Qwen/Qwen2.5-1.5B-Instruct
+        paths:
+          [
+            "share/runs__rg/data/rg-family_relationships/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/1109__curr=random__training_seed=1",
+          ]
+      - model: microsoft/Phi-4-mini-reasoning
+        paths: [
+            # Only 1 seed for so far
+            # TODO: does not exist yet
+            "share/runs__rg/data/rg-family_relationships/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1111__curr=random__training_seed=1",
           ]
 
 real_train_ckpts:
