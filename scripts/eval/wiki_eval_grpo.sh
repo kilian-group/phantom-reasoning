@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Script to evaluate LLMs on the Wiki datasets (HP, 2Wiki, MSQ, CofCA)
+# Script to evaluate LLMs on the Wiki datasets (HP, 2Wiki, MSQ, CofCA, SynthWorlds-RM)
 
 if [ "$#" -lt 1 ]; then
     echo "Usage: $0 <output_dir> <dataset> <split>"
-    echo "<dataset> can be hp500, 2wiki500, msq500, cofca500"
+    echo "<dataset> can be hp500, 2wiki500, msq500, cofca500, synthrm500"
     echo "<split> should be minidev (500 examples), others not supported yet"
     echo "Set MODEL_NAMES env variable to a space-separated list of model names to evaluate"
     exit 1
@@ -21,6 +21,7 @@ DATASET_LIST=(
     "2wiki500"
     "msq500"
     "cofca500"
+    "synthrm500"
 )
 
 # If dataset not in DATASET_LIST, complain

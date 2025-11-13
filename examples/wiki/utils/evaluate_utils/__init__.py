@@ -1,8 +1,9 @@
 import pandas as pd
 
-# NOTE: We don't use CofCA for training, so the evaluation code is in utils.evaluate_utils.cofca instead
-# of phantom_reasoner.utils.cofca.evaluate_utils
+# NOTE: We don't use CofCA or SynthWorlds-RM for training, so the evaluation code is in utils.evaluate_utils
+# instead of phantom_reasoner.utils
 from utils.evaluate_utils.cofca import get_preds as get_preds_cofca
+from utils.evaluate_utils.synthrm import get_preds as get_preds_synthrm
 
 from phantom_reasoner.utils.hp import get_preds as get_preds_hp
 from phantom_reasoner.utils.msq.evaluate_utils import get_preds as get_preds_msq
@@ -52,7 +53,7 @@ def get_preds(output_dir, data_dir, dataset, split, method) -> tuple[pd.DataFram
                 method,
             )
             metrics = ["em", "f1"]
-        case "cofca" | "cofca500":
+        case "cofca500":
             df_preds = get_preds_cofca(
                 output_dir,
                 data_dir,
@@ -61,6 +62,15 @@ def get_preds(output_dir, data_dir, dataset, split, method) -> tuple[pd.DataFram
                 method,
             )
             metrics = ["em", "f1", "prec", "recall"]
+        case "synthrm500":
+            df_preds = get_preds_synthrm(
+                output_dir,
+                data_dir,
+                dataset,
+                split,
+                method,
+            )
+            metrics = ["em", "f1"]
         case _:
             raise ValueError(f"Invalid dataset: {dataset}")
     return df_preds, metrics

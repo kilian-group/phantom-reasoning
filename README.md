@@ -1,6 +1,6 @@
 # Phantom Reasoning
 
-We train LLMs with GRPO on synthetic multi-hop reasoning datasets such as PhantomWiki and GSM-Infinite, and show performance improvement to real-world multi-hop datasets such as HotpotQA, 2Wiki, and Musique.
+We train LLMs with GRPO on synthetic multi-hop reasoning datasets such as PhantomWiki and GSM-Infinite, and show performance improvement to real-world multi-hop datasets such as HotpotQA, 2Wiki, Musique, CofCA, and SynthWorlds-RM.
 
 ## Installation
 
@@ -66,7 +66,7 @@ We use several datasets for training and evaluating multi-hop reasoning:
 
 - **ReasoningGym**: A synthetic data generating framework, supporting puzzles and QA tasks (language, math, etc.). Used for both training and in-depth evaluation of reasoning skills. We use `family_relationships` and `knights_knaves` tasks.
 
-- **HotpotQA, 2Wiki, Musique, CofCA**: Real-world Wikipedia-based datasets that require multi-hop reasoning over unstructured text. Used to evaluate real-world transfer and generalization to natural language settings.
+- **HotpotQA, 2Wiki, Musique, CofCA, SynthWorlds-RM**: Real-world Wikipedia-based datasets that require multi-hop reasoning over unstructured text. Used to evaluate real-world transfer and generalization to natural language settings.
 
 All datasets are split into training and evaluation sets to test both in-domain and out-of-domain generalization.
 The Anvil cluster contains these splits in shared storage, which we symlink under `data/`:
@@ -146,17 +146,20 @@ for task in "family_relationships" "knights_knaves"; do python scripts/generate_
 <details>
   <summary><h4 style="display:inline-block">Real-world Wiki Datasets</h4></summary>
 
-We collected HotpotQA (`hp`), 2Wiki (`2wiki`), Musique (`msq`), and CofCA (`cofca`) datasets, and subsampled 500 questions from the evaluation dataset in `hp500, 2wiki500, msq500, cofca500`.
+We collected HotpotQA (`hp`), 2Wiki (`2wiki`), Musique (`msq`), CofCA, and SynthWorlds-RM datasets, and subsampled 500 questions from the evaluation dataset in `hp500, 2wiki500, msq500, cofca500, synthrm500`.
+
+We subsampled 500 entries from the CofCA and SynthWorlds-RM evaluation sets by running `python scripts/generate_cofca500_eval_data.py` and `python scripts/generate_synthrm500_eval_data.py` scripts.
+We store these files in zip files for reproducibility.
 
 ```bash
 mkdir -p data/
 # Copy training data for first 3
 for d in "hp" "2wiki" "msq"; do scp username@unicorn-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/${d}.zip data/; done
-for d in "hp" "2wiki" "msq" "cofca"; do scp username@unicorn-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/${d}500.zip data/; done
+for d in "hp" "2wiki" "msq" "cofca" "synthrm500"; do scp username@unicorn-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/${d}500.zip data/; done
 
 cd data/
 for d in "hp" "2wiki" "msq"; do unzip ${d}.zip; done
-for d in "hp" "2wiki" "msq" "cofca"; do unzip ${d}500.zip; done
+for d in "hp" "2wiki" "msq" "cofca" "synthrm500"; do unzip ${d}500.zip; done
 cd ..
 ```
 
@@ -239,7 +242,7 @@ ln -s /anvil/projects/x-$ANVIL_PROJECT_ID/phantom-reasoning share
 
 ## LLM evaluation instructions
 
-We evaluate LLMs on evaluation splits of various datasets, such as 500 questions from evaluation splits of HotpotQA, 2wiki, Musique, and CofCA that exist in `./data/hp500, ./data/2wiki500, ./data/msq500`, `./data/cofca500`.
+We evaluate LLMs on evaluation splits of various datasets, such as 500 questions from evaluation splits of HotpotQA, 2wiki, Musique, CofCA, SynthWorlds-RM that exist in `./data/hp500, ./data/2wiki500, ./data/msq500`, `./data/cofca500`, `./data/synthrm500`.
 We provide code to load these splits, get LLM predictions, and tabulate results in CSV files and output to the terminal.
 
 ### Real-world Wiki datasets
@@ -248,7 +251,7 @@ We can evaluate LLMs on real-world wiki datasets with the `scripts/eval/wiki_eva
 
 ```bash
 # Assuming you have 1 GPU
-# Replace hp500 with 2wiki500, msq500, cofca500
+# Replace hp500 with 2wiki500, msq500, cofca500, synthrm500
 MODEL_NAMES="Qwen/Qwen3-1.7B" bash scripts/eval/wiki_eval_grpo.sh \
 	out__eval=wiki \
 	hp500 \
@@ -261,7 +264,7 @@ MODEL_NAMES="Qwen/Qwen3-1.7B" bash scripts/eval/wiki_eval_grpo.sh \
 We can also evaluate all trained checkpoints and their base models listed in `scripts/final_plots/final_ckpts.yaml`.
 
 ```bash
-# Replace hp500 with 2wiki500, msq500, cofca500
+# Replace hp500 with 2wiki500, msq500, cofca500, synthrm500
 MODEL_NAMES=$(python scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name base) \
 	bash scripts/eval/wiki_eval_grpo.sh out__train=base__eval=wiki hp500 minidev
 
@@ -270,6 +273,9 @@ MODEL_NAMES=$(python scripts/final_plots/get_model_names_of_final_ckpts.py --fin
 
 MODEL_NAMES=$(python scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name gsminf) \
 	bash scripts/eval/wiki_eval_grpo.sh out__train=gsminf__eval=wiki hp500 minidev
+
+MODEL_NAMES=$(python scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name rg-family_relationships) \
+	bash scripts/eval/wiki_eval_grpo.sh out__train=rg-family_relationships__eval=wiki hp500 minidev
 ```
 
 For LLMs trained with PhantomWiki and GSM-Infinite, we provide a script to plot transfer performance to real-world wiki datasets:
@@ -290,7 +296,7 @@ python examples/wiki/create_bar_plots_performance_transfer.py \
 We can further evaluate all intermediate training checkpoints on the real-world wiki datasets to visualize if training with PhantomWiki and GSM-Infinite is causing overfitting.
 
 ```bash
-# Replace hp500 with 2wiki500, msq500, cofca500
+# Replace hp500 with 2wiki500, msq500, cofca500, synthrm500
 bash scripts/eval/wiki_eval_all_ckpts.sh \
 	./scratch/runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags> \
 	hp500 \

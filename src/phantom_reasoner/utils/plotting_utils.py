@@ -21,7 +21,7 @@ TRAIN_DATASET_ALIAS2COLOR = {
     "rg-family_relationships": "myGreen",
 }
 
-EVAL_DATASET_NAMES = ["HotpotQA", "2Wiki", "MuSiQue"]
+EVAL_DATASET_NAMES = ["HotpotQA", "2Wiki", "MuSiQue", "CofCA"]
 
 # Single column figures
 MARKER_ALPHA = 1

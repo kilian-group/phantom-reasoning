@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Script to evaluate all checkpoints of the specified directory on the Wiki datasets (HP, 2Wiki, MSQ, CofCA)
+# Script to evaluate all checkpoints of the specified directory on the Wiki datasets
+# (HP, 2Wiki, MSQ, CofCA, SynthWorlds-RM)
 
 if [ "$#" -lt 1 ]; then
     echo "Usage: $0 <path_to_checkpoint_parent_dir> <dataset> <split> <base_model_name> <training_dataset_name>"
-    echo "<dataset> can be hp500, 2wiki500, msq500, cofca500"
+    echo "<dataset> can be hp500, 2wiki500, msq500, cofca500, synthrm500"
     echo "<split> should be minidev (500 examples), others not supported yet"
     exit 1
 fi
@@ -22,6 +23,7 @@ DATASET_LIST=(
     "2wiki500"
     "msq500"
     "cofca500"
+    "synthrm500"
 )
 
 # If dataset not in DATASET_LIST, complain
