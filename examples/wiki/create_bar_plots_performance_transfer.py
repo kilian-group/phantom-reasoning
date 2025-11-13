@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import yaml
+from matplotlib.patches import Patch
 from phantom_eval.evaluate_utils import mean, std
 from utils.evaluate_utils import get_preds
 
@@ -31,13 +32,16 @@ with open(args.final_ckpts_yaml_path) as f:
     final_ckpts_yaml = yaml.safe_load(f)
     synthetic_train_ckpts = final_ckpts_yaml["synthetic_train_ckpts"]
 
-models_in_matrix = [["Qwen3-0.6B", "Phi-4-Mini-Reasoning"], ["Qwen3-1.7B", "Qwen2.5-1.5B-Instruct"]]
+models_in_order = ["Qwen3-0.6B", "Qwen3-1.7B", "Qwen2.5-1.5B-Instruct", "Phi-4-Mini-Reasoning"]
+# models_in_order = ["Qwen3-0.6B", "Qwen3-1.7B", "Qwen3-4B", "Qwen2.5-1.5B-Instruct",
+# "Qwen2.5-7B-Instruct", "Phi-4-Mini-Reasoning"]
 train_dataset_names = ["base", "rg-family_relationships", "gsminf", "pw"]
 eval_dataset_names = plotting_utils.EVAL_DATASET_NAMES
 eval_dataset_alias2name = {
     "hp500": "HotpotQA",
     "2wiki500": "2Wiki",
     "msq500": "MuSiQue",
+    "cofca500": "CofCA",
 }
 
 LINE_WIDTH = 1
@@ -77,9 +81,10 @@ def create_bar_plot_for_model(
     model: str,
     yticks: list[float],
     axes: list[plt.Axes],
-    show_yticks: bool,
-    x_left: float,
-    x_right: float,
+    show_yticks: bool = True,
+    show_eval_titles: bool = True,
+    x_left: float = 0.0,
+    x_right: float = 0.0,
 ):
     # Bar settings
     bar_width = 0.85
@@ -136,7 +141,8 @@ def create_bar_plot_for_model(
             spine.set_linewidth(LINE_WIDTH)
 
         # Set titles for top row (eval datasets)
-        ax.set_title(dataset, fontsize=LABEL_FONT_SIZE, fontweight="bold")
+        if show_eval_titles:
+            ax.set_title(dataset, fontsize=LABEL_FONT_SIZE, fontweight="bold")
 
     # Get the positions of the first and last subplot in this row
     LEFT_OFFSET = 0.0
@@ -321,39 +327,33 @@ def load_data(
 
 if __name__ == "__main__":
     mean_data, std_data = load_data(
-        [m for model_row in models_in_matrix for m in model_row],
+        models_in_order,
         args.base_model_preds_dir,
         args.pw_model_preds_dir,
         args.gsminf_model_preds_dir,
         args.rg_family_relationships_model_preds_dir,
     )
-    # Create a 2 x 6 subplot figure, where the first row is for Qwen3-0.6B and Phi-4-mini-reasoning,
-    # and the second row is for Qwen3-1.7B and Qwen2.5-1.5B-Instruct
-    # Select the axes
-    fig, axes = plt.subplots(2, 6, figsize=(12, 8))
-    for i, model_row in enumerate(models_in_matrix):
-        for j, model in enumerate(model_row):
-            yticks = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
-            show_yticks = j == 0
-            # i is the row index, and j*3:(j+1)*3 is the column index
-            axes_slice = axes[i, j * 3 : (j + 1) * 3]
-            x_left = axes_slice[0].get_position().x0
-            x_right = axes_slice[-1].get_position().x1
-            if j == 0:
-                # Move the x a bit left
-                x_left -= 0.01
-                x_right -= 0.01
-            elif j == 1:
-                # Move the x a bit right
-                x_left += 0.045
-                x_right += 0.045
-            create_bar_plot_for_model(
-                mean_data, std_data, model, yticks, axes_slice, show_yticks, x_left, x_right
-            )
+    # Create a num_models x num_eval_datasets subplot figure
+    fig, axes = plt.subplots(len(models_in_order), len(eval_dataset_names), figsize=(8, 12))
+    for i, model in enumerate(models_in_order):
+        yticks = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+        show_eval_titles = i == 0  # Only show eval titles for the first model (top row)
+        axes_slice = axes[i, :]
+        x_left = axes_slice[0].get_position().x0
+        x_right = axes_slice[-1].get_position().x1
+        create_bar_plot_for_model(
+            mean_data,
+            std_data,
+            model,
+            yticks,
+            axes_slice,
+            show_yticks=True,
+            show_eval_titles=show_eval_titles,
+            x_left=x_left,
+            x_right=x_right,
+        )
 
     # Create legend with better styling
-    from matplotlib.patches import Patch
-
     legend_elements = [
         Patch(
             facecolor=plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR[label]],
