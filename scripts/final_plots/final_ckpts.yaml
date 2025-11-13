@@ -48,9 +48,10 @@ synthetic_train_ckpts:
             "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/1109__curr=random__training_seed=2",
           ]
       - model: microsoft/Phi-4-mini-reasoning
-        paths: [
-            # Only 1 seed for so far
+        paths:
+          [
             "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1109__curr=random__training_seed=1",
+            "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1110__curr=random__training_seed=2",
           ]
 
   - dataset_name: rg-family_relationships
@@ -72,10 +73,9 @@ synthetic_train_ckpts:
             "share/runs__rg/data/rg-family_relationships/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/1109__curr=random__training_seed=1",
           ]
       - model: microsoft/Phi-4-mini-reasoning
-        paths: [
-            # Only 1 seed for so far
-            # TODO: does not exist yet
-            "share/runs__rg/data/rg-family_relationships/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1111__curr=random__training_seed=1",
+        paths:
+          [
+            "share/runs__rg/data/rg-family_relationships/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1112__curr=random__training_seed=1",
           ]
 
 real_train_ckpts:
