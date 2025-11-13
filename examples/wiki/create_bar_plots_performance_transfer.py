@@ -16,6 +16,11 @@ parser.add_argument("--final_ckpts_yaml_path", type=str, required=True)
 parser.add_argument("--base_model_preds_dir", type=str, default="out__train=base__eval=wiki")
 parser.add_argument("--pw_model_preds_dir", type=str, default="out__train=pw__eval=wiki")
 parser.add_argument("--gsminf_model_preds_dir", type=str, default="out__train=gsminf__eval=wiki")
+parser.add_argument(
+    "--rg_family_relationships_model_preds_dir",
+    type=str,
+    default="out__train=rg-family_relationships__eval=wiki",
+)
 parser.add_argument("--figures_dir", type=str, default="scripts/final_plots/figures")
 args = parser.parse_args()
 
@@ -27,7 +32,7 @@ with open(args.final_ckpts_yaml_path) as f:
     synthetic_train_ckpts = final_ckpts_yaml["synthetic_train_ckpts"]
 
 models_in_matrix = [["Qwen3-0.6B", "Phi-4-Mini-Reasoning"], ["Qwen3-1.7B", "Qwen2.5-1.5B-Instruct"]]
-train_dataset_names = ["base", "gsminf", "pw"]
+train_dataset_names = ["base", "rg-family_relationships", "gsminf", "pw"]
 eval_dataset_names = plotting_utils.EVAL_DATASET_NAMES
 eval_dataset_alias2name = {
     "hp500": "HotpotQA",
@@ -91,8 +96,6 @@ def create_bar_plot_for_model(
         errors = [std_data[model][dataset][train_dataset_name] for train_dataset_name in train_dataset_names]
 
         # Create bars with error bars (using small errors for visual effect)
-        # TODO add error bars
-        # errors = [0.02] * len(values)  # Small error bars for visual effect
         colors = [
             plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR[label]]
             for label in train_dataset_names
@@ -194,11 +197,14 @@ def create_bar_plot_for_model(
 
 
 def load_data(
-    models: list[str], base_model_preds_dir: str, pw_model_preds_dir: str, gsminf_model_preds_dir: str
+    models: list[str],
+    base_model_preds_dir: str,
+    pw_model_preds_dir: str,
+    gsminf_model_preds_dir: str,
+    rg_family_relationships_model_preds_dir: str,
 ) -> tuple[dict, dict]:
     mean_data = {
         model: {
-            # "HotpotQA": {"base": 0.0, "format": 0.0, "gsminf": 0.0, "pw": 0.0}
             dataset: {train_dataset_name: 0.0 for train_dataset_name in train_dataset_names}
             for dataset in eval_dataset_names
         }
@@ -206,7 +212,6 @@ def load_data(
     }
     std_data = {
         model: {
-            # "HotpotQA": {"base": 0.0, "format": 0.0, "gsminf": 0.0, "pw": 0.0}
             dataset: {train_dataset_name: 0.0 for train_dataset_name in train_dataset_names}
             for dataset in eval_dataset_names
         }
@@ -278,6 +283,34 @@ def load_data(
             mean_data[model][eval_name]["gsminf"] = mean(dfs_of_ckpt_paths["f1"])
             std_data[model][eval_name]["gsminf"] = std(dfs_of_ckpt_paths["f1"])
 
+    # Get rg-family_relationships model data
+    for alias, eval_name in eval_dataset_alias2name.items():
+        df_preds, _ = get_preds(args.rg_family_relationships_model_preds_dir, "data", alias, "minidev", "cot")
+
+        # Get pw train dataset dict
+        pw_train_dataset_dict = None
+        for train_dataset_dict in synthetic_train_ckpts:
+            if train_dataset_dict["dataset_name"] == "rg-family_relationships":
+                pw_train_dataset_dict = train_dataset_dict
+                break
+
+        # Get ckpt paths of model
+        for model in models:
+            ckpt_paths_of_model = None
+            for ckpt in pw_train_dataset_dict["ckpts"]:
+                if plotting_utils.MODEL_NAME2ALIAS[ckpt["model"]] == model:
+                    ckpt_paths_of_model = ckpt["paths"]
+                    break
+
+            # Collect data for the all checkpoints in a single df
+            dfs_of_ckpt_paths = []
+            for ckpt_path in ckpt_paths_of_model:
+                dfs_of_ckpt_paths.append(df_preds[df_preds["_model"] == ckpt_path])
+
+            dfs_of_ckpt_paths = pd.concat(dfs_of_ckpt_paths)
+            mean_data[model][eval_name]["rg-family_relationships"] = mean(dfs_of_ckpt_paths["f1"])
+            std_data[model][eval_name]["rg-family_relationships"] = std(dfs_of_ckpt_paths["f1"])
+
     # Also save the data to a json file
     save_path = Path(args.figures_dir) / "f1_transfer_performance_all.json"
     with open(save_path, "w") as f:
@@ -292,6 +325,7 @@ if __name__ == "__main__":
         args.base_model_preds_dir,
         args.pw_model_preds_dir,
         args.gsminf_model_preds_dir,
+        args.rg_family_relationships_model_preds_dir,
     )
     # Create a 2 x 6 subplot figure, where the first row is for Qwen3-0.6B and Phi-4-mini-reasoning,
     # and the second row is for Qwen3-1.7B and Qwen2.5-1.5B-Instruct

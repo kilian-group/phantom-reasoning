@@ -6,14 +6,20 @@ plt.rcParams.update({"font.family": "Fira Code"})
 COLORS2HEX = {"myYellow": "#E8A93C", "myOrange": "#D96831", "myGreen": "#3B9B7B", "myBlue": "#3B8FBF"}
 models = ["Qwen3-0.6B", "Qwen3-1.7B", "Qwen2.5-1.5B-Instruct"]
 
-TRAIN_DATASET_NAMES = ["base", "format", "gsminf", "pw"]
+TRAIN_DATASET_NAMES = ["base", "format", "gsminf", "pw", "rg-family_relationships"]
 TRAIN_DATASET_ALIAS2NAME = {
     "base": "base",
     "format": "format",
     "gsminf": "GSM-$\\infty$",
     "pw": "PhantomWiki",
+    "rg-family_relationships": "RG-Family",
 }
-TRAIN_DATASET_ALIAS2COLOR = {"base": "myYellow", "format": "myGreen", "gsminf": "myBlue", "pw": "myOrange"}
+TRAIN_DATASET_ALIAS2COLOR = {
+    "base": "myYellow",
+    "gsminf": "myBlue",
+    "pw": "myOrange",
+    "rg-family_relationships": "myGreen",
+}
 
 EVAL_DATASET_NAMES = ["HotpotQA", "2Wiki", "MuSiQue"]
 
