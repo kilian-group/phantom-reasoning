@@ -66,7 +66,7 @@ We use several datasets for training and evaluating multi-hop reasoning:
 
 - **ReasoningGym**: A synthetic data generating framework, supporting puzzles and QA tasks (language, math, etc.). Used for both training and in-depth evaluation of reasoning skills. We use `family_relationships` and `knights_knaves` tasks.
 
-- **HotpotQA, 2Wiki, Musique**: Real-world Wikipedia-based datasets that require multi-hop reasoning over unstructured text. Used to evaluate real-world transfer and generalization to natural language settings.
+- **HotpotQA, 2Wiki, Musique, CofCA**: Real-world Wikipedia-based datasets that require multi-hop reasoning over unstructured text. Used to evaluate real-world transfer and generalization to natural language settings.
 
 All datasets are split into training and evaluation sets to test both in-domain and out-of-domain generalization.
 The Anvil cluster contains these splits in shared storage, which we symlink under `data/`:
@@ -146,16 +146,17 @@ for task in "family_relationships" "knights_knaves"; do python scripts/generate_
 <details>
   <summary><h4 style="display:inline-block">Real-world Wiki Datasets</h4></summary>
 
-We collected HotpotQA (`hp`), 2Wiki (`2wiki`), and Musique (`msq`) datasets, and subsampled 500 questions from the evaluation dataset in `hp500, 2wiki500, msq500`.
+We collected HotpotQA (`hp`), 2Wiki (`2wiki`), Musique (`msq`), and CofCA (`cofca`) datasets, and subsampled 500 questions from the evaluation dataset in `hp500, 2wiki500, msq500, cofca500`.
 
 ```bash
 mkdir -p data/
+# Copy training data for first 3
 for d in "hp" "2wiki" "msq"; do scp username@unicorn-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/${d}.zip data/; done
-for d in "hp" "2wiki" "msq"; do scp username@unicorn-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/${d}500.zip data/; done
+for d in "hp" "2wiki" "msq" "cofca"; do scp username@unicorn-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/${d}500.zip data/; done
 
 cd data/
 for d in "hp" "2wiki" "msq"; do unzip ${d}.zip; done
-for d in "hp" "2wiki" "msq"; do unzip ${d}500.zip; done
+for d in "hp" "2wiki" "msq" "cofca"; do unzip ${d}500.zip; done
 cd ..
 ```
 
@@ -238,7 +239,7 @@ ln -s /anvil/projects/x-$ANVIL_PROJECT_ID/phantom-reasoning share
 
 ## LLM evaluation instructions
 
-We evaluate LLMs on evaluation splits of various datasets, such as 500 questions from evaluation splits of HotpotQA, 2wiki, and Musique that exist in `./data/hp500, ./data/2wiki500, ./data/msq500`.
+We evaluate LLMs on evaluation splits of various datasets, such as 500 questions from evaluation splits of HotpotQA, 2wiki, Musique, and CofCA that exist in `./data/hp500, ./data/2wiki500, ./data/msq500`, `./data/cofca500`.
 We provide code to load these splits, get LLM predictions, and tabulate results in CSV files and output to the terminal.
 
 ### Real-world Wiki datasets
@@ -247,7 +248,7 @@ We can evaluate LLMs on real-world wiki datasets with the `scripts/eval/wiki_eva
 
 ```bash
 # Assuming you have 1 GPU
-# Replace hp500 with 2wiki500, msq500
+# Replace hp500 with 2wiki500, msq500, cofca500
 MODEL_NAMES="Qwen/Qwen3-1.7B" bash scripts/eval/wiki_eval_grpo.sh \
 	out__eval=wiki \
 	hp500 \
@@ -260,14 +261,14 @@ MODEL_NAMES="Qwen/Qwen3-1.7B" bash scripts/eval/wiki_eval_grpo.sh \
 We can also evaluate all trained checkpoints and their base models listed in `scripts/final_plots/final_ckpts.yaml`.
 
 ```bash
-# Replace hp500 with 2wiki500, msq500
-MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name base) \
+# Replace hp500 with 2wiki500, msq500, cofca500
+MODEL_NAMES=$(python scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name base) \
 	bash scripts/eval/wiki_eval_grpo.sh out__train=base__eval=wiki hp500 minidev
 
-MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name pw) \
+MODEL_NAMES=$(python scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name pw) \
 	bash scripts/eval/wiki_eval_grpo.sh out__train=pw__eval=wiki hp500 minidev
 
-MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name gsminf) \
+MODEL_NAMES=$(python scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name gsminf) \
 	bash scripts/eval/wiki_eval_grpo.sh out__train=gsminf__eval=wiki hp500 minidev
 ```
 
@@ -289,7 +290,7 @@ python examples/wiki/create_bar_plots_performance_transfer.py \
 We can further evaluate all intermediate training checkpoints on the real-world wiki datasets to visualize if training with PhantomWiki and GSM-Infinite is causing overfitting.
 
 ```bash
-# Replace hp500 with 2wiki500, msq500
+# Replace hp500 with 2wiki500, msq500, cofca500
 bash scripts/eval/wiki_eval_all_ckpts.sh \
 	./scratch/runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags> \
 	hp500 \
@@ -309,6 +310,7 @@ After evaluating all intermediate training checkpoints of paths listed in `./scr
 
 ```bash
 # NOTE: --dataset and --split flags are ignored, and the script creates a combined plot for hp500, 2wiki500, msq500
+# TODO: update plots with cofca data
 python examples/wiki/plot_all_wiki_scaling_final_ckpts.py \
     --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml \
     --base_model_names_to_plot "Qwen/Qwen3-0.6B" "Qwen/Qwen3-1.7B" \
@@ -339,13 +341,13 @@ MODEL_NAMES="Qwen/Qwen3-1.7B" bash scripts/eval/pw_eval_grpo.sh out__eval=pw
 We can also evaluate all trained checkpoints and their base models listed in `scripts/final_plots/final_ckpts.yaml`.
 
 ```bash
-MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name base) \
+MODEL_NAMES=$(python scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name base) \
 	bash scripts/eval/pw_eval_grpo.sh out__train=base__eval=pw
 
-MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name pw) \
+MODEL_NAMES=$(python scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name pw) \
 	bash scripts/eval/pw_eval_grpo.sh out__train=pw__eval=pw
 
-MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name gsminf) \
+MODEL_NAMES=$(python scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name gsminf) \
 	bash scripts/eval/pw_eval_grpo.sh out__train=gsminf__eval=pw
 ```
 
@@ -366,13 +368,13 @@ MODEL_NAMES="Qwen/Qwen3-1.7B" bash scripts/eval/gsminf_eval_grpo.sh out__eval=gs
 We can also evaluate all trained checkpoints and their base models listed in `scripts/final_plots/final_ckpts.yaml`.
 
 ```bash
-MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name base) \
+MODEL_NAMES=$(python scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name base) \
 	bash scripts/eval/gsminf_eval_grpo.sh out__train=base__eval=gsminf
 
-MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name pw) \
+MODEL_NAMES=$(python scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name pw) \
 	bash scripts/eval/gsminf_eval_grpo.sh out__train=pw__eval=gsminf
 
-MODEL_NAMES=$(python3 scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name gsminf) \
+MODEL_NAMES=$(python scripts/final_plots/get_model_names_of_final_ckpts.py --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml --dataset_name gsminf) \
 	bash scripts/eval/gsminf_eval_grpo.sh out__train=gsminf__eval=gsminf
 ```
 

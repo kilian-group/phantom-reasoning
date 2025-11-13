@@ -31,6 +31,8 @@ def load_data(data_dir: str, dataset: str, split: str) -> dict:
             return load_2wiki_data(os.path.join(data_dir, dataset), split)
         case "msq" | "msq500":
             return load_msq_data(os.path.join(data_dir, dataset), split, answerable_only=True)
+        case "cofca" | "cofca500":
+            return load_cofca_data(os.path.join(data_dir, dataset), split)
         case _:
             raise ValueError(f"Invalid dataset: {dataset}")
 
@@ -182,6 +184,70 @@ def load_2wiki_data(data_path: str, split: str) -> dict:
 
 
 # ------------------------------------------------------------------------------------------------
+# COFCA
+# ------------------------------------------------------------------------------------------------
+def load_cofca_data(data_path: str, split: str) -> dict:
+    """Load COFCA dataset from disk.
+
+    Args:
+        data_path: Path to the dataset directory
+        split: Dataset split (e.g., 'train', 'dev', 'minidev')
+
+    Returns:
+        dict: Dictionary containing:
+            - qa_pairs: List of QA pairs with metadata
+            - text: List of context paragraphs with metadata
+    """
+    file_path = Path(data_path) / f"{split}.json"
+    logger.info(f"Loading COFCA dataset from {file_path}")
+
+    with open(file_path) as f:
+        data = json.load(f)
+
+    # Convert to format similar to phantom-wiki
+    qa_pairs = []
+    text_corpus = []
+
+    all_ids = []
+    for group in data:
+        if group["_id"] in all_ids:
+            logger.warning(f"Article with {group['_id']=} already exists")
+        else:
+            all_ids.append(group["_id"])
+        # Process articles, create a paragraph for each article
+        titles, text = [], []
+        for title, article in group["context"]:
+            titles.append(title)
+            text.append("\n".join(article))
+
+        text_corpus.append(
+            {
+                "title": titles,
+                # NOTE: article is a list of sentences, which we convert to a single string
+                "article": text,
+                "id": group["_id"],
+            }
+        )
+
+        qa_pairs.append(
+            {
+                "id": group["_id"],
+                "question": group["question"],
+                "answer": group["answer"],
+                "type": group["type"],
+            }
+        )
+
+    # Log final statistics
+    logger.info(f"Loaded {len(qa_pairs)} questions " f"and {len(text_corpus)} articles")
+
+    return {
+        "qa_pairs": qa_pairs,
+        "text": text_corpus,
+    }
+
+
+# ------------------------------------------------------------------------------------------------
 # MuSiQue
 # ------------------------------------------------------------------------------------------------
 def load_msq_data(data_path: str, split: str, answerable_only: bool = True) -> dict:
@@ -262,6 +328,6 @@ def get_parser():
         type=str,
         required=True,
         help="The dataset to evaluate on.",
-        choices=["hp", "hp500", "2wiki", "2wiki500", "msq", "msq500"],
+        choices=["hp", "hp500", "2wiki", "2wiki500", "msq", "msq500", "cofca", "cofca500"],
     )
     return parser

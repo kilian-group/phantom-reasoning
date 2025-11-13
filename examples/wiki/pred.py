@@ -42,6 +42,11 @@ def get_agent_kwargs(args: ArgumentParser, llm_prompt: LLMPrompt) -> dict:
                     cot_examples = COT_EXAMPLES_2WIKI
                 case "msq" | "msq500":
                     cot_examples = COT_EXAMPLES_MSQ
+                case "cofca" | "cofca500":
+                    logger.info(
+                        "Using HotpotQA CoT examples for CofCA, because CofCA does not have training data."
+                    )
+                    cot_examples = COT_EXAMPLES_HP
             agent_kwargs = dict(llm_prompt=llm_prompt, cot_examples=cot_examples)
         case _:
             agent_kwargs = dict()

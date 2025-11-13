@@ -1,16 +1,12 @@
 import pandas as pd
 
-if False:
-    # NOTE: these imports contain reference evaluation code
-    from utils.evaluate_utils.evaluate_2wiki import get_preds as get_preds_2wiki
-    from utils.evaluate_utils.hp import get_preds as get_preds_hp
-    from utils.evaluate_utils.msq import get_preds as get_preds_msq
-else:
-    from phantom_reasoner.utils.hp import get_preds as get_preds_hp
-    from phantom_reasoner.utils.msq.evaluate_utils import get_preds as get_preds_msq
-    from phantom_reasoner.utils.twowiki.evaluate_2wiki import (
-        get_preds as get_preds_2wiki,
-    )
+# NOTE: We don't use CofCA for training, so the evaluation code is in utils.evaluate_utils.cofca instead
+# of phantom_reasoner.utils.cofca.evaluate_utils
+from utils.evaluate_utils.cofca import get_preds as get_preds_cofca
+
+from phantom_reasoner.utils.hp import get_preds as get_preds_hp
+from phantom_reasoner.utils.msq.evaluate_utils import get_preds as get_preds_msq
+from phantom_reasoner.utils.twowiki.evaluate_2wiki import get_preds as get_preds_2wiki
 
 
 def get_preds(output_dir, data_dir, dataset, split, method) -> tuple[pd.DataFrame, list[str]]:
@@ -56,6 +52,15 @@ def get_preds(output_dir, data_dir, dataset, split, method) -> tuple[pd.DataFram
                 method,
             )
             metrics = ["em", "f1"]
+        case "cofca" | "cofca500":
+            df_preds = get_preds_cofca(
+                output_dir,
+                data_dir,
+                dataset,
+                split,
+                method,
+            )
+            metrics = ["em", "f1", "prec", "recall"]
         case _:
             raise ValueError(f"Invalid dataset: {dataset}")
     return df_preds, metrics
