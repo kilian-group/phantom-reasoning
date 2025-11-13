@@ -1,8 +1,8 @@
 # Script config
-dataset_name: "data/rg-knights_knaves"
+dataset_name: "data/knights_knaves_combined"
 training_mode: "rg-knights_knaves"
 split_list: []
-eval_dataset_name: "data/rg-knights_knaves"
+eval_dataset_name: "data/knights_knaves_combined"
 eval_split_list: []
 reward_func_names: ["exact_match"]
 data_curriculum: "random"

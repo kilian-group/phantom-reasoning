@@ -13,7 +13,7 @@ import pandas as pd
 from datasets import Dataset, concatenate_datasets, load_dataset
 from langchain.prompts import PromptTemplate
 from phantom_eval.agents.common import get_all_evidence
-from phantom_eval.prompts import COT_EXAMPLES, CoTLLMPrompt, ZeroeshotLLMPrompt
+from phantom_eval.prompts import COT_EXAMPLES, CoTLLMPrompt, ZeroshotLLMPrompt
 from phantom_eval.utils import load_data as load_pw_data
 
 from phantom_reasoner._types import CONVO_T
@@ -116,7 +116,7 @@ class PhantomWikiDataset(DatasetForGRPO):
         """
         match prompt_method:
             case "zeroeshot":
-                llm_prompt = ZeroeshotLLMPrompt()
+                llm_prompt = ZeroshotLLMPrompt()
                 prompt = [
                     {
                         "role": "user",
@@ -638,7 +638,7 @@ class WikiDataset(DatasetForGRPO):
         evidence = self.get_all_evidence(text_corpus)
         match prompt_method:
             case "zeroeshot":
-                llm_prompt = ZeroeshotLLMPrompt()
+                llm_prompt = ZeroshotLLMPrompt()
                 prompt = [
                     {
                         "role": "user",
