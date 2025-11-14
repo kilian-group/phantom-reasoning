@@ -6,7 +6,7 @@ From Memento (add link)
 # ------------------------------------------------------------------------------------------------
 # HotpotQA
 # ------------------------------------------------------------------------------------------------
-COT_EXAMPLES_HP = f"""\
+COT_EXAMPLES_HP = """\
 Question: Which magazine was started first Arthur's Magazine or First for Women?
 Answer: First I need to find the year Arthur's Magazine was started. Based on the evidence, Arthur's Magazine was started in 1844. Next, I need to find the year First for Women was started. Based on the evidence, First for Women was started in 1989. Since 1844 is before 1989, Arthur's Magazine was started first. <answer>Arthur's Magazine</answer>.
 
@@ -41,7 +41,7 @@ Answer: First I need to find out what track the 2013 Liqui Moly Bathurst 12 Hour
 # ------------------------------------------------------------------------------------------------
 # 2WikiMultiHopQA
 # ------------------------------------------------------------------------------------------------
-COT_EXAMPLES_2WIKI = f"""\
+COT_EXAMPLES_2WIKI = """\
 Example 1:
 Question: Are director of film Move (1970 Film) and director of film M\u00e9diterran\u00e9e (1963 Film) from the same country?
 Answer: Based on the evidence, the director of the film Move (1970 Film) is Stuart Rosenberg. Also, the director of the film M\u00e9diterran\u00e9e (1963 Film) is Jean-Daniel Pollet. The country of citizenship of Stuart Rosenberg is American. Also, the country of citizenship of Jean-Daniel Pollet is French. Because American and French aren't the same, the answer is no. <answer>no</answer>.
@@ -82,7 +82,6 @@ Example 10:
 Question: Which film has the director who died later, Aaranya Kandam or One Hundred Nails?
 Answer: Based on the evidence, the director of the film Aaranya Kandam is J. Sasikumar. Also, the director of the film One Hundred Nails is Ermanno Olmi. The date of death of J. Sasikumar is 17 July 2014. The date of death of Ermanno Olmi is 7 May 2018. Because 7 May 2018 is later than 17 July 2014, the answer is One Hundred Nails. <answer>One Hundred Nails</answer>.
 """
-
 
 # ------------------------------------------------------------------------------------------------
 # MuSiQue

@@ -98,7 +98,11 @@ async def main(args: ArgumentParser) -> None:
     for i, row in df_qa_pairs.iterrows():
         titles = df_qa_pairs.iloc[i]["title"]
         articles = df_qa_pairs.iloc[i]["article"]
-        text_corpus = pd.DataFrame({"title": titles, "article": articles})
+        if args.no_evidence:
+            # Empty text_corpus
+            text_corpus = pd.DataFrame(columns=["title", "article"])
+        else:
+            text_corpus = pd.DataFrame({"title": titles, "article": articles})
         corpora.append(text_corpus)
 
     logger.info("Running agent loop")
@@ -219,6 +223,11 @@ async def main(args: ArgumentParser) -> None:
 
 if __name__ == "__main__":
     parser = get_parser()
+    parser.add_argument(
+        "--no_evidence",
+        action="store_true",
+        help="run without any evidence (empty text_corpus)",
+    )
     args = parser.parse_args()
     args.server = "vllm"  # NOTE: we use vllm with offline inference to maximize throughput
     setup_logging(args.log_level)
