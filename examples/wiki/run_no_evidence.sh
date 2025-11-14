@@ -8,10 +8,18 @@ DATASET=$4
 DATA_DIR="~/phantom/src/phantom-reasoning/data"
 
 MODEL_LIST=(
-    "Qwen/Qwen3-1.7B"
-    "/anvil/projects/x-nairr250102/phantom-reasoning/runs/data/hp/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr\=random__training_seed\=1"
-    "/anvil/projects/x-nairr250102/phantom-reasoning/runs/data/2wiki/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr\=random__training_seed\=1"
-    "/anvil/projects/x-nairr250102/phantom-reasoning/runs/data/msq/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr\=random__training_seed\=1"
+    # "Qwen/Qwen3-1.7B"
+    # "/anvil/projects/x-nairr250102/phantom-reasoning/runs/data/hp/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr\=random__training_seed\=1"
+    # "/anvil/projects/x-nairr250102/phantom-reasoning/runs/data/2wiki/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr\=random__training_seed\=1"
+    # "/anvil/projects/x-nairr250102/phantom-reasoning/runs/data/msq/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0912__curr\=random__training_seed\=1"
+    "Qwen/Qwen3-0.6B"
+    "/anvil/projects/x-nairr250102/phantom-reasoning/runs/data/hp/Qwen/Qwen3-0.6B/grpo/x-yyin10/0911__curr\=random__training_seed\=1"
+    "/anvil/projects/x-nairr250102/phantom-reasoning/runs/data/2wiki/Qwen/Qwen3-0.6B/grpo/x-yyin10/0911__curr\=random__training_seed\=1"
+    "/anvil/projects/x-nairr250102/phantom-reasoning/runs/data/msq/Qwen/Qwen3-0.6B/grpo/x-yyin10/0911__curr\=random__training_seed\=1"
+    "Qwen/Qwen2.5-1.5B-Instruct"
+    "/anvil/projects/x-nairr250102/phantom-reasoning/runs/data/hp/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0911__curr\=random__training_seed\=1"
+    "/anvil/projects/x-nairr250102/phantom-reasoning/runs/data/2wiki/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0911__curr\=random__training_seed\=1"
+    "/anvil/projects/x-nairr250102/phantom-reasoning/runs/data/msq/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0911__curr\=random__training_seed\=1"
 )
 
 # With evidence
