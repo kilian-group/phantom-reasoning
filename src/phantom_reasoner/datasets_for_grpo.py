@@ -42,7 +42,7 @@ class DatasetForGRPO(abc.ABC):
 
         Args:
             sample (dict[str, Any]): A sample from the dataset, with key "question".
-            prompt_method (str): Either "zeroeshot" or "cot".
+            prompt_method (str): Either "zeroshot" or "cot".
 
         Returns:
             CONVO_T: A list of messages for the conversational-style prompt.
@@ -107,7 +107,7 @@ class PhantomWikiDataset(DatasetForGRPO):
 
         Args:
             sample (dict[str, Any]): A sample from the dataset, with key "question".
-            prompt_method (str): Either "zeroeshot" or "cot".
+            prompt_method (str): Either "zeroshot" or "cot".
             evidence (str): The evidence text to include in the prompt. Default is "".
 
         Returns:
@@ -115,7 +115,7 @@ class PhantomWikiDataset(DatasetForGRPO):
                 Each message is a dict with keys "role" and "content".
         """
         match prompt_method:
-            case "zeroeshot":
+            case "zeroshot":
                 llm_prompt = ZeroshotLLMPrompt()
                 prompt = [
                     {
@@ -250,7 +250,7 @@ class GSMInfiniteDataset(DatasetForGRPO):
 
         Args:
             sample (dict[str, Any]): A sample from the dataset, with key "problem" and "question".
-            prompt_method (str): Either "zeroeshot" or "cot".
+            prompt_method (str): Either "zeroshot" or "cot".
 
         Returns:
             CONVO_T: A list of messages for the conversational-style prompt.
@@ -259,7 +259,7 @@ class GSMInfiniteDataset(DatasetForGRPO):
         problem = sample["problem"]
         question = sample["question"]
         match prompt_method:
-            case "zeroeshot":
+            case "zeroshot":
                 prompt = [
                     {
                         "role": "user",
@@ -509,7 +509,7 @@ class ReasoningGymDataset(DatasetForGRPO):
 
         Args:
             sample (dict[str, Any]): A sample from the dataset, with keys "question".
-            prompt_method (str): Either "zeroeshot" or "cot".
+            prompt_method (str): Either "zeroshot" or "cot".
 
         Returns:
             CONVO_T: A list of messages for the conversational-style prompt.
@@ -518,7 +518,7 @@ class ReasoningGymDataset(DatasetForGRPO):
         question = sample["question"]
 
         match prompt_method:
-            case "zeroeshot":
+            case "zeroshot":
                 prompt = [
                     {
                         "role": "user",
@@ -628,7 +628,7 @@ class WikiDataset(DatasetForGRPO):
 
         Args:
             sample (dict[str, Any]): A sample from the dataset, with keys "question", "title", "article".
-            prompt_method (str): Either "zeroeshot" or "cot".
+            prompt_method (str): Either "zeroshot" or "cot".
 
         Returns:
             CONVO_T: A list of messages for the conversational-style prompt.
@@ -637,7 +637,7 @@ class WikiDataset(DatasetForGRPO):
         text_corpus = pd.DataFrame({"title": sample["title"], "article": sample["article"]})
         evidence = self.get_all_evidence(text_corpus)
         match prompt_method:
-            case "zeroeshot":
+            case "zeroshot":
                 llm_prompt = ZeroshotLLMPrompt()
                 prompt = [
                     {
