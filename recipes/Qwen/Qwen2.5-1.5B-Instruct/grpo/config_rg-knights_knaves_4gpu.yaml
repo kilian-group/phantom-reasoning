@@ -9,11 +9,11 @@ data_curriculum: "random"
 prompt_method: "cot"
 
 # Model arguments
-model_name_or_path: "Qwen/Qwen3-0.6B"
+model_name_or_path: "Qwen/Qwen2.5-1.5B-Instruct"
 bf16: true
 torch_dtype: bfloat16
-attn_implementation: "flash_attention_2"
-gradient_checkpointing: true
+attn_implementation: "flash_attention_2" # Use flash attention for better performance
+gradient_checkpointing: true # Enable gradient checkpointing for memory efficiency, automatically sets `use_cache=False`
 
 # Trainer arguments
 num_train_epochs: 1
