@@ -1,6 +1,6 @@
 """
 Script to extract model names from final_ckpts.yaml depending on the dataset name
-(base, pw, gsminf),
+(base, pw, gsminf, rg-family_relationships, hp, 2wiki, msq).
 
 Outputs space-separated model names to stdout, which can be piped into bash scripts.
 """
@@ -34,6 +34,13 @@ def main(args: argparse.Namespace):
                         # ckpt["paths"] will be like ["path1", "path2"] so add to list
                         model_names.extend(ckpt["paths"])
                     break
+        case "hp" | "2wiki" | "msq":
+            for real_train_ckpts in config["real_train_ckpts"]:
+                if real_train_ckpts["dataset_name"] == args.dataset_name:
+                    for ckpt in real_train_ckpts["ckpts"]:
+                        # ckpt["paths"] will be like ["path1", "path2"] so add to list
+                        model_names.extend(ckpt["paths"])
+                    break
         case _:
             raise ValueError(f"Invalid dataset name: {args.dataset_name}")
 
@@ -55,7 +62,7 @@ if __name__ == "__main__":
         "--dataset_name",
         type=str,
         required=True,
-        choices=["base", "pw", "gsminf", "rg-family_relationships"],
+        choices=["base", "pw", "gsminf", "rg-family_relationships", "hp", "2wiki", "msq"],
         help="Name of the dataset to extract model names for",
     )
     args = parser.parse_args()

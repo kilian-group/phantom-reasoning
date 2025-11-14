@@ -36,8 +36,7 @@ parser.add_argument("--base_model_names_to_plot", nargs="+", default=["Qwen/Qwen
 parser.add_argument("--figures_dir", type=str, default="scripts/final_plots/figures")
 args = parser.parse_args()
 
-eval_datasets = ["hp500", "2wiki500", "msq500", "cofca500"]
-# eval_datasets = ["hp500", "2wiki500", "msq500", "cofca500", "synthrm500"]
+eval_datasets = ["hp500", "2wiki500", "msq500", "cofca500", "synthrm500"]
 eval_dataset2name = {
     "hp500": "HotpotQA",
     "2wiki500": "2Wiki",
@@ -72,9 +71,11 @@ if "Qwen/Qwen2.5-1.5B-Instruct" in args.base_model_names_to_plot:
     eval_dataset2ylims["hp500"] = (0.0, 0.8)
     eval_dataset2ylims["2wiki500"] = (0.0, 0.8)
     eval_dataset2ylims["cofca500"] = (0.0, 0.8)
+    eval_dataset2ylims["synthrm500"] = (0.0, 0.8)
     eval_dataset2yticks["hp500"] = [0.0, 0.2, 0.4, 0.6, 0.8]
     eval_dataset2yticks["2wiki500"] = [0.0, 0.2, 0.4, 0.6, 0.8]
     eval_dataset2yticks["cofca500"] = [0.0, 0.2, 0.4, 0.6, 0.8]
+    eval_dataset2yticks["synthrm500"] = [0.0, 0.2, 0.4, 0.6, 0.8]
 
 # Load the yaml file
 with open(args.final_ckpts_yaml_path) as f:
