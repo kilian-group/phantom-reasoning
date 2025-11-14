@@ -42,7 +42,7 @@ class DatasetForGRPO(abc.ABC):
 
         Args:
             sample (dict[str, Any]): A sample from the dataset, with key "question".
-            prompt_method (str): Either "zeroshot" or "cot".
+            prompt_method (str): Either "zeroeshot" or "cot".
 
         Returns:
             CONVO_T: A list of messages for the conversational-style prompt.
@@ -107,7 +107,7 @@ class PhantomWikiDataset(DatasetForGRPO):
 
         Args:
             sample (dict[str, Any]): A sample from the dataset, with key "question".
-            prompt_method (str): Either "zeroshot" or "cot".
+            prompt_method (str): Either "zeroeshot" or "cot".
             evidence (str): The evidence text to include in the prompt. Default is "".
 
         Returns:
@@ -115,7 +115,7 @@ class PhantomWikiDataset(DatasetForGRPO):
                 Each message is a dict with keys "role" and "content".
         """
         match prompt_method:
-            case "zeroshot":
+            case "zeroeshot":
                 llm_prompt = ZeroshotLLMPrompt()
                 prompt = [
                     {
@@ -250,7 +250,7 @@ class GSMInfiniteDataset(DatasetForGRPO):
 
         Args:
             sample (dict[str, Any]): A sample from the dataset, with key "problem" and "question".
-            prompt_method (str): Either "zeroshot" or "cot".
+            prompt_method (str): Either "zeroeshot" or "cot".
 
         Returns:
             CONVO_T: A list of messages for the conversational-style prompt.
@@ -259,7 +259,7 @@ class GSMInfiniteDataset(DatasetForGRPO):
         problem = sample["problem"]
         question = sample["question"]
         match prompt_method:
-            case "zeroshot":
+            case "zeroeshot":
                 prompt = [
                     {
                         "role": "user",
@@ -320,7 +320,7 @@ class ReasoningGymDataset(DatasetForGRPO):
 
     RG_TASK2DIFFICULTY_KEY: dict[str, str | None] = {
         "rg-family_relationships": "family_size",
-        "rg-knights_knaves": None,  # TODO: add difficulty key for knights_knaves
+        "rg-knights_knaves": "n_people",
     }
 
     # Registry of CoT examples by RG task name
@@ -397,6 +397,45 @@ class ReasoningGymDataset(DatasetForGRPO):
         ),
         "rg-knights_knaves": (
             """
+            Example 1:
+            Question: A very special island is inhabited only by heroes and villains. Heroes always tell the truth, and villains always lie. You meet 2 inhabitants: Benjamin, and Scarlett. Benjamin was heard saying, "if Benjamin is a hero then Scarlett is a hero". Scarlett stated, "Scarlett is a hero or Benjamin is a hero". So who is a hero and who is a villain? (Format your answer like: "Benjamin is a hero/villain, and Scarlett is a hero/villain")
+            Answer: Assume Benjamin is a hero (tells truth). His statement "if Benjamin is hero then Scarlett is hero" means Scarlett must be a hero. If Scarlett is a hero, her statement "Scarlett is hero OR Benjamin is hero" is true (both parts are true). This is consistent. <answer>Benjamin is a hero, and Scarlett is a hero.</answer>
+
+            Example 2:
+            Question: A very special island is inhabited only by altruists and egoists. Altruists always tell the truth, and egoists always lie. You meet 2 inhabitants: Luke, and Riley. In a statement by Luke: "if Riley is an egoist then Luke is an altruist". Riley remarked, "Luke is an egoist if and only if Riley is an altruist". So who is an altruist and who is an egoist? (Format your answer like: "Luke is a altruist/egoist, and Riley is a altruist/egoist")
+            Answer: Assume Luke is an egoist (lies). His statement "if Riley is egoist then Luke is altruist" is false. For a conditional to be false, the premise must be true and conclusion false. So Riley is an egoist and Luke is not an altruist (Luke is egoist), which is consistent. Now check Riley's statement "Luke is egoist ↔ Riley is altruist". Since both Luke and Riley are egoists, left side is true and right side is false, making the biconditional false, which is consistent with Riley being an egoist who lies. <answer>Luke is an egoist, and Riley is an egoist.</answer>
+
+            Example 3:
+            Question: A very special island is inhabited only by angels and devils. Angels always tell the truth, and devils always lie. You meet 3 inhabitants: Logan, Aurora, and Riley. Logan asserted: "Aurora is an angel". As Aurora put it, "if Logan is an angel then Riley is a devil". Riley stated, "Logan is a devil". So who is an angel and who is a devil? (Format your answer like: "Logan is a angel/devil, Aurora is a angel/devil, and Riley is a angel/devil")
+            Answer: Assume Logan is an angel (tells truth). Then Aurora is an angel (as Logan stated). If Aurora is an angel, her statement "if Logan is angel then Riley is devil" means Riley is a devil. If Riley is a devil (lies), he says "Logan is a devil", which is false, consistent with lying. <answer>Logan is an angel, Aurora is an angel, and Riley is a devil.</answer>
+
+            Example 4:
+            Question: A very special island is inhabited only by heroes and villains. Heroes always tell the truth, and villains always lie. You meet 3 inhabitants: Luke, Henry, and Zoey. "Luke is a hero or Henry is a hero," Luke claimed. Henry said that if Zoey is a villain then Henry is a hero. In a statement by Zoey: "if Henry is a hero then Luke is a villain". So who is a hero and who is a villain? (Format your answer like: "Luke is a hero/villain, Henry is a hero/villain, and Zoey is a hero/villain")
+            Answer: Assume Luke is a hero (tells truth). His statement "Luke is hero OR Henry is hero" is true. Let's assume Henry is also a hero. Henry's statement "if Zoey is villain then Henry is hero" is true since Henry is a hero. Now for Zoey's statement "if Henry is hero then Luke is villain" - if Zoey is a villain (lies), her statement should be false. Since Henry is a hero and Luke is not a villain, the conditional is false, which is consistent with Zoey lying. <answer>Luke is a hero, Henry is a hero, and Zoey is a villain.</answer>
+
+            Example 5:
+            Question: A very special island is inhabited only by sages and fools. Sages always tell the truth, and fools always lie. You meet 4 inhabitants: Alexander, Elizabeth, Amelia, and Penelope. In a statement by Alexander: "if Amelia is a fool then Amelia is a sage". Elizabeth said that Penelope is a sage if and only if Amelia is a fool. "Alexander is a sage and Penelope is a sage" - Amelia. Penelope stated, "Amelia is a sage or Elizabeth is a fool". So who is a sage and who is a fool? (Format your answer like: "Alexander is a sage/fool, Elizabeth is a sage/fool, Amelia is a sage/fool, and Penelope is a sage/fool")
+            Answer: Alexander's statement "if Amelia is fool then Amelia is sage" is a contradiction if Amelia is a fool, so for Alexander to be a sage (truth-teller), Amelia must be a sage. If Amelia is a sage, her statement "Alexander is sage AND Penelope is sage" means both are sages. Penelope's statement "Amelia is sage OR Elizabeth is fool" is true if Penelope is a sage - since Amelia is sage, the OR is true. Elizabeth's statement "Penelope is sage ↔ Amelia is fool" - if Penelope is sage and Amelia is sage (not fool), the biconditional is false, so Elizabeth is a fool. <answer>Alexander is a sage, Elizabeth is a fool, Amelia is a sage, and Penelope is a sage.</answer>
+
+            Example 6:
+            Question: A very special island is inhabited only by heroes and villains. Heroes always tell the truth, and villains always lie. You meet 4 inhabitants: Sophia, Alexander, Grace, and Liam. Sophia stated, "if Sophia is a hero then Alexander is a villain". "Grace is a villain if and only if Liam is a hero," Alexander mentioned. "Sophia is a villain if and only if Sophia is a hero," Grace declared. As Liam put it, "Grace is a villain and Liam is a hero". So who is a hero and who is a villain? (Format your answer like: "Sophia is a hero/villain, Alexander is a hero/villain, Grace is a hero/villain, and Liam is a hero/villain")
+            Answer: Grace's statement "Sophia is villain ↔ Sophia is hero" is a contradiction, so it's false, meaning Grace is a villain. Assume Sophia is a hero. Her statement "if Sophia is hero then Alexander is villain" means Alexander is a villain. Alexander's statement "Grace is villain ↔ Liam is hero" - if Alexander is a villain (lies), this should be false. Since Grace is a villain, for the biconditional to be false, Liam must not be a hero (Liam is villain). Liam's statement "Grace is villain AND Liam is hero" - since Liam is a villain, this false statement is consistent. <answer>Sophia is a hero, Alexander is a villain, Grace is a villain, and Liam is a villain.</answer>
+
+            Example 7:
+            Question: A very special island is inhabited only by angels and devils. Angels always tell the truth, and devils always lie. You meet 5 inhabitants: Ava, Amelia, Daniel, Mia, and Jack. "Mia is an angel if and only if Jack is a devil," Ava mentioned. In Amelia's words: "Daniel is a devil or Mia is an angel". Daniel was heard saying, "Ava is a devil". Mia noted, "Jack is a devil". Jack was heard saying, "Mia is a devil if and only if Mia is an angel". So who is an angel and who is a devil? (Format your answer like: "Ava is a angel/devil, Amelia is a angel/devil, Daniel is a angel/devil, Mia is a angel/devil, and Jack is a angel/devil")
+            Answer: Jack's statement "Mia is devil ↔ Mia is angel" is a contradiction, so it's false, meaning Jack is a devil. If Mia is an angel, her statement "Jack is devil" is true. Ava's statement "Mia is angel ↔ Jack is devil" - both parts are true, so the biconditional is true, meaning Ava is an angel. Amelia's statement "Daniel is devil OR Mia is angel" - since Mia is angel, the OR is true, so Amelia is an angel. Daniel's statement "Ava is devil" is false since Ava is angel, so Daniel is a devil. <answer>Ava is an angel, Amelia is an angel, Daniel is a devil, Mia is an angel, and Jack is a devil.</answer>
+
+            Example 8:
+            Question: A very special island is inhabited only by saints and sinners. Saints always tell the truth, and sinners always lie. You meet 5 inhabitants: Penelope, Lily, Riley, Mia, and Aria. "Mia is a saint and Lily is a sinner," Penelope claimed. Lily noted, "Penelope is a sinner". Riley asserted: "if Lily is a sinner then Mia is a sinner". Mia noted, "Penelope is a sinner if and only if Penelope is a saint". Aria expressed that Lily is a saint. So who is a saint and who is a sinner? (Format your answer like: "Penelope is a saint/sinner, Lily is a saint/sinner, Riley is a saint/sinner, Mia is a saint/sinner, and Aria is a saint/sinner")
+            Answer: Mia's statement "Penelope is sinner ↔ Penelope is saint" is a contradiction, so it's false, meaning Mia is a sinner. Assume Lily is a saint. Lily's statement "Penelope is sinner" means Penelope is a sinner. Penelope's statement "Mia is saint AND Lily is sinner" - since Mia is sinner and Lily is saint, this is false, consistent with Penelope being a sinner. Riley's statement "if Lily is sinner then Mia is sinner" has a false premise (Lily is saint), making it vacuously true, so Riley is a saint. Aria's statement "Lily is saint" is true, so Aria is a saint. <answer>Penelope is a sinner, Lily is a saint, Riley is a saint, Mia is a sinner, and Aria is a saint.</answer>
+
+            Example 9:
+            Question: A very special island is inhabited only by angels and devils. Angels always tell the truth, and devils always lie. You meet 6 inhabitants: Liam, Zoey, Ava, Logan, James, and Avery. Liam commented, "James is a devil if and only if Ava is a devil". Zoey asserted: "Zoey is an angel and Logan is a devil". In Ava's words: "Liam is a devil". "Avery is a devil," Logan mentioned. James said that if Avery is an angel then Zoey is an angel. Avery asserted: "Avery is an angel and Liam is a devil". So who is an angel and who is a devil? (Format your answer like: "Liam is a angel/devil, Zoey is a angel/devil, Ava is a angel/devil, Logan is a angel/devil, James is a angel/devil, and Avery is a angel/devil")
+            Answer: Assume Ava is an angel. Her statement "Liam is devil" means Liam is a devil. Liam's statement "James is devil ↔ Ava is devil" - if Liam is a devil (lies), since Ava is angel (not devil), for the biconditional to be false, James must also not be a devil, so James is a devil (making both sides false, thus true). Wait, let me reconsider. If Liam lies, the biconditional is false. Ava is angel (not devil), so for false biconditional, James must be devil. Assume Avery is an angel. Avery's statement "Avery is angel AND Liam is devil" is true. Zoey's statement "Zoey is angel AND Logan is devil" - if this is false, Zoey is a devil. Logan's statement "Avery is devil" is false, so Logan is a devil. James's statement "if Avery is angel then Zoey is angel" - since Avery is angel and Zoey is devil, this is false, so James is a devil. <answer>Liam is a devil, Zoey is a devil, Ava is an angel, Logan is a devil, James is a devil, and Avery is an angel.</answer>
+
+            Example 10:
+            Question: A very special island is inhabited only by knights and knaves. Knights always tell the truth, and knaves always lie. You meet 6 inhabitants: Aria, Ava, Amelia, Grace, Charlotte, and Jack. "Jack is a knight," Aria claimed. In a statement by Ava: "Jack is a knight". Amelia asserted: "Jack is a knave and Grace is a knight". Grace commented, "Aria is a knight if and only if Charlotte is a knave". As Charlotte put it, "Aria is a knight". Jack noted, "Ava is a knave if and only if Charlotte is a knave". So who is a knight and who is a knave? (Format your answer like: "Aria is a knight/knave, Ava is a knight/knave, Amelia is a knight/knave, Grace is a knight/knave, Charlotte is a knight/knave, and Jack is a knight/knave")
+            Answer: Assume Aria is a knight. Her statement "Jack is knight" means Jack is a knight. Ava's statement "Jack is knight" is true, so Ava is a knight. Charlotte's statement "Aria is knight" is true, so Charlotte is a knight. Jack's statement "Ava is knave ↔ Charlotte is knave" - both Ava and Charlotte are knights (not knaves), so both sides are false, making the biconditional true, consistent with Jack being a knight. Grace's statement "Aria is knight ↔ Charlotte is knave" - Aria is knight and Charlotte is knight (not knave), so the biconditional is false, meaning Grace is a knave. Amelia's statement "Jack is knave AND Grace is knight" - Jack is knight and Grace is knave, so this is false, meaning Amelia is a knave. <answer>Aria is a knight, Ava is a knight, Amelia is a knave, Grace is a knave, Charlotte is a knight, and Jack is a knight.</answer>
             """  # noqa: F541, E501
         ),
     }
@@ -413,17 +452,46 @@ class ReasoningGymDataset(DatasetForGRPO):
             jsonl_file_path = os.path.join(base_path, "train.jsonl")
         prompt_method = self.script_args.prompt_method
 
-        dataset: Dataset = load_dataset("json", data_files=jsonl_file_path, split="train")
+        # Load JSONL file
+        # For knights_knaves, we need to manually load due to complex nested structures
+        # that cause PyArrow parsing issues
+        if self.script_args.training_mode == "rg-knights_knaves":
+            import json
+
+            data_list = []
+            with open(jsonl_file_path, encoding="utf-8") as f:
+                for line in f:
+                    data = json.loads(line)
+                    # Convert problematic nested list fields to strings to avoid PyArrow issues
+                    # We'll keep the original nested structure since we don't need these fields for training
+                    if "statements" in data.get("metadata", {}):
+                        data["metadata"]["statements"] = json.dumps(data["metadata"]["statements"])
+                    if "solution" in data.get("metadata", {}):
+                        data["metadata"]["solution"] = json.dumps(data["metadata"]["solution"])
+                    data_list.append(data)
+            dataset: Dataset = Dataset.from_list(data_list)
+        else:
+            dataset: Dataset = load_dataset("json", data_files=jsonl_file_path, split="train")
 
         # Define a named function for better caching
         difficulty_key = ReasoningGymDataset.RG_TASK2DIFFICULTY_KEY[self.script_args.training_mode]
 
         def add_prompt_formatting_rg(x):
+            # Get difficulty value based on the task's difficulty key
+            if difficulty_key is None:
+                difficulty_value = None
+            elif difficulty_key in x["metadata"]:
+                # Direct key in metadata (e.g., "family_size")
+                difficulty_value = x["metadata"][difficulty_key]
+            else:
+                # Nested in metadata["difficulty"] (e.g., "n_people")
+                difficulty_value = x["metadata"]["difficulty"][difficulty_key]
+
             return {
                 "prompt": self.get_prompt_for_sample(x, prompt_method),
                 "answer": str(x["answer"]),
                 "prompt_method": prompt_method,
-                "difficulty": x["metadata"][difficulty_key],
+                "difficulty": difficulty_value,
                 "id": x["metadata"]["source_index"],
             }
 
@@ -441,7 +509,7 @@ class ReasoningGymDataset(DatasetForGRPO):
 
         Args:
             sample (dict[str, Any]): A sample from the dataset, with keys "question".
-            prompt_method (str): Either "zeroshot" or "cot".
+            prompt_method (str): Either "zeroeshot" or "cot".
 
         Returns:
             CONVO_T: A list of messages for the conversational-style prompt.
@@ -450,7 +518,7 @@ class ReasoningGymDataset(DatasetForGRPO):
         question = sample["question"]
 
         match prompt_method:
-            case "zeroshot":
+            case "zeroeshot":
                 prompt = [
                     {
                         "role": "user",
@@ -560,7 +628,7 @@ class WikiDataset(DatasetForGRPO):
 
         Args:
             sample (dict[str, Any]): A sample from the dataset, with keys "question", "title", "article".
-            prompt_method (str): Either "zeroshot" or "cot".
+            prompt_method (str): Either "zeroeshot" or "cot".
 
         Returns:
             CONVO_T: A list of messages for the conversational-style prompt.
@@ -569,7 +637,7 @@ class WikiDataset(DatasetForGRPO):
         text_corpus = pd.DataFrame({"title": sample["title"], "article": sample["article"]})
         evidence = self.get_all_evidence(text_corpus)
         match prompt_method:
-            case "zeroshot":
+            case "zeroeshot":
                 llm_prompt = ZeroshotLLMPrompt()
                 prompt = [
                     {
