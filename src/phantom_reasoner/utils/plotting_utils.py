@@ -21,7 +21,7 @@ TRAIN_DATASET_ALIAS2COLOR = {
     "rg-family_relationships": "myGreen",
 }
 
-EVAL_DATASET_NAMES = ["HotpotQA", "2Wiki", "MuSiQue", "CofCA"]
+EVAL_DATASET_NAMES = ["HotpotQA", "2Wiki", "MuSiQue", "CofCA", "SynthWorlds-RM"]
 
 # Single column figures
 MARKER_ALPHA = 1
@@ -38,6 +38,7 @@ LEGEND_FONT_SIZE = 13
 MODEL_NAME2ALIAS = {
     "microsoft/Phi-4-mini-reasoning": "Phi-4-Mini-Reasoning",
     "Qwen/Qwen2.5-1.5B-Instruct": "Qwen2.5-1.5B-Instruct",
+    "Qwen/Qwen2.5-7B-Instruct": "Qwen2.5-7B-Instruct",
     "Qwen/Qwen3-0.6B": "Qwen3-0.6B",
     "Qwen/Qwen3-1.7B": "Qwen3-1.7B",
 }
@@ -45,6 +46,7 @@ MODEL_NAME2ALIAS = {
 MODEL_NAME2MARKER = {
     "microsoft/Phi-4-mini-reasoning": "X",
     "Qwen/Qwen2.5-1.5B-Instruct": "d",
+    "Qwen/Qwen2.5-7B-Instruct": "+",
     "Qwen/Qwen3-0.6B": "s",
     "Qwen/Qwen3-1.7B": "o",
 }

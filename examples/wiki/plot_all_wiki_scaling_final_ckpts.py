@@ -36,34 +36,45 @@ parser.add_argument("--base_model_names_to_plot", nargs="+", default=["Qwen/Qwen
 parser.add_argument("--figures_dir", type=str, default="scripts/final_plots/figures")
 args = parser.parse_args()
 
-eval_datasets = ["hp500", "2wiki500", "msq500"]
+eval_datasets = ["hp500", "2wiki500", "msq500", "cofca500"]
+# eval_datasets = ["hp500", "2wiki500", "msq500", "cofca500", "synthrm500"]
 eval_dataset2name = {
     "hp500": "HotpotQA",
     "2wiki500": "2Wiki",
     "msq500": "MuSiQue",
+    "cofca500": "CofCA",
+    "synthrm500": "SynthWorlds-RM",
 }
 eval_dataset2plot_metric = {
     "hp500": "f1",
     "2wiki500": "f1",
     "msq500": "f1",
+    "cofca500": "f1",
+    "synthrm500": "f1",
 }
 eval_dataset2ylims = {
     "hp500": (0.3, 0.8),
     "2wiki500": (0.3, 0.8),
     "msq500": (0.0, 0.5),
+    "cofca500": (0.3, 0.8),
+    "synthrm500": (0.3, 0.8),
 }
 eval_dataset2yticks = {
     "hp500": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
     "2wiki500": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
     "msq500": [0.0, 0.1, 0.2, 0.3, 0.4, 0.5],
+    "cofca500": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
+    "synthrm500": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
 }
 if "Qwen/Qwen2.5-1.5B-Instruct" in args.base_model_names_to_plot:
-    # Qwen2.5-1.5B-Instruct model starts off poorly on hp and 2wiki
+    # Qwen2.5-1.5B-Instruct model starts off poorly on hp and 2wiki and cofca
     # So start the y axis at 0
     eval_dataset2ylims["hp500"] = (0.0, 0.8)
     eval_dataset2ylims["2wiki500"] = (0.0, 0.8)
+    eval_dataset2ylims["cofca500"] = (0.0, 0.8)
     eval_dataset2yticks["hp500"] = [0.0, 0.2, 0.4, 0.6, 0.8]
     eval_dataset2yticks["2wiki500"] = [0.0, 0.2, 0.4, 0.6, 0.8]
+    eval_dataset2yticks["cofca500"] = [0.0, 0.2, 0.4, 0.6, 0.8]
 
 # Load the yaml file
 with open(args.final_ckpts_yaml_path) as f:

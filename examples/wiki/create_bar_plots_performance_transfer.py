@@ -32,7 +32,13 @@ with open(args.final_ckpts_yaml_path) as f:
     final_ckpts_yaml = yaml.safe_load(f)
     synthetic_train_ckpts = final_ckpts_yaml["synthetic_train_ckpts"]
 
-models_in_order = ["Qwen3-0.6B", "Qwen3-1.7B", "Qwen2.5-1.5B-Instruct", "Phi-4-Mini-Reasoning"]
+models_in_order = [
+    "Qwen3-0.6B",
+    "Qwen3-1.7B",
+    "Qwen2.5-1.5B-Instruct",
+    "Qwen2.5-7B-Instruct",
+    "Phi-4-Mini-Reasoning",
+]
 # models_in_order = ["Qwen3-0.6B", "Qwen3-1.7B", "Qwen3-4B", "Qwen2.5-1.5B-Instruct",
 # "Qwen2.5-7B-Instruct", "Phi-4-Mini-Reasoning"]
 train_dataset_names = ["base", "rg-family_relationships", "gsminf", "pw"]
@@ -42,6 +48,7 @@ eval_dataset_alias2name = {
     "2wiki500": "2Wiki",
     "msq500": "MuSiQue",
     "cofca500": "CofCA",
+    "synthrm500": "SynthWorlds-RM",
 }
 
 LINE_WIDTH = 1
