@@ -13,27 +13,22 @@ Usage:
 
     # Run on hp dataset with all seeds
     python examples/wiki/create_reasoning_evolution_csv.py \
-        --train-dataset hp \
-        --eval-dataset hp500 \
-        --training-seed -1
-
-    # Specify custom output
-    python examples/wiki/create_reasoning_evolution_csv.py \
-        --output-filename my_results.csv
+        --train_dataset hp \
+        --eval_dataset hp500 \
+        --training_seed -1
 
 Command Line Arguments:
-    --yaml-path: Path to YAML file containing checkpoint configurations
-    --data-dir: Base directory containing datasets
-    --train-dataset: Training dataset to filter from YAML (e.g. 'pw', 'hp', '2wiki', 'msq')
-    --eval-dataset: Evaluation dataset to load ground truth from (e.g. 'msq500', 'hp500')
+    --final_ckpts_yaml_path: Path to YAML file containing checkpoint configurations
+    --data_dir: Base directory containing datasets
+    --train_dataset: Training dataset to filter from YAML (e.g. 'pw', 'gsminf', 'hp' etc.)
+    --eval_dataset: Evaluation dataset to load ground truth from (e.g. 'msq500', 'cofca500')
     --split: Dataset split to use (e.g., 'minidev')
-    --preds-subdir: Subdirectory path to prediction JSON files
-    --output-dir: Directory for output CSV
-    --output-filename: Name of output CSV file
-    --training-seed: Training seed to filter experiments (1, 2, etc., or -1 for all seeds)
+    --figures_dir: Directory for output CSV
+    --training_seed: Training seed to filter experiments (1, 2, etc., or -1 for all seeds, default: 1)
 
 Output:
-    CSV file with columns:
+    CSV file with columns at location:
+      "<figures_dir>/reasoning_evolution__train=<train_dataset>__eval=<eval_dataset>.csv"
     - experiment: Experiment directory name
     - checkpoint: Training checkpoint number (0=base, max_checkpoint+500=final)
     - kth_intermediate_answer: Position of intermediate answer (1-4)
@@ -54,7 +49,10 @@ import yaml
 from utils.data_utils import load_data
 
 # Configuration constants
-COMPLEXITY_RANGE = [2, 3, 4]  # MSQ has 2-4 hops https://arxiv.org/pdf/2108.00573
+EVAL_DATASET2COMPLEXITY_RANGE = {
+    "msq500": [2, 3, 4],  # MSQ has 2-4 hops https://arxiv.org/abs/2108.00573
+    "cofca500": [2, 3, 4],  # CofCA has 2-4 hops https://arxiv.org/abs/2402.11924v5
+}
 
 
 def parse_args():
@@ -63,32 +61,30 @@ def parse_args():
         description="Analyze training checkpoint predictions to track reasoning evolution"
     )
     parser.add_argument(
-        "--yaml-path",
+        "--final_ckpts_yaml_path",
         type=str,
-        default="scripts/final_plots/final_ckpts.yaml",
-        help="Path to YAML file containing checkpoint configurations "
-        "(default: scripts/final_plots/final_ckpts.yaml)",
+        required=True,
+        help="Path to YAML file containing checkpoint configurations",
     )
     parser.add_argument(
-        "--data-dir",
+        "--data_dir",
         type=str,
-        # default="/anvil/projects/x-nairr250102/phantom-reasoning/data",
-        default="/share/nikola/phantom-reasoning/data",
-        help="Base directory containing datasets " "(default: /share/nikola/phantom-reasoning/data)",
+        default="data",
+        help="Base directory containing datasets (default: data)",
     )
     parser.add_argument(
-        "--train-dataset",
+        "--train_dataset",
         type=str,
         default="pw",
         help="Training dataset name to filter experiments from YAML, "
-        "e.g. 'pw', 'hp', '2wiki', 'msq' (default: pw)",
+        "e.g. 'pw', 'hp', '2wiki', 'msq' etc. (default: pw)",
     )
     parser.add_argument(
-        "--eval-dataset",
+        "--eval_dataset",
         type=str,
         default="msq500",
-        help="Evaluation dataset to load ground truth from, "
-        "e.g. 'msq500', 'hp500', '2wiki500' (default: msq500)",
+        choices=["msq500", "cofca500"],
+        help="Evaluation dataset to load ground truth from, " "e.g. 'msq500', 'cofca500' (default: msq500)",
     )
     parser.add_argument(
         "--split",
@@ -97,25 +93,13 @@ def parse_args():
         help="Dataset split to use (default: minidev)",
     )
     parser.add_argument(
-        "--preds-subdir",
+        "--figures_dir",
         type=str,
-        default="out-msq500/preds/cot",
-        help="Subdirectory path to prediction JSON files " "(default: out-msq500/preds/cot)",
+        default="scripts/final_plots/figures",
+        help="Directory for output CSV (default: scripts/final_plots/figures)",
     )
     parser.add_argument(
-        "--output-dir",
-        type=str,
-        default="scripts/plots",
-        help="Directory for output CSV (default: scripts/plots)",
-    )
-    parser.add_argument(
-        "--output-filename",
-        type=str,
-        default="reasoning_evolution.csv",
-        help="Name of output CSV file (default: reasoning_evolution.csv)",
-    )
-    parser.add_argument(
-        "--training-seed",
+        "--training_seed",
         type=int,
         default=1,
         help="Training seed to filter experiments (default: 1, use -1 for all seeds)",
@@ -138,9 +122,9 @@ def extract_checkpoint_number(model_name):
         return 0  # Base model
 
 
-def load_experiment_data(experiment_dir, preds_subdir):
+def load_experiment_data(experiment_dir: Path, eval_dataset: str):
     """Load all training checkpoint predictions for one experiment."""
-    preds_dir = experiment_dir / preds_subdir
+    preds_dir = experiment_dir / f"out-{eval_dataset}" / "preds" / "cot"
     if not preds_dir.exists():
         print(f"Warning: {preds_dir} does not exist")
         return {}
@@ -260,7 +244,7 @@ def analyze_msq_decomposition_for_checkpoint(predictions: dict, ground_truth: di
     return breakdown
 
 
-def create_csv(all_experiment_results, output_dir, output_filename):
+def create_csv(all_experiment_results, eval_dataset, output_csv_path):
     """Create CSV file with breakdown data."""
     csv_data = []
 
@@ -269,7 +253,7 @@ def create_csv(all_experiment_results, output_dir, output_filename):
             breakdown = results["breakdown"]
 
             # For each complexity and position, add a row
-            for complexity in COMPLEXITY_RANGE:
+            for complexity in EVAL_DATASET2COMPLEXITY_RANGE[eval_dataset]:
                 if complexity in breakdown:
                     total_questions = breakdown[complexity]["total"]
                     found_counts = breakdown[complexity]["found"]
@@ -297,42 +281,34 @@ def create_csv(all_experiment_results, output_dir, output_filename):
                         )
 
     df = pd.DataFrame(csv_data)
-    csv_file = output_dir / output_filename
-    df.to_csv(csv_file, index=False)
-
-    print(f"CSV saved to {csv_file}")
+    df.to_csv(output_csv_path, index=False)
+    print(f"CSV saved to {output_csv_path}")
 
 
 def main():
     """Main function to analyze multiple training experiments and generate CSV."""
     # Parse command line arguments
     args = parse_args()
-
-    # Convert args to config dictionary with Path objects
-    config = {
-        "yaml_path": Path(args.yaml_path),
-        "data_dir": args.data_dir,
-        "train_dataset": args.train_dataset,
-        "eval_dataset": args.eval_dataset,
-        "split": args.split,
-        "preds_subdir": args.preds_subdir,
-        "output_dir": Path(args.output_dir),
-        "output_filename": args.output_filename,
-        "training_seed": None if args.training_seed == -1 else args.training_seed,
-    }
+    args.final_ckpts_yaml_path = Path(args.final_ckpts_yaml_path)
+    args.data_dir = Path(args.data_dir)
+    args.figures_dir = Path(args.figures_dir)
+    args.output_csv_filename = (
+        f"reasoning_evolution__train={args.train_dataset}__eval={args.eval_dataset}.csv"
+    )
+    args.output_csv_path = args.figures_dir / args.output_csv_filename
 
     # Create output directory
-    config["output_dir"].mkdir(exist_ok=True)
+    args.figures_dir.mkdir(parents=True, exist_ok=True)
 
     # Load YAML configuration
-    with open(config["yaml_path"]) as f:
+    with open(args.final_ckpts_yaml_path) as f:
         yaml_config = yaml.safe_load(f)
 
     # Load ground truth data (use eval_dataset)
     ground_truth = load_ground_truth(
-        data_dir=config["data_dir"],
-        dataset_name=config["eval_dataset"],
-        split=config["split"],
+        data_dir=args.data_dir,
+        dataset_name=args.eval_dataset,
+        split=args.split,
     )
 
     all_experiment_results = {}
@@ -343,31 +319,25 @@ def main():
             continue
 
         for dataset_config in datasets:
-            dataset_name = dataset_config.get("dataset_name", "")
-
-            # Filter by train_dataset if specified
-            if config["train_dataset"] and dataset_name != config["train_dataset"]:
+            # Only process the specified train dataset
+            if args.train_dataset != dataset_config["dataset_name"]:
                 continue
 
-            ckpts = dataset_config.get("ckpts", [])
-
-            for ckpt_group in ckpts:
+            for ckpt_group in dataset_config["ckpts"]:
                 model_name = ckpt_group.get("model", "unknown")
                 paths = ckpt_group.get("paths", [])
 
                 for exp_path in paths:
                     exp_dir = Path(exp_path)
-                    # Include model name in experiment name (extract part after "/")
-                    model_short = model_name.split("/")[-1]
-                    exp_name = f"{model_short}_{exp_dir.name}"
+                    exp_name = f"{model_name}/{exp_dir.name}"
 
                     # Filter by training seed if specified
-                    if config["training_seed"] is not None:
-                        seed_pattern = f"training_seed={config['training_seed']}"
+                    if args.training_seed != -1:
+                        seed_pattern = f"training_seed={args.training_seed}"
                         if seed_pattern not in str(exp_dir):
                             continue
 
-                    checkpoint_data = load_experiment_data(exp_dir, config["preds_subdir"])
+                    checkpoint_data = load_experiment_data(exp_dir, args.eval_dataset)
                     if not checkpoint_data:
                         continue
 
@@ -380,7 +350,7 @@ def main():
 
                     all_experiment_results[exp_name] = experiment_results
 
-    create_csv(all_experiment_results, config["output_dir"], config["output_filename"])
+    create_csv(all_experiment_results, args.eval_dataset, args.output_csv_path)
 
 
 if __name__ == "__main__":

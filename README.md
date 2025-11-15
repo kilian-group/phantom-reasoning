@@ -426,11 +426,18 @@ First, we create a CSV file with fraction of intermediate answers found in train
 Second, we plot the fraction of intermediate answers of msq500 dataset found, as training progresses.
 
 ```bash
-# TODO: 1. Create CSV
+# 1. Create CSV
+python examples/wiki/create_reasoning_evolution.csv \
+	--final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml \
+	--train_dataset pw \
+	--eval_dataset msq500 \
+	--figures_dir "scripts/final_plots/figures"
+
+# CSV at scripts/final_plots/figures/reasoning_evolution__train=pw__eval=msq500.csv
 
 # 2. Plot
 python scripts/final_plots/create_reasoning_evolution_msq500.py \
-    --csv_path scripts/final_plots/figures/reasoning_evolution_msq500.csv \
+    --csv_path scripts/final_plots/figures/reasoning_evolution__train=pw__eval=msq500.csv \
     --base_model_names_to_plot "Qwen/Qwen3-0.6B" "Qwen/Qwen3-1.7B" \
     --figures_dir "scripts/final_plots/figures"
 ```
