@@ -22,6 +22,11 @@ parser.add_argument(
     type=str,
     default="out__train=rg-family_relationships__eval=wiki",
 )
+parser.add_argument(
+    "--rg_knights_knaves_model_preds_dir",
+    type=str,
+    default="out__train=rg-knights_knaves__eval=wiki",
+)
 parser.add_argument("--figures_dir", type=str, default="scripts/final_plots/figures")
 args = parser.parse_args()
 
@@ -39,9 +44,7 @@ models_in_order = [
     "Qwen2.5-7B-Instruct",
     "Phi-4-Mini-Reasoning",
 ]
-# models_in_order = ["Qwen3-0.6B", "Qwen3-1.7B", "Qwen3-4B", "Qwen2.5-1.5B-Instruct",
-# "Qwen2.5-7B-Instruct", "Phi-4-Mini-Reasoning"]
-train_dataset_names = ["base", "rg-family_relationships", "gsminf", "pw"]
+train_dataset_names = ["base", "rg-family_relationships", "rg-knights_knaves", "gsminf", "pw"]
 eval_dataset_names = plotting_utils.EVAL_DATASET_NAMES
 eval_dataset_alias2name = {
     "hp500": "HotpotQA",
@@ -215,6 +218,7 @@ def load_data(
     pw_model_preds_dir: str,
     gsminf_model_preds_dir: str,
     rg_family_relationships_model_preds_dir: str,
+    rg_knights_knaves_model_preds_dir: str,
 ) -> tuple[dict, dict]:
     mean_data = {
         model: {
@@ -324,11 +328,34 @@ def load_data(
             mean_data[model][eval_name]["rg-family_relationships"] = mean(dfs_of_ckpt_paths["f1"])
             std_data[model][eval_name]["rg-family_relationships"] = std(dfs_of_ckpt_paths["f1"])
 
-    # Also save the data to a json file
-    save_path = Path(args.figures_dir) / "f1_transfer_performance_all.json"
-    with open(save_path, "w") as f:
-        json.dump({"mean_data": mean_data, "std_data": std_data}, f, indent=4)
-        f.write("\n")
+    # Get rg-knights_knaves model data
+    for alias, eval_name in eval_dataset_alias2name.items():
+        df_preds, _ = get_preds(args.rg_knights_knaves_model_preds_dir, "data", alias, "minidev", "cot")
+
+        # Get pw train dataset dict
+        pw_train_dataset_dict = None
+        for train_dataset_dict in synthetic_train_ckpts:
+            if train_dataset_dict["dataset_name"] == "rg-knights_knaves":
+                pw_train_dataset_dict = train_dataset_dict
+                break
+
+        # Get ckpt paths of model
+        for model in models:
+            ckpt_paths_of_model = None
+            for ckpt in pw_train_dataset_dict["ckpts"]:
+                if plotting_utils.MODEL_NAME2ALIAS[ckpt["model"]] == model:
+                    ckpt_paths_of_model = ckpt["paths"]
+                    break
+
+            # Collect data for the all checkpoints in a single df
+            dfs_of_ckpt_paths = []
+            for ckpt_path in ckpt_paths_of_model:
+                dfs_of_ckpt_paths.append(df_preds[df_preds["_model"] == ckpt_path])
+
+            dfs_of_ckpt_paths = pd.concat(dfs_of_ckpt_paths)
+            mean_data[model][eval_name]["rg-knights_knaves"] = mean(dfs_of_ckpt_paths["f1"])
+            std_data[model][eval_name]["rg-knights_knaves"] = std(dfs_of_ckpt_paths["f1"])
+
     return mean_data, std_data
 
 
@@ -339,7 +366,15 @@ if __name__ == "__main__":
         args.pw_model_preds_dir,
         args.gsminf_model_preds_dir,
         args.rg_family_relationships_model_preds_dir,
+        args.rg_knights_knaves_model_preds_dir,
     )
+
+    # Also save the data to a json file
+    save_path = Path(args.figures_dir) / "f1_transfer_performance_all.json"
+    with open(save_path, "w") as f:
+        json.dump({"mean_data": mean_data, "std_data": std_data}, f, indent=4)
+        f.write("\n")
+
     # Create a num_models x num_eval_datasets subplot figure
     fig, axes = plt.subplots(len(models_in_order), len(eval_dataset_names), figsize=(8, 12))
     for i, model in enumerate(models_in_order):
