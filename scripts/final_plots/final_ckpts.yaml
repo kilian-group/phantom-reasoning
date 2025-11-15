@@ -24,7 +24,7 @@ synthetic_train_ckpts:
         paths:
           [
             "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/microsoft/Phi-4-mini-reasoning/grpo/ak2426/0922__curr=random__training_seed=1",
-            "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1113__curr=random__training_seed=1",
+            "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1113__curr=random__training_seed=2",
           ]
       - model: Qwen/Qwen2.5-7B-Instruct
         paths: [
