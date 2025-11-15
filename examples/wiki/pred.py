@@ -94,6 +94,9 @@ async def main(args: ArgumentParser) -> None:
     logger.info(f"LLM prompt: {llm_prompt}")
 
     logger.info("Loading agent kwargs")
+    if args.no_evidence:
+        logger.info("*** No evidence: using empty text_corpus ***")
+
     corpora: list[pd.DataFrame] = []
     for i, row in df_qa_pairs.iterrows():
         titles = df_qa_pairs.iloc[i]["title"]
