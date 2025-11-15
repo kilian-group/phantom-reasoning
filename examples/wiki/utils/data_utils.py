@@ -189,12 +189,13 @@ def load_2wiki_data(data_path: str, split: str) -> dict:
 # ------------------------------------------------------------------------------------------------
 # COFCA
 # ------------------------------------------------------------------------------------------------
-def load_cofca_data(data_path: str, split: str) -> dict:
+def load_cofca_data(data_path: str, split: str, intermediate_answers: bool = False) -> dict:
     """Load COFCA dataset from disk.
 
     Args:
         data_path: Path to the dataset directory
         split: Dataset split (e.g., 'train', 'dev', 'minidev')
+        intermediate_answers: if True, also add question_decomposition field to each QA pair
 
     Returns:
         dict: Dictionary containing:
@@ -232,14 +233,27 @@ def load_cofca_data(data_path: str, split: str) -> dict:
             }
         )
 
-        qa_pairs.append(
-            {
-                "id": group["_id"],
-                "question": group["question"],
-                "answer": group["answer"],
-                "type": group["type"],
-            }
-        )
+        qa_data = {
+            "id": group["_id"],
+            "question": group["question"],
+            "answer": group["answer"],
+            "type": group["type"],
+        }
+        if intermediate_answers:
+            # CofCA dataset does not have question_decomposition field.
+            # Instead, it has "sub_questions": list[str] and "sub_answers": list[str] fields.
+            # Create question_decomposition field from sub_questions and sub_answers.
+            question_decomposition = []
+            for i, (sub_question, sub_answer) in enumerate(zip(group["sub_questions"], group["sub_answers"])):
+                question_decomposition.append(
+                    {
+                        "idx": i,
+                        "question": sub_question,
+                        "answer": sub_answer,
+                    }
+                )
+            qa_data["question_decomposition"] = question_decomposition
+        qa_pairs.append(qa_data)
 
     # Log final statistics
     logger.info(f"Loaded {len(qa_pairs)} questions " f"and {len(text_corpus)} articles")
