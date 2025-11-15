@@ -94,6 +94,35 @@ synthetic_train_ckpts:
             "share/runs__rg/data/rg-family_relationships/Qwen/Qwen2.5-7B-Instruct/grpo/x-anmolkab/1114__curr=random__training_seed=1",
           ]
 
+  - dataset_name: rg-knights_knaves
+    dataset_path: data/rg-knights_knaves
+    ckpts:
+      - model: Qwen/Qwen3-0.6B
+        paths: [
+            # Only 1 seed so far
+            "share/runs__rg/data/rg-knights_knaves/Qwen/Qwen3-0.6B/grpo/x-anmolkab/1115__curr=random__training_seed=1",
+          ]
+      - model: Qwen/Qwen3-1.7B
+        paths: [
+            # Only 1 seed so far
+            "share/runs__rg/data/rg-knights_knaves/Qwen/Qwen3-1.7B/grpo/x-anmolkab/1115__curr=random__training_seed=1",
+          ]
+      - model: Qwen/Qwen2.5-1.5B-Instruct
+        paths: [
+            # Only 1 seed so far
+            "share/runs__rg/data/rg-knights_knaves/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/1114__curr=random__training_seed=1",
+          ]
+      - model: microsoft/Phi-4-mini-reasoning
+        paths: [
+            # Only 1 seed so far
+            "share/runs__rg/data/rg-knights_knaves/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1115__curr=random__training_seed=1",
+          ]
+      - model: Qwen/Qwen2.5-7B-Instruct
+        paths: [
+            # Only 1 seed so far
+            "share/runs__rg/data/rg-knights_knaves/Qwen/Qwen2.5-7B-Instruct/grpo/ak2426/1115__curr=random__training_seed=1",
+          ]
+
 real_train_ckpts:
   - dataset_name: hp
     dataset_path: data/hp
