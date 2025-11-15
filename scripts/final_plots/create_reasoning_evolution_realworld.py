@@ -4,8 +4,9 @@ A subplot is created for each base model, showing performance vs kth intermediat
 
 Example usage:
 ```bash
-python scripts/final_plots/create_reasoning_evolution_msq500.py \
-    --csv_path scripts/final_plots/figures/reasoning_evolution_msq500.csv \
+python scripts/final_plots/create_reasoning_evolution_realworld.py \
+    --train_dataset pw \
+    --eval_dataset msq500 \
     --base_model_names_to_plot "Qwen/Qwen3-0.6B" "Qwen/Qwen3-1.7B" \
     --figures_dir "scripts/final_plots/figures"
 ```
@@ -17,6 +18,7 @@ from pathlib import Path
 import matplotlib.lines as lines
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+import numpy as np
 import pandas as pd
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import LinearSegmentedColormap, Normalize
@@ -29,8 +31,13 @@ setup_logging("INFO")
 
 
 parser = get_parser()
+parser.add_argument("--train_dataset", type=str, default="pw", help="Training dataset name")
 parser.add_argument(
-    "--csv_path", type=str, default="reasoning_evolution_msq500.csv", help="Path to the csv file"
+    "--eval_dataset",
+    type=str,
+    default="msq500",
+    choices=["msq500", "cofca500"],
+    help="Evaluation dataset name",
 )
 parser.add_argument(
     "--base_model_names_to_plot",
@@ -40,19 +47,25 @@ parser.add_argument(
 )
 parser.add_argument("--figures_dir", type=str, default="scripts/final_plots/figures")
 args = parser.parse_args()
+args.figures_dir = Path(args.figures_dir)
+args.figures_dir.mkdir(parents=True, exist_ok=True)
+args.csv_path = args.figures_dir / (
+    f"reasoning_evolution__train={args.train_dataset}__eval={args.eval_dataset}.csv"
+)
 
-train_dataset_names2xticks = {
-    "pw": [1, 2, 3, 4],
-}
 train_dataset_names2metric = {
     "pw": "proportion_found",
 }
 train_dataset_names2xlabel = {
     "pw": "Nth intermediate answer",
 }
-train_dataset_names2max_difficulty = {
-    "pw": 4,
+# Both datasets have upto 4 hops
+eval_dataset_names2max_difficulty = {
+    "msq500": 4,
+    "cofca500": 4,
 }
+
+MAX_DIFFICULTY = eval_dataset_names2max_difficulty[args.eval_dataset]
 
 DIFFICULTY = "complexity"
 
@@ -96,7 +109,6 @@ def plot_training_evolution(base_model_names: list[str], csv_path: str, save_pat
         train_dataset_name = "pw"
         metric = train_dataset_names2metric[train_dataset_name]
         colormap = get_colormap(train_dataset_name)
-        max_difficulty = train_dataset_names2max_difficulty[train_dataset_name]
 
         # Group by checkpoint and kth_intermediate_answer and take the mean
         # i.e. average over complexity of all questions
@@ -131,8 +143,8 @@ def plot_training_evolution(base_model_names: list[str], csv_path: str, save_pat
             )
 
         # format x-axis
-        xticks = train_dataset_names2xticks[train_dataset_name]
-        ax.set_xlim(xticks[0], max_difficulty)
+        xticks = np.arange(1, MAX_DIFFICULTY + 1)
+        ax.set_xlim(xticks[0], MAX_DIFFICULTY)
         ax.set_xticks(xticks)
         ax.set_xticklabels(xticks, fontsize=TICK_FONT_SIZE)
         ax.set_xlabel(train_dataset_names2xlabel[train_dataset_name], fontsize=LABEL_FONT_SIZE)
@@ -205,6 +217,10 @@ def plot_training_evolution(base_model_names: list[str], csv_path: str, save_pat
 
 if __name__ == "__main__":
     str_for_model_names = "__".join([m.replace("/", "--") for m in args.base_model_names_to_plot])
-    save_path = Path(args.figures_dir) / f"reasoning_evolution_msq500_{str_for_model_names}.pdf"
+    save_filename = (
+        f"reasoning_evolution__train={args.train_dataset}__"
+        f"eval={args.eval_dataset}__{str_for_model_names}.pdf"
+    )
+    save_path = Path(args.figures_dir) / save_filename
     os.makedirs(args.figures_dir, exist_ok=True)
     plot_training_evolution(args.base_model_names_to_plot, args.csv_path, save_path)
