@@ -19,12 +19,59 @@ rg_task2config = {
         "min_family_size": 3,
         "max_family_size": 20,
     },
-    "knights_knaves": {
-        # NOTE: what is the difficulty parameter for this task?
-        "n_people": 2,
-        # TODO what is the depth and width of the statement?
-    },
+    "knights_knaves": {"n_people": [2, 3, 4, 5, 6]},
 }
+
+
+def generate_knights_knaves_data(
+    size: int, seed: int, train_frac: float, **optional_config
+) -> tuple[list[dict], list[dict]]:
+    """
+    Generate knights_knaves data going over all possible values of n_people.
+    This generates a dataset with different difficulty levels.
+    """
+    train_entries = []
+    eval_entries = []
+    difficulty_levels = rg_task2config["knights_knaves"]["n_people"]
+    size_per_difficulty_level = size // len(difficulty_levels)
+    for n_people in difficulty_levels:
+        print(f"Generating knights_knaves data for {n_people} people")
+        optional_config = {
+            "n_people": n_people,
+        }
+        data = reasoning_gym.create_dataset(
+            "knights_knaves", size=size_per_difficulty_level, seed=seed, **optional_config
+        )
+        entries = []
+        for x in data:
+            entries.append(
+                {"question": x["question"], "answer": x["answer"], "metadata": x.get("metadata", {})}
+            )
+
+        # Shuffle entries list randomly with seed, then split into train and eval
+        rng = random.Random(seed)
+        rng.shuffle(entries)
+        cut = int(len(entries) * train_frac)
+        train_entries.extend(entries[:cut])
+        eval_entries.extend(entries[cut:])
+
+    return train_entries, eval_entries
+
+
+def generate_data(dataset: str, size: int, seed: int, train_frac: float) -> tuple[list[dict], list[dict]]:
+    optional_config = rg_task2config.get(dataset, {})
+    data = reasoning_gym.create_dataset(dataset, size=size, seed=seed, **optional_config)
+    entries = []
+    for x in data:
+        entries.append({"question": x["question"], "answer": x["answer"], "metadata": x.get("metadata", {})})
+
+    # Shuffle entries list randomly with seed, then split into train and eval
+    rng = random.Random(seed)
+    rng.shuffle(entries)
+    cut = int(len(entries) * train_frac)
+    train_entries = entries[:cut]
+    eval_entries = entries[cut:]
+    return train_entries, eval_entries
 
 
 def main():
@@ -41,18 +88,11 @@ def main():
     if not (0.0 < args.train_frac < 1.0):
         raise ValueError("--train_frac must be in (0,1)")
 
-    optional_config = rg_task2config.get(args.dataset, {})
-    data = reasoning_gym.create_dataset(args.dataset, size=args.size, seed=args.seed, **optional_config)
-    entries = []
-    for x in data:
-        entries.append({"question": x["question"], "answer": x["answer"], "metadata": x.get("metadata", {})})
-
-    # Shuffle entries list randomly with seed, then split into train and eval
-    rng = random.Random(args.seed)
-    rng.shuffle(entries)
-    cut = int(len(entries) * args.train_frac)
-    train_entries = entries[:cut]
-    eval_entries = entries[cut:]
+    match args.dataset:
+        case "knights_knaves":
+            train_entries, eval_entries = generate_knights_knaves_data(args.size, args.seed, args.train_frac)
+        case _:
+            train_entries, eval_entries = generate_data(args.dataset, args.size, args.seed, args.train_frac)
 
     os.makedirs(args.out_dir, exist_ok=True)
     train_path = os.path.join(args.out_dir, "train.jsonl")
@@ -61,7 +101,10 @@ def main():
     write_jsonl(eval_path, eval_entries)
 
     print(f"Dataset: {args.dataset}, seed: {args.seed}, train_frac: {args.train_frac}")
-    print(f"Total: {len(entries)}, train: {len(train_entries)}, eval: {len(eval_entries)}")
+    print(
+        f"Total: {len(train_entries) + len(eval_entries)}, "
+        f"train: {len(train_entries)}, eval: {len(eval_entries)}"
+    )
     print(f"Saved: {train_path}")
     print(f"Saved: {eval_path}")
 

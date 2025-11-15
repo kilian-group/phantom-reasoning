@@ -21,9 +21,10 @@ synthetic_train_ckpts:
             "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0914__curr=random__training_seed=2",
           ]
       - model: microsoft/Phi-4-mini-reasoning
-        paths: [
-            # Only 1 seed for so far
+        paths:
+          [
             "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/microsoft/Phi-4-mini-reasoning/grpo/ak2426/0922__curr=random__training_seed=1",
+            "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1113__curr=random__training_seed=1",
           ]
       - model: Qwen/Qwen2.5-7B-Instruct
         paths: [
@@ -68,29 +69,29 @@ synthetic_train_ckpts:
     dataset_path: data/rg-family_relationships
     ckpts:
       - model: Qwen/Qwen3-0.6B
-        paths:
-          [
+        paths: [
+            # Only 1 seed so far
             "share/runs__rg/data/rg-family_relationships/Qwen/Qwen3-0.6B/grpo/x-anmolkab/1108__curr=random__training_seed=1",
           ]
       - model: Qwen/Qwen3-1.7B
-        paths:
-          [
+        paths: [
+            # Only 1 seed so far
             "share/runs__rg/data/rg-family_relationships/Qwen/Qwen3-1.7B/grpo/x-anmolkab/1109__curr=random__training_seed=1",
           ]
       - model: Qwen/Qwen2.5-1.5B-Instruct
-        paths:
-          [
+        paths: [
+            # Only 1 seed so far
             "share/runs__rg/data/rg-family_relationships/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/1109__curr=random__training_seed=1",
           ]
       - model: microsoft/Phi-4-mini-reasoning
-        paths:
-          [
+        paths: [
+            # Only 1 seed so far
             "share/runs__rg/data/rg-family_relationships/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1112__curr=random__training_seed=1",
           ]
       - model: Qwen/Qwen2.5-7B-Instruct
         paths: [
-            # TODO: run this
-            "share/runs__rg/data/rg-family_relationships/Qwen/Qwen2.5-7B-Instruct/grpo/x-anmolkab/1112__curr=random__training_seed=1",
+            # Only 1 seed so far
+            "share/runs__rg/data/rg-family_relationships/Qwen/Qwen2.5-7B-Instruct/grpo/x-anmolkab/1114__curr=random__training_seed=1",
           ]
 
 real_train_ckpts:
