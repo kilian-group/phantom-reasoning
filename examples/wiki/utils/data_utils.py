@@ -333,12 +333,11 @@ def load_msq_data(
         data_path: Path to the dataset directory
         split: Dataset split (e.g., 'train', 'dev')
         answerable_only: if True, use MuSiQue-Ans, otherwise use MuSiQue-Full
-        intermediate_answers: if True, preserve question_decomposition field and return dict keyed by id
-        # TODO: returning dict by id is not ideal, we should return a list of QA pairs
+        intermediate_answers: if True, also add question_decomposition field to each QA pair
 
     Returns:
         dict: Dictionary containing:
-            - qa_pairs: List or Dict (if intermediate_answers=True) of QA pairs with metadata
+            - qa_pairs: List of QA pairs with metadata
             - text: List of context paragraphs with metadata
     """
     if answerable_only:
@@ -348,7 +347,7 @@ def load_msq_data(
     logger.info(f"Loading MuSiQue dataset from {file_path}")
 
     # Convert to format similar to phantom-wiki
-    qa_pairs = {} if intermediate_answers else []
+    qa_pairs = []
     text_corpus = []
 
     with open(file_path) as f:
@@ -367,19 +366,16 @@ def load_msq_data(
                 }
             )
 
+            qa_data = {
+                "id": group["id"],
+                "question": group["question"],
+                "answer": group["answer"],
+                "type": None,
+            }
             if intermediate_answers:
-                # Keep all fields from original data (including question_decomposition)
-                qa_data = group
-                qa_pairs[group["id"]] = qa_data
-            else:
-                # Extract only specific fields
-                qa_data = {
-                    "id": group["id"],
-                    "question": group["question"],
-                    "answer": group["answer"],
-                    "type": None,  # TODO: add type
-                }
-                qa_pairs.append(qa_data)
+                qa_data["question_decomposition"] = group["question_decomposition"]
+
+            qa_pairs.append(qa_data)
 
     # Log final statistics
     logger.info(f"Loaded {len(qa_pairs)} questions " f"and {len(text_corpus)} articles")

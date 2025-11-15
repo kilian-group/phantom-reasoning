@@ -55,7 +55,7 @@ EVAL_DATASET2COMPLEXITY_RANGE = {
 }
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
         description="Analyze training checkpoint predictions to track reasoning evolution"
@@ -107,7 +107,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def extract_checkpoint_number(model_name):
+def extract_checkpoint_number(model_name: str) -> int | None:
     """Extract checkpoint number from model name.
 
     Returns:
@@ -122,7 +122,7 @@ def extract_checkpoint_number(model_name):
         return 0  # Base model
 
 
-def load_experiment_data(experiment_dir: Path, eval_dataset: str):
+def load_experiment_data(experiment_dir: Path, eval_dataset: str) -> dict:
     """Load all training checkpoint predictions for one experiment."""
     preds_dir = experiment_dir / f"out-{eval_dataset}" / "preds" / "cot"
     if not preds_dir.exists():
@@ -157,7 +157,7 @@ def load_experiment_data(experiment_dir: Path, eval_dataset: str):
     return OrderedDict(sorted(checkpoint_data.items()))
 
 
-def load_ground_truth(data_dir, dataset_name, split):
+def load_gt_qa_pairs(data_dir: Path, dataset_name: str, split: str) -> list:
     """Load ground truth data preserving all fields including question_decomposition.
 
     Args:
@@ -166,10 +166,8 @@ def load_ground_truth(data_dir, dataset_name, split):
         split: Dataset split (e.g., 'minidev')
 
     Returns:
-        Dict mapping question_id -> full question data including decomposition info
+        List of QA pairs with "id", "question", "answer", "question_decomposition"
     """
-    # Use data_utils with intermediate_answers=True
-    # This preserves question_decomposition and returns a dict keyed by question ID
     data = load_data(
         data_dir=data_dir,
         dataset=dataset_name,
@@ -180,14 +178,14 @@ def load_ground_truth(data_dir, dataset_name, split):
     return data["qa_pairs"]
 
 
-def analyze_msq_decomposition_for_checkpoint(predictions: dict, ground_truth: dict) -> dict:
+def analyze_msq_decomposition_for_checkpoint(predictions: dict, gt_qa_pairs: list) -> dict:
     """Analyze MuSiQue question decomposition for a single checkpoint.
 
     Args:
         predictions: Dict mapping question_id -> prediction data
             with "interaction" field
-        ground_truth: Dict mapping question_id -> ground truth
-            with "question_decomposition" field
+        gt_qa_pairs: list of QA pairs with "id", "question_decomposition"
+            in ground truth evaluation dataset
 
     Returns:
         Dict mapping complexity level -> {"total": int, "found": list[int]}
@@ -197,15 +195,13 @@ def analyze_msq_decomposition_for_checkpoint(predictions: dict, ground_truth: di
     breakdown = {}
 
     # Track by number of decomposition steps
+    gt_question_ids = {q["id"] for q in gt_qa_pairs}
+    gt_question_ids_to_decomp = {q["id"]: q["question_decomposition"] for q in gt_qa_pairs}
     for question_id, pred_data in predictions.items():
-        if question_id not in ground_truth:
+        if question_id not in gt_question_ids:
             continue
 
-        gt_item = ground_truth[question_id]
-        if "question_decomposition" not in gt_item:
-            continue
-
-        decomp_steps = gt_item["question_decomposition"]
+        decomp_steps = gt_question_ids_to_decomp[question_id]
         num_steps = len(decomp_steps)
 
         # Initialize breakdown for this complexity
@@ -244,7 +240,7 @@ def analyze_msq_decomposition_for_checkpoint(predictions: dict, ground_truth: di
     return breakdown
 
 
-def create_csv(all_experiment_results, eval_dataset, output_csv_path):
+def create_csv(all_experiment_results: dict, eval_dataset: str, output_csv_path: Path) -> None:
     """Create CSV file with breakdown data."""
     csv_data = []
 
@@ -305,7 +301,7 @@ def main():
         yaml_config = yaml.safe_load(f)
 
     # Load ground truth data (use eval_dataset)
-    ground_truth = load_ground_truth(
+    ground_truth = load_gt_qa_pairs(
         data_dir=args.data_dir,
         dataset_name=args.eval_dataset,
         split=args.split,
@@ -314,7 +310,7 @@ def main():
     all_experiment_results = {}
 
     # Process all checkpoint groups in YAML (real_train_ckpts, synthetic_train_ckpts, etc.)
-    for group_name, datasets in yaml_config.items():
+    for _, datasets in yaml_config.items():
         if not isinstance(datasets, list):
             continue
 
