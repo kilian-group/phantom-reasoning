@@ -181,7 +181,7 @@ class GSMInfiniteDataset(DatasetForGRPO):
     Answer: Define upbeat metropolis comedy in Festival de Saint-Rivage as m; so m = 4. Define total number of movies in Festival de Saint-Rivage as k; so k = m = 4. Define intense detective thriller in Festival Lumi\u00e8re de Valmont as C; l = k - m = 4 - 4 = 0; so C = 3 + l = 3 + 0 = 3. Define total number of movies in Festival Lumi\u00e8re de Valmont as Q; so Q = C = 3. Define solemn period drama in R\u00eaves de Belleville as N; t = Q + C = 3 + 3 = 6; T = t + k = 6 + 4 = 10; so N = 4 + T = 4 + 10 = 14. Define total number of movies in R\u00eaves de Belleville as y; so y = N = 14. Define futuristic sci-fi movie in Festival de Clairmont as A; z = y + N = 14 + 14 = 28; q = z + C = 28 + 3 = 31; so A = 3 * q = 3 * 31 = 93. Define total number of movies in Festival de Clairmont as p; so p = A = 93. <answer>93</answer>.
     """  # noqa: F541, E501
 
-    def get_dataset(self, is_eval: bool) -> Dataset:
+    def get_dataset(self, is_eval: bool, get_solutions: bool = False) -> Dataset:
         if is_eval:
             base_path = self.script_args.eval_dataset_name
             difficulty_list = self.script_args.eval_split_list
@@ -209,7 +209,7 @@ class GSMInfiniteDataset(DatasetForGRPO):
 
                     # Define a named function for better caching
                     def add_prompt_formatting_gsm(x):
-                        return {
+                        r = {
                             "prompt": self.get_prompt_for_sample(x, prompt_method),
                             "answer": GSMInfiniteDataset.extract_gsm_final_answer_from_ground_truth(
                                 x["solution"]
@@ -218,6 +218,10 @@ class GSMInfiniteDataset(DatasetForGRPO):
                             "difficulty": x.get("op", None),
                             "id": x.get("id", None),
                         }
+                        if get_solutions:
+                            solution_str = x["solution"] + f" <answer>{r['answer']}</answer>"
+                            r["solution"] = solution_str
+                        return r
 
                     ds = ds.map(
                         add_prompt_formatting_gsm,

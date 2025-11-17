@@ -44,17 +44,11 @@ from phantom_reasoner.datasets_for_grpo import (
 from phantom_reasoner.trainers.custom_grpo_trainer import CustomGRPOTrainer
 from phantom_reasoner.utils import exp_utils
 from phantom_reasoner.utils.callbacks import DeleteAllButLastOptimizerCheckpointCallback
-
-# import HP metrics
 from phantom_reasoner.utils.hp.hotpot_evaluate_v1 import (
     exact_match_score as exact_match_score_hp,
 )
 from phantom_reasoner.utils.hp.hotpot_evaluate_v1 import f1_score as f1_score_hp
-
-# import msq metrics
 from phantom_reasoner.utils.msq.evaluate_utils import score_pred as score_pred_msq
-
-# import 2wiki metrics
 from phantom_reasoner.utils.twowiki.evaluate_2wiki import score_pred as score_pred_2wiki
 
 logger = logging.getLogger(__name__)
