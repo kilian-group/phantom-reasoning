@@ -40,10 +40,10 @@ with open(args.final_ckpts_yaml_path) as f:
 models_in_order = [
     "Qwen3-0.6B",
     "Qwen3-1.7B",
-    "Qwen3-4B",
     "Qwen2.5-1.5B-Instruct",
-    "Qwen2.5-7B-Instruct",
     "Phi-4-Mini-Reasoning",
+    "Qwen3-4B",
+    "Qwen2.5-7B-Instruct",
 ]
 train_dataset_names = ["base", "rg-family_relationships", "rg-knights_knaves", "gsminf", "pw"]
 eval_dataset_names = plotting_utils.EVAL_DATASET_NAMES
