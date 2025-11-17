@@ -48,6 +48,7 @@ MODEL_NAME2ALIAS = {
     "Qwen/Qwen2.5-7B-Instruct": "Qwen2.5-7B-Instruct",
     "Qwen/Qwen3-0.6B": "Qwen3-0.6B",
     "Qwen/Qwen3-1.7B": "Qwen3-1.7B",
+    "Qwen/Qwen3-4B": "Qwen3-4B",
 }
 
 MODEL_NAME2MARKER = {
@@ -56,4 +57,5 @@ MODEL_NAME2MARKER = {
     "Qwen/Qwen2.5-7B-Instruct": "+",
     "Qwen/Qwen3-0.6B": "s",
     "Qwen/Qwen3-1.7B": "o",
+    "Qwen/Qwen3-4B": "v",
 }

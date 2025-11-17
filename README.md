@@ -445,7 +445,7 @@ python scripts/final_plots/create_reasoning_evolution_realworld.py \
 ```
 
 <p align="center">
-  <img src="scripts/final_plots/figures/reasoning_evolution_msq500_Qwen3-0.6B__Qwen3-1.7B.png" alt="Reasoning evolution on Musique(performance as a function of intermediate answers, as training progresses)"/>
+  <img src="scripts/final_plots/figures/reasoning_evolution__train=pw__eval=msq500__Qwen3-0.6B__Qwen3-1.7B.png" alt="Reasoning evolution on Musique(performance as a function of intermediate answers, as training progresses)"/>
 </p>
 
 </details>

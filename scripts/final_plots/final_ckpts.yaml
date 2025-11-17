@@ -14,6 +14,11 @@ synthetic_train_ckpts:
             "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0913__curr=random__training_seed=1",
             "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0914__curr=random__training_seed=2",
           ]
+      - model: Qwen/Qwen3-4B
+        paths: [
+            # Only 1 seed so far
+            "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-4B/grpo/x-anmolkab/1113__curr=random__training_seed=1",
+          ]
       - model: Qwen/Qwen2.5-1.5B-Instruct
         paths:
           [
@@ -47,6 +52,11 @@ synthetic_train_ckpts:
             "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-1.7B/grpo/x-anmolkab/1108__curr=random__training_seed=1",
             "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-1.7B/grpo/x-anmolkab/1110__curr=random__training_seed=2",
           ]
+      - model: Qwen/Qwen3-4B
+        paths: [
+            # Only 1 seed so far
+            "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-4B/grpo/ak2426/1115__curr=random__training_seed=1",
+          ]
       - model: Qwen/Qwen2.5-1.5B-Instruct
         paths:
           [
@@ -78,6 +88,11 @@ synthetic_train_ckpts:
             # Only 1 seed so far
             "share/runs__rg/data/rg-family_relationships/Qwen/Qwen3-1.7B/grpo/x-anmolkab/1109__curr=random__training_seed=1",
           ]
+      - model: Qwen/Qwen3-4B
+        paths: [
+            # Only 1 seed so far
+            "share/runs__rg/data/rg-family_relationships/Qwen/Qwen3-4B/grpo/ak2426/1115__curr=random__training_seed=1",
+          ]
       - model: Qwen/Qwen2.5-1.5B-Instruct
         paths: [
             # Only 1 seed so far
@@ -105,7 +120,13 @@ synthetic_train_ckpts:
       - model: Qwen/Qwen3-1.7B
         paths: [
             # Only 1 seed so far
-            "share/runs__rg/data/rg-knights_knaves/Qwen/Qwen3-1.7B/grpo/x-anmolkab/1115__curr=random__training_seed=1",
+            "share/runs__rg/data/rg-knights_knaves/Qwen/Qwen3-1.7B/grpo/ak2426/1115__curr=random__training_seed=1",
+          ]
+      - model: Qwen/Qwen3-4B
+        paths: [
+            # Only 1 seed so far
+            # TODO: transfer
+            "share/runs__rg/data/rg-knights_knaves/Qwen/Qwen3-4B/grpo/ak2426/1116__curr=random__training_seed=1",
           ]
       - model: Qwen/Qwen2.5-1.5B-Instruct
         paths: [
@@ -115,6 +136,7 @@ synthetic_train_ckpts:
       - model: microsoft/Phi-4-mini-reasoning
         paths: [
             # Only 1 seed so far
+            # TODO: transfer
             "share/runs__rg/data/rg-knights_knaves/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1115__curr=random__training_seed=1",
           ]
       - model: Qwen/Qwen2.5-7B-Instruct
