@@ -70,8 +70,8 @@ synthetic_train_ckpts:
             "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1110__curr=random__training_seed=2",
           ]
       - model: Qwen/Qwen2.5-7B-Instruct
-        paths:
-          [
+        paths: [
+            # Only 1 seed so far
             "share/runs__gsm/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen2.5-7B-Instruct/grpo/x-anmolkab/1112__curr=random__training_seed=1",
           ]
 
@@ -125,7 +125,6 @@ synthetic_train_ckpts:
       - model: Qwen/Qwen3-4B
         paths: [
             # Only 1 seed so far
-            # TODO: transfer
             "share/runs__rg/data/rg-knights_knaves/Qwen/Qwen3-4B/grpo/ak2426/1116__curr=random__training_seed=1",
           ]
       - model: Qwen/Qwen2.5-1.5B-Instruct
@@ -136,7 +135,6 @@ synthetic_train_ckpts:
       - model: microsoft/Phi-4-mini-reasoning
         paths: [
             # Only 1 seed so far
-            # TODO: transfer
             "share/runs__rg/data/rg-knights_knaves/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1115__curr=random__training_seed=1",
           ]
       - model: Qwen/Qwen2.5-7B-Instruct

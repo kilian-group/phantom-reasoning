@@ -77,6 +77,16 @@ if "Qwen/Qwen2.5-1.5B-Instruct" in args.base_model_names_to_plot:
     eval_dataset2yticks["cofca500"] = [0.0, 0.2, 0.4, 0.6, 0.8]
     eval_dataset2yticks["synthrm500"] = [0.0, 0.2, 0.4, 0.6, 0.8]
 
+if ("Qwen/Qwen3-4B" in args.base_model_names_to_plot) or (
+    "Qwen/Qwen2.5-7B-Instruct" in args.base_model_names_to_plot
+):
+    # Big LLMs end up being very good on all datasets
+    # So end the y axis at 1.0 (only 2wiki500, msq500 needs adjusting)
+    eval_dataset2ylims["2wiki500"] = (0.5, 1.0)
+    eval_dataset2ylims["msq500"] = (0.3, 0.8)
+    eval_dataset2yticks["2wiki500"] = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    eval_dataset2yticks["msq500"] = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+
 # Load the yaml file
 with open(args.final_ckpts_yaml_path) as f:
     final_ckpts_yaml = yaml.safe_load(f)

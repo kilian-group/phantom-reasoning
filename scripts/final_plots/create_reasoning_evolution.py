@@ -173,6 +173,8 @@ def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: 
     # Remove rg-family_relationships from the list
     if "rg-family_relationships" in train_dataset_names:
         train_dataset_names.pop(train_dataset_names.index("rg-family_relationships"))
+    if "rg-knights_knaves" in train_dataset_names:
+        train_dataset_names.pop(train_dataset_names.index("rg-knights_knaves"))
     num_subplots = len(train_dataset_names) * len(base_model_names)
     # To maintain colors, plot all models for a training dataset,
     # then move to the next training dataset
@@ -182,6 +184,10 @@ def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: 
     for i, train_ckpts_dict in enumerate(synthetic_train_ckpts):
         train_dataset_name = train_ckpts_dict["dataset_name"]
         if train_dataset_name == "rg-family_relationships":
+            # Not supported for this script
+            continue
+        if train_dataset_name == "rg-knights_knaves":
+            # TODO: not supported for this script
             continue
         metric = train_dataset_names2metric[train_dataset_name]
         colormap = get_colormap(train_dataset_name)
