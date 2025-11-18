@@ -219,8 +219,7 @@ class GSMInfiniteDataset(DatasetForGRPO):
                             "id": x.get("id", None),
                         }
                         if get_solutions:
-                            solution_str = x["solution"] + f" <answer>{r['answer']}</answer>"
-                            r["solution"] = solution_str
+                            r["solution"] = x["solution"]
                         return r
 
                     ds = ds.map(

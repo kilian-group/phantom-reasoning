@@ -11,6 +11,7 @@ bash scripts/train_sft_on_solutions.sub \
 
 import logging
 import os
+import re
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -40,22 +41,33 @@ logger = logging.getLogger(__name__)
 def train_sft_on_solutions(
     script_args: GRPOScriptArguments, training_args: SFTConfig, model_args: ModelConfig
 ):
+    # training_args.assistant_only_loss = True
+    logger.info(
+        f"*** Setting assistant_only_loss={training_args.assistant_only_loss} "
+        "to calculate loss on only assistant messages (solutions). ***"
+    )
+
     # Get train dataset and use a curriculum
     dataset_for_sft = GSMInfiniteDataset(script_args)
     train_dataset = dataset_for_sft.get_dataset(is_eval=False, get_solutions=True)
 
     # Map to convert from GRPO format (prompt/answer) to SFT format (prompt/completion)
     def convert_to_sft_format(sample):
-        # Prompt is in CONVO format when loaded from GSMInfiniteDataset,
-        # take the first message's content
+        # Remove Answer: NUMBER. from solution using regex
+        # Make completion in conversational format
+        solution = re.sub(r"Answer:\s*[^\n\.]\.", "", sample["solution"]).strip()
+        completion = [
+            {"role": "assistant", "content": solution + f" <answer>{sample['answer']}</answer>."},
+        ]
         return {
-            "prompt": sample["prompt"][0]["content"],
-            "completion": sample["solution"],
+            "prompt": sample["prompt"],
+            "completion": completion,
         }
 
     train_dataset = train_dataset.map(
         convert_to_sft_format,
         desc="Converting to SFT format",
+        remove_columns=train_dataset.column_names,
     )
 
     train_dataset = arrange_dataset(train_dataset, script_args.data_curriculum, training_args.seed)
@@ -69,6 +81,7 @@ def train_sft_on_solutions(
     eval_dataset = eval_dataset.map(
         convert_to_sft_format,
         desc="Converting eval to SFT format",
+        remove_columns=eval_dataset.column_names,
     )
 
     ################
