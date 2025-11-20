@@ -45,6 +45,16 @@ models_in_order = [
     "Qwen3-4B",
     "Qwen2.5-7B-Instruct",
 ]
+models_in_main_text = [
+    "Qwen3-0.6B",
+    "Qwen2.5-1.5B-Instruct",
+    "Phi-4-Mini-Reasoning",
+    "Qwen2.5-7B-Instruct",
+]
+models_in_appendix = [
+    "Qwen3-1.7B",
+    "Qwen3-4B",
+]
 train_dataset_names = ["base", "rg-family_relationships", "rg-knights_knaves", "gsminf", "pw"]
 eval_dataset_names = plotting_utils.EVAL_DATASET_NAMES
 eval_dataset_alias2name = {
@@ -156,14 +166,14 @@ def create_bar_plot_for_model(
             ax.set_title(dataset, fontsize=LABEL_FONT_SIZE, fontweight="bold")
 
     # Get the positions of the first and last subplot in this row
-    LEFT_OFFSET = 0.0
-    RIGHT_OFFSET = 0.0
-    BRACKET_Y_OFFSET = 0.05
+    LEFT_OFFSET = -0.025
+    RIGHT_OFFSET = 0.01
+    BRACKET_Y_OFFSET = 0.02
 
     # Calculate positions
     ax_left = axes[0].get_position()
     y_pos = ax_left.y0 - BRACKET_Y_OFFSET
-    BRACKET_HEIGHT = 0.015
+    BRACKET_HEIGHT = 0.01
 
     # Draw left vertical line
     fig.add_artist(
@@ -199,7 +209,7 @@ def create_bar_plot_for_model(
     )
 
     # Add the model name centered below the bracket
-    x_center = (x_left + x_right) / 2
+    x_center = (x_left - LEFT_OFFSET + x_right + RIGHT_OFFSET) / 2
     fig.text(
         x_center,
         y_pos + BRACKET_HEIGHT,
@@ -361,24 +371,32 @@ def load_data(
 
 
 if __name__ == "__main__":
-    mean_data, std_data = load_data(
-        models_in_order,
-        args.base_model_preds_dir,
-        args.pw_model_preds_dir,
-        args.gsminf_model_preds_dir,
-        args.rg_family_relationships_model_preds_dir,
-        args.rg_knights_knaves_model_preds_dir,
-    )
-
-    # Also save the data to a json file
     save_path = Path(args.figures_dir) / "f1_transfer_performance_all.json"
-    with open(save_path, "w") as f:
-        json.dump({"mean_data": mean_data, "std_data": std_data}, f, indent=4)
-        f.write("\n")
+    if not save_path.exists():
+        mean_data, std_data = load_data(
+            models_in_order,
+            args.base_model_preds_dir,
+            args.pw_model_preds_dir,
+            args.gsminf_model_preds_dir,
+            args.rg_family_relationships_model_preds_dir,
+            args.rg_knights_knaves_model_preds_dir,
+        )
+
+        # Also save the data to a json file
+        with open(save_path, "w") as f:
+            json.dump({"mean_data": mean_data, "std_data": std_data}, f, indent=4)
+            f.write("\n")
+
+    with open(save_path) as f:
+        data = json.load(f)
+        mean_data = data["mean_data"]
+        std_data = data["std_data"]
 
     # Create a num_models x num_eval_datasets subplot figure
-    fig, axes = plt.subplots(len(models_in_order), len(eval_dataset_names), figsize=(8, 12))
-    for i, model in enumerate(models_in_order):
+    # First main text figure
+    num_models = len(models_in_main_text)
+    fig, axes = plt.subplots(num_models, len(eval_dataset_names), figsize=(12, 4 * num_models))
+    for i, model in enumerate(models_in_main_text):
         yticks = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
         show_eval_titles = i == 0  # Only show eval titles for the first model (top row)
         axes_slice = axes[i, :]
@@ -422,13 +440,72 @@ if __name__ == "__main__":
     plt.subplots_adjust(
         left=0.08,  # where the left subplot y-labels are, increase to move them away from left figure edge
         right=0.98,  # where the right subplot edges are, increase to move them closer to right figure edge
-        top=0.82,  # where the top subplot edges are, increase to move them closer to top figure edge
-        bottom=0.1,  # where the bottom subplot edges are, increase to move them closer to bottom figure edge
-        hspace=0.35,  # horizontal space between subplots, increase to move them away
+        # top=0.85,  # where the top subplot edges are, increase to move them closer to top figure edge
+        # bottom=0.1,  # where the bottom subplot edges are, increase to move them closer to bottom figure
+        # hspace=0.25,  # horizontal space between subplots, increase to move them away
         wspace=0.05,  # vertical space between subplots, increase to move them away
     )
 
-    save_path = Path(args.figures_dir) / "f1_transfer_performance_all.pdf"
+    save_path = Path(args.figures_dir) / "f1_transfer_performance_main_text.pdf"
+    plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    plt.savefig(save_path.with_suffix(".png"), dpi=300, bbox_inches="tight")
+    print(f"Saved bar plot to {save_path} and {save_path.with_suffix('.png')}")
+    plt.close()
+
+    # Second appendix figure
+    num_models = len(models_in_appendix)
+    fig, axes = plt.subplots(num_models, len(eval_dataset_names), figsize=(12, 4 * num_models))
+    for i, model in enumerate(models_in_appendix):
+        yticks = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+        show_eval_titles = i == 0  # Only show eval titles for the first model (top row)
+        axes_slice = axes[i, :]
+        x_left = axes_slice[0].get_position().x0
+        x_right = axes_slice[-1].get_position().x1
+        create_bar_plot_for_model(
+            mean_data,
+            std_data,
+            model,
+            yticks,
+            axes_slice,
+            show_yticks=True,
+            show_eval_titles=show_eval_titles,
+            x_left=x_left,
+            x_right=x_right,
+        )
+
+    # Create legend with better styling
+    legend_elements = [
+        Patch(
+            facecolor=plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR[label]],
+            edgecolor="black",
+            label=plotting_utils.TRAIN_DATASET_ALIAS2NAME[label],
+        )
+        for label in train_dataset_names
+    ]
+
+    # Position legend on the right side
+    fig.legend(
+        handles=legend_elements,
+        loc="upper center",
+        fontsize=LABEL_FONT_SIZE,
+        frameon=True,
+        fancybox=False,
+        edgecolor="black",
+        bbox_to_anchor=(0.53, 0.93),  # Move just below the title at the top center
+        ncol=len(train_dataset_names),
+    )
+
+    # Adjust layout
+    plt.subplots_adjust(
+        left=0.08,  # where the left subplot y-labels are, increase to move them away from left figure edge
+        right=0.98,  # where the right subplot edges are, increase to move them closer to right figure edge
+        # top=0.85,  # where the top subplot edges are, increase to move them closer to top figure edge
+        # bottom=0.1,  # where the bottom subplot edges are, increase to move them closer to bottom figure
+        # hspace=0.25,  # horizontal space between subplots, increase to move them away
+        wspace=0.05,  # vertical space between subplots, increase to move them away
+    )
+
+    save_path = Path(args.figures_dir) / "f1_transfer_performance_appendix.pdf"
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
     plt.savefig(save_path.with_suffix(".png"), dpi=300, bbox_inches="tight")
     print(f"Saved bar plot to {save_path} and {save_path.with_suffix('.png')}")
