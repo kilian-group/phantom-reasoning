@@ -51,6 +51,9 @@ models_in_order = [
     "Qwen3-0.6B",
     "Qwen3-1.7B",
     "Qwen2.5-1.5B-Instruct",
+    "Phi-4-Mini-Reasoning",
+    "Qwen3-4B",
+    "Qwen2.5-7B-Instruct",
 ]
 train_dataset_names = ["base", "pw", "hp", "2wiki", "msq"]
 train_dataset_alias2name = {

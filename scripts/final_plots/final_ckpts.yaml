@@ -165,6 +165,21 @@ real_train_ckpts:
             "share/runs/data/hp/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0911__curr=random__training_seed=1",
             "share/runs/data/hp/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0919__curr=random__training_seed=2",
           ]
+      - model: microsoft/Phi-4-mini-reasoning
+        paths:
+          [
+            "share/runs/data/hp/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1118__curr=random__training_seed=1",
+          ]
+      - model: Qwen/Qwen3-4B
+        paths:
+          [
+            "share/runs/data/hp/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1118__curr=random__training_seed=1",
+          ]
+      - model: Qwen/Qwen2.5-7B-Instruct
+        paths:
+          [
+            "share/runs/data/hp/Qwen/Qwen2.5-7B-Instruct/grpo/ak2426/1118__curr=random__training_seed=1",
+          ]
 
   - dataset_name: 2wiki
     dataset_path: data/2wiki
