@@ -52,6 +52,8 @@ models_in_order = [
     "Qwen3-1.7B",
     "Qwen2.5-1.5B-Instruct",
     "Phi-4-Mini-Reasoning",
+]
+models_for_table_results = [
     "Qwen3-4B",
     "Qwen2.5-7B-Instruct",
 ]
@@ -169,14 +171,14 @@ def create_bar_plot_for_model(
             ax.set_title(dataset, fontsize=LABEL_FONT_SIZE, fontweight="bold")
 
     # Get the positions of the first and last subplot in this row
-    LEFT_OFFSET = 0.0
-    RIGHT_OFFSET = 0.0
-    BRACKET_Y_OFFSET = 0.05
+    LEFT_OFFSET = -0.025
+    RIGHT_OFFSET = 0.01
+    BRACKET_Y_OFFSET = 0.02
 
     # Calculate positions
     ax_left = axes[0].get_position()
     y_pos = ax_left.y0 - BRACKET_Y_OFFSET
-    BRACKET_HEIGHT = 0.015
+    BRACKET_HEIGHT = 0.01
 
     # Draw left vertical line
     fig.add_artist(
@@ -212,7 +214,7 @@ def create_bar_plot_for_model(
     )
 
     # Add the model name centered below the bracket
-    x_center = (x_left + x_right) / 2
+    x_center = (x_left - LEFT_OFFSET + x_right + RIGHT_OFFSET) / 2
     fig.text(
         x_center,
         y_pos + BRACKET_HEIGHT,
@@ -329,22 +331,29 @@ def load_data(
 
 
 if __name__ == "__main__":
-    mean_data, std_data = load_data(
-        models_in_order,
-        args.base_model_preds_dir,
-        args.pw_model_preds_dir,
-        args.wiki_model_preds_dir,
-        args.no_evidence,
-    )
-
-    # Also save the data to a json file
     save_path = Path(args.figures_dir) / f"f1_realworld_performance_all{no_evidence_suffix}.json"
-    with open(save_path, "w") as f:
-        json.dump({"mean_data": mean_data, "std_data": std_data}, f, indent=4)
-        f.write("\n")
+    if not save_path.exists():
+        mean_data, std_data = load_data(
+            models_in_order,
+            args.base_model_preds_dir,
+            args.pw_model_preds_dir,
+            args.wiki_model_preds_dir,
+            args.no_evidence,
+        )
+
+        # Also save the data to a json file
+        with open(save_path, "w") as f:
+            json.dump({"mean_data": mean_data, "std_data": std_data}, f, indent=4)
+            f.write("\n")
+
+    with open(save_path) as f:
+        data = json.load(f)
+        mean_data = data["mean_data"]
+        std_data = data["std_data"]
 
     # Create a num_models x num_eval_datasets subplot figure
-    fig, axes = plt.subplots(len(models_in_order), len(eval_dataset_names), figsize=(8, 10))
+    num_models = len(models_in_order)
+    fig, axes = plt.subplots(num_models, len(eval_dataset_names), figsize=(12, 4 * num_models))
     for i, model in enumerate(models_in_order):
         yticks = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
         show_eval_titles = i == 0  # Only show eval titles for the first model (top row)
@@ -390,9 +399,9 @@ if __name__ == "__main__":
     plt.subplots_adjust(
         left=0.08,
         right=0.98,
-        top=0.85,
-        bottom=0.1,
-        hspace=0.35,
+        # top=0.85,
+        # bottom=0.1,
+        # hspace=0.35,
         wspace=0.05,
     )
 
@@ -401,6 +410,30 @@ if __name__ == "__main__":
     plt.savefig(save_path.with_suffix(".png"), dpi=300, bbox_inches="tight")
     print(f"Saved bar plot to {save_path} and {save_path.with_suffix('.png')}")
     plt.close()
+
+    # Output table results, for each model output a markdown github table
+    # with columns as eval_dataset_names and rows as train_dataset_names
+    # and values as mean_data[model][eval_dataset_name][train_dataset_name]
+    # +- std_data[model][eval_dataset_name][train_dataset_name]
+    train_dataset_names_for_table = [
+        ("base", train_dataset_alias2name["base"]),
+        ("pw", train_dataset_alias2name["pw"]),
+        ("hp", train_dataset_alias2name["hp"]),
+    ]
+    for model in models_for_table_results:
+        table_df = pd.DataFrame(
+            columns=eval_dataset_names, index=[name for _, name in train_dataset_names_for_table]
+        )
+        for eval_dataset_name in eval_dataset_names:
+            for alias, train_dataset_name in train_dataset_names_for_table:
+                table_df.loc[train_dataset_name, eval_dataset_name] = (
+                    f"{mean_data[model][eval_dataset_name][alias]:.3f} "
+                    f"± {std_data[model][eval_dataset_name][alias]:.3f}"
+                )
+        print(tabulate(table_df, headers="keys", tablefmt="github", floatfmt=".3f"))
+        save_path = Path(args.figures_dir) / f"f1_realworld_performance_table_{model}{no_evidence_suffix}.csv"
+        table_df.to_csv(save_path)
+        print(f"Saved table to {save_path}")
 
     if args.no_evidence:
         # Generate a table (for each model) of delta scores like so:
