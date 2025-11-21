@@ -58,9 +58,9 @@ XLABEL = "Nth intermediate answer"
 DIFFICULTY = "complexity"
 
 # Increase font sizes for better readability, since we plot two models
-LABEL_FONT_SIZE = plotting_utils.LABEL_FONT_SIZE
-TICK_FONT_SIZE = plotting_utils.TICK_FONT_SIZE
-LEGEND_FONT_SIZE = plotting_utils.LEGEND_FONT_SIZE
+LABEL_FONT_SIZE = plotting_utils.LABEL_FONT_SIZE + 5
+TICK_FONT_SIZE = plotting_utils.TICK_FONT_SIZE + 5
+LEGEND_FONT_SIZE = plotting_utils.LEGEND_FONT_SIZE + 5
 
 
 def get_colormap(training_dataset_name):
