@@ -62,6 +62,9 @@ LABEL_FONT_SIZE = plotting_utils.LABEL_FONT_SIZE + 5
 TICK_FONT_SIZE = plotting_utils.TICK_FONT_SIZE + 5
 LEGEND_FONT_SIZE = plotting_utils.LEGEND_FONT_SIZE + 5
 
+BASE_COLOR = "darkgray"
+BASE_LINE_STYLE = "dashed"
+
 
 def get_colormap(training_dataset_name):
     COLORMAP_LAST_HEX = plotting_utils.COLORS2HEX[
@@ -109,12 +112,13 @@ def plot_training_evolution(base_model_name: str, figures_dir: Path, save_path: 
             # Select every 1000th checkpoint
             for ckpt in ckpts:
                 if ckpt == 0:
-                    color = plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR["base"]]
+                    color = BASE_COLOR
+                    linestyle = BASE_LINE_STYLE
                 else:
                     # Get the gradient color based on the checkpoint number, indexed into a colormap
                     cmap = plt.get_cmap(colormap)
                     color = cmap(ckpt / max_ckpt)
-
+                    linestyle = "solid"
                 linewidth = plotting_utils.LINE_WIDTH
                 if ckpt in [0, max_ckpt]:
                     linewidth = 1.5
@@ -129,7 +133,7 @@ def plot_training_evolution(base_model_name: str, figures_dir: Path, save_path: 
                     x,
                     y,
                     color=color,
-                    linestyle="solid",
+                    linestyle=linestyle,
                     linewidth=linewidth,
                     alpha=plotting_utils.LINE_ALPHA,
                 )
@@ -165,7 +169,7 @@ def plot_training_evolution(base_model_name: str, figures_dir: Path, save_path: 
         sm.set_array([])  # Only needed for older versions of matplotlib
         cbar = fig.colorbar(
             sm,
-            ax=axs[i * len(train_dataset_names): (i+1) * len(train_dataset_names)],
+            ax=axs[i * len(train_dataset_names) : (i + 1) * len(train_dataset_names)],
             orientation="horizontal",
             shrink=0.6,
             location="bottom",  # pad=0.7
@@ -176,9 +180,7 @@ def plot_training_evolution(base_model_name: str, figures_dir: Path, save_path: 
             labelsize=TICK_FONT_SIZE,
             labelcolor="black",
         )
-        cbar.ax.xaxis.set_major_formatter(
-            ticker.FuncFormatter(lambda x, pos: f"{int(x // 1000):d}" + "K")
-        )
+        cbar.ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f"{int(x // 1000):d}" + "K"))
         cbar.outline.set_visible(False)  # Remove bounding box
 
     fig.suptitle(
@@ -192,7 +194,8 @@ def plot_training_evolution(base_model_name: str, figures_dir: Path, save_path: 
         lines.Line2D(
             [0],
             [0],
-            color=plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR["base"]],
+            color=BASE_COLOR,
+            linestyle=BASE_LINE_STYLE,
             label=plotting_utils.TRAIN_DATASET_ALIAS2NAME["base"],
             linewidth=1.5,
         )
@@ -215,8 +218,6 @@ def plot_training_evolution(base_model_name: str, figures_dir: Path, save_path: 
 
 if __name__ == "__main__":
     for base_model_name in models_in_order:
-        save_filename = (
-            f"reasoning_evolution__realworld__{base_model_name.replace("/", "--")}.pdf"
-        )
+        save_filename = f"reasoning_evolution__realworld__{base_model_name.replace('/', '--')}.pdf"
         save_path = Path(args.figures_dir) / save_filename
         plot_training_evolution(base_model_name, args.figures_dir, save_path)

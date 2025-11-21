@@ -71,6 +71,9 @@ LABEL_FONT_SIZE = plotting_utils.LABEL_FONT_SIZE + 5
 TICK_FONT_SIZE = plotting_utils.TICK_FONT_SIZE + 5
 LEGEND_FONT_SIZE = plotting_utils.LEGEND_FONT_SIZE + 5
 
+BASE_COLOR = "darkgray"
+BASE_LINE_STYLE = "dashed"
+
 
 def get_colormap(training_dataset_name):
     COLORMAP_LAST_HEX = plotting_utils.COLORS2HEX[
@@ -239,11 +242,13 @@ def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: 
                 # If the ckpt_number is 0, use the base model color, else use the gradient color
                 ckpt_number = get_ckpt_number(ckpt_name, base_model_name, ckpt_parent_dir)
                 if ckpt_number == 0:
-                    color = plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR["base"]]
+                    color = BASE_COLOR
+                    linestyle = BASE_LINE_STYLE
                 else:
                     color = get_color(
                         ckpt_name, base_model_name, ckpt_parent_dir, max_ckpt=max_ckpt, colormap=colormap
                     )
+                    linestyle = "solid"
 
                 linewidth = plotting_utils.LINE_WIDTH
                 if ckpt_number in [0, max_ckpt]:
@@ -252,7 +257,7 @@ def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: 
                     x,
                     y,
                     color=color,
-                    linestyle="solid",
+                    linestyle=linestyle,
                     linewidth=linewidth,
                     alpha=plotting_utils.LINE_ALPHA,
                 )
@@ -309,7 +314,8 @@ def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: 
         lines.Line2D(
             [0],
             [0],
-            color=plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR["base"]],
+            color=BASE_COLOR,
+            linestyle=BASE_LINE_STYLE,
             label=plotting_utils.TRAIN_DATASET_ALIAS2NAME["base"],
             linewidth=1.5,
         )
