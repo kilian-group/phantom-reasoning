@@ -47,13 +47,13 @@ models_in_order = [
 ]
 models_in_main_text = [
     "Qwen3-0.6B",
-    "Qwen2.5-1.5B-Instruct",
+    "Qwen3-1.7B",
     "Phi-4-Mini-Reasoning",
-    "Qwen2.5-7B-Instruct",
+    "Qwen2.5-1.5B-Instruct",
 ]
 models_in_appendix = [
-    "Qwen3-1.7B",
     "Qwen3-4B",
+    "Qwen2.5-7B-Instruct",
 ]
 train_dataset_names = ["base", "rg-family_relationships", "rg-knights_knaves", "gsminf", "pw"]
 eval_dataset_names = plotting_utils.EVAL_DATASET_NAMES
