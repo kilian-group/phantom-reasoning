@@ -185,8 +185,8 @@ def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: 
     num_subplots = len(train_dataset_names) * len(base_model_names)
     # To maintain colors, plot all models for a training dataset,
     # then move to the next training dataset
-    fig_width = 4 * num_subplots
-    fig, axs = plt.subplots(1, num_subplots, figsize=(fig_width, 4), layout="constrained")
+    fig_width = 5 * num_subplots
+    fig, axs = plt.subplots(1, num_subplots, figsize=(fig_width, 5), layout="constrained")
 
     for i, train_ckpts_dict in enumerate(synthetic_train_ckpts):
         train_dataset_name = train_ckpts_dict["dataset_name"]
@@ -265,6 +265,28 @@ def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: 
                     linewidth=linewidth,
                     alpha=plotting_utils.LINE_ALPHA,
                 )
+
+            # Shade the OOD generalization region
+            max_difficulty_training = train_dataset_names2max_difficulty_training[train_dataset_name]
+            ax.axvspan(max_difficulty_training, max_difficulty, alpha=0.10, color="gray", zorder=0)
+            ax.axvline(
+                x=max_difficulty_training,
+                color="gray",
+                linestyle=":",
+                linewidth=plotting_utils.LINE_WIDTH,
+                alpha=0.6,
+            )
+            ax.text(
+                (max_difficulty_training + max_difficulty) / 2,
+                0.97,
+                "OOD",
+                transform=ax.get_xaxis_transform(),
+                ha="center",
+                va="top",
+                fontsize=TICK_FONT_SIZE,
+                color="gray",
+                fontweight="bold",
+            )
 
             # format x-axis
             xticks = train_dataset_names2xticks[train_dataset_name]

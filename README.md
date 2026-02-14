@@ -392,11 +392,14 @@ Each question in synthetic evaluation datasets of PhantomWiki and GSM-Infinite h
 We can thus evaluate all intermediate training checkpoints on evaluation splits of PhantomWiki and GSM-infinite, and plot how model performance evolves as a function of question difficulty as training progresses.
 
 ```bash
+export DATASET="data/wiki-v1-easy-depth_30_size_25"
+export PW_SPLITS="depth_30_size_25_seed_1 depth_30_size_25_seed_2 depth_30_size_25_seed_3"
 bash scripts/eval/pw_eval_all_ckpts.sh \
 	./scratch/runs/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags> \
 	Qwen/Qwen3-1.7B \
 	pw
 
+# TODO: evaluate on high difficulty dataset
 bash scripts/eval/gsminf_eval_all_ckpts.sh \
 	./scratch/runs/data/gsm-infinite-train/zero_context/realistic/Qwen/Qwen3-1.7B/grpo/$USER/MMDD__<flags> \
 	Qwen/Qwen3-1.7B \
