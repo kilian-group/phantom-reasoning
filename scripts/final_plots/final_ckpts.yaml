@@ -1,6 +1,7 @@
 synthetic_train_ckpts:
   - dataset_name: pw
     dataset_path: data/wiki-v1-easy-depth_20_size_25
+    dataset_path_high_difficulty: data/wiki-v1-easy-depth_30_size_25
     ckpts:
       - model: Qwen/Qwen3-0.6B
         paths:
@@ -39,6 +40,7 @@ synthetic_train_ckpts:
 
   - dataset_name: gsminf
     dataset_path: data/gsm-infinite-train/zero_context/realistic/medium
+    dataset_path_high_difficulty: data/gsm-infinite-op_25-train/zero_context/realistic/medium
     ckpts:
       - model: Qwen/Qwen3-0.6B
         paths:

@@ -43,8 +43,8 @@ args = parser.parse_args()
 assert len(args.base_model_names_to_plot) == 2, "Only two base models together are supported for this script"
 
 train_dataset_names2xticks = {
-    "pw": [1, 5, 9],
-    "gsminf": [2, 5, 10, 15, 20],
+    "pw": [1, 5, 9, 14],
+    "gsminf": [2, 5, 10, 15, 20, 25],
 }
 train_dataset_names2metric = {
     "pw": "f1",
@@ -55,6 +55,10 @@ train_dataset_names2xlabel = {
     "gsminf": "Arithmetic operations",
 }
 train_dataset_names2max_difficulty = {
+    "pw": 14,
+    "gsminf": 25,
+}
+train_dataset_names2max_difficulty_training = {
     "pw": 9,
     "gsminf": 20,
 }
@@ -215,7 +219,7 @@ def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: 
                 preds_output_dir,
                 method,
                 [metric],
-                dataset_path=train_ckpts_dict["dataset_path"],
+                dataset_path=train_ckpts_dict["dataset_path_high_difficulty"],
                 from_local=True,
             )
 

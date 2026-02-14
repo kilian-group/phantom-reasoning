@@ -17,8 +17,19 @@ cmd_args=$@
 # Go over all checkpoints, and run evaluation script on them
 OUT_DIR="$CHECKPOINT_PARENT_DIR/out-pw"
 
-DATASET="data/wiki-v1-easy-depth_20_size_25"
-PW_SPLITS="depth_20_size_25_seed_1 depth_20_size_25_seed_2 depth_20_size_25_seed_3"
+if [ -z "$DATASET" ]; then
+    echo "DATASET not set, using default dataset: data/wiki-v1-easy-depth_20_size_25"
+    DATASET="data/wiki-v1-easy-depth_20_size_25"
+else
+    echo "Using DATASET: $DATASET"
+fi
+
+if [ -z "$PW_SPLITS" ]; then
+    echo "PW_SPLITS not set, using default splits: depth_20_size_25_seed_1 depth_20_size_25_seed_2 depth_20_size_25_seed_3"
+    PW_SPLITS="depth_20_size_25_seed_1 depth_20_size_25_seed_2 depth_20_size_25_seed_3"
+else
+    echo "Using PW_SPLITS: $PW_SPLITS"
+fi
 
 # Evaluate the base model
 CUDA_VISIBLE_DEVICES=0 python -m phantom_eval \
