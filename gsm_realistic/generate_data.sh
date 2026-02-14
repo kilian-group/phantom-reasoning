@@ -12,6 +12,7 @@ do
 
     for length in "${lengths[@]}"
     do
+        python datagenerationworker.py --numprocs 4 --opmax 30 --total $total_num_questions --mod -1 --number_range 5 --target_length $length --d $d --force --listoperations 25 24 23 22 21
         python datagenerationworker.py --numprocs 8 --opmax 30 --total $total_num_questions --mod -1 --number_range 5 --target_length $length --d $d --force --listoperations 20 19
         python datagenerationworker.py --numprocs 8 --opmax 25 --total $total_num_questions --mod -1 --number_range 5 --target_length $length --d $d --force --listoperations 16 17 18
         python datagenerationworker.py --numprocs 8 --opmax 20 --total $total_num_questions --mod -1 --number_range 5 --target_length $length --d $d --force --listoperations 12 13 14 15
