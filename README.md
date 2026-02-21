@@ -13,11 +13,9 @@ This avoids python path conflicts and saves limited memory in `~/`.
 ./scripts/anvil/load_modules_cuda.sh
 ```
 
-2. Install SWI-prolog, python, uv package manager, phantom-wiki, phantom-reasoning, flash-attn, and pre-commit.
+2. Install SWI-prolog, python, uv package manager, phantom-reasoning, flash-attn, and pre-commit.
 
 ```bash
-# Assuming you are in ./phantom-reasoning git root repository
-
 export CONDA_ENV_NAME="phantom-reasoning" # or whatever the name of your conda environment is
 
 conda create -n $CONDA_ENV_NAME
@@ -27,33 +25,25 @@ conda install conda-forge::swi-prolog
 conda install python=3.12
 pip install uv
 
-# Install phantom-wiki and phantom-reasoning in editable modes
-git clone git@github.com:kilian-group/phantom-wiki.git
-cd phantom-wiki
-uv pip install -e ".[eval]"
-
-cd ..
+# Install phantom-reasoning in editable mode
 git clone git@github.com:anmolkabra/phantom-reasoning.git
 cd phantom-reasoning
 uv pip install -e ".[dev]"
 
-# NOTE as of 2025-08-11: flash-attn does not seem to work on Anvil because of old GLIBC version 2.28
-# (flash-attn==2.8.2 requires GLIBC 2.32 or higher)
+# flash-attn==2.8.2 requires GLIBC 2.32 or higher, and a GPU accessible via nvcc
+# If GLIBC required version is absent, the training script automatically disables flash-attention
 uv pip install flash-attn --no-build-isolation
 
 pre-commit install
 ```
 
-3. Set environment variables in the conda environment, so they are automatically loaded on activating the environment. We assume these flags are set later in the README.
+3. Set environment variables in the conda environment, so they are automatically loaded on activating the environment.
 
 ```bash
-conda env config vars set ANVIL_PROJECT_ID="nairr250102"
-conda env config vars set RUN_BASE_DIR="$SCRATCH/phantom-reasoning"
-conda env config vars set HF_HOME="$SCRATCH/huggingface"
-conda env config vars set CONDA_ENV_NAME=$CONDA_ENV_NAME # so the env name is available automatically when activated
+./scripts/setup_conda_env_vars.sh $CONDA_ENV_NAME
 
-conda deactivate
-conda activate $CONDA_ENV_NAME
+# If you are on the anvil cluster, pass "anvil" as the second argument to set the project iD
+./scripts/setup_conda_env_vars.sh $CONDA_ENV_NAME anvil
 ```
 
 ## Dataset splits
@@ -170,15 +160,7 @@ cd ..
 We describe training instructions specific to the Anvil cluster, which contain all trained checkpoints.
 To train models on other clusters---please refer to cluster-specific instructions on [AIDA](docs/README_aida.md) and [Empire](docs/README_empire.md).
 
-1. Setup environment variables for model checkpoints and wandb. To set up wandb logging, run `wandb login` and paste the API key from your account's organization.
-
-```bash
-conda env config vars set USER_EMAIL="user@email.com" # for emailing when slurm allocations become available
-conda env config vars set WANDB_ENTITY="organization"
-conda env config vars set WANDB_PROJECT="phantom-reasoning"
-```
-
-2. Create a symlink to directories with training checkpoints.
+1. Create a symlink to directories with training checkpoints.
 
 ```bash
 # experiment runs in scratch, linked to ./scratch
@@ -191,7 +173,7 @@ ln -s /anvil/projects/x-$ANVIL_PROJECT_ID/phantom-reasoning share
 
 > \[!NOTE\] We trained several LLMs on PhantomWiki and GSM-infinite data, and share all checkpoints and predictions in paths listed in `./scripts/final_plots/final_ckpts.yaml`.
 
-3. Run a GRPO training experiment on Qwen3-1.7B model with PhantomWiki data. We provide a script `./scripts/create_train_grpo__vllm_colocate.sh <cluster_name>` to create a bash slurm submission file, adding default variables for the specified cluster. This script creates `./scripts/train_grpo__vllm_colocate.sub` that executes a training job on a configuration. For instance,
+2. Run a GRPO training experiment on Qwen3-1.7B model with PhantomWiki data. We provide a script `./scripts/create_train_grpo__vllm_colocate.sh <cluster_name>` to create a bash slurm submission file, adding default variables for the specified cluster. This script creates `./scripts/train_grpo__vllm_colocate.sub` that executes a training job on a configuration. For instance,
 
    1. Using `salloc`:
 
