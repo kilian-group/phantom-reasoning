@@ -25,15 +25,10 @@ conda install conda-forge::swi-prolog
 conda install python=3.12
 pip install uv
 
-# Install phantom-reasoning in editable mode
 git clone git@github.com:anmolkabra/phantom-reasoning.git
 cd phantom-reasoning
 uv pip install -e ".[dev]"
-
-# flash-attn==2.8.2 requires GLIBC 2.32 or higher, and a GPU accessible via nvcc
-# If GLIBC required version is absent, the training script automatically disables flash-attention
 uv pip install flash-attn --no-build-isolation
-
 pre-commit install
 ```
 
