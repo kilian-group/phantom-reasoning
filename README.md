@@ -80,11 +80,11 @@ Specifically, we use splits `depth_20_size_25_seed_*` created with `--easy-mode`
 - **Seeds 1-10**: reserved for evaluation
 - **Seeds 11+**: used for training
 
-The datasets `depth_20_size_25_seed_{1,...,100}` are found on Unicorn at `/share/nikola/phantom-wiki/data/wiki-v1-easy-depth_20_size_25.zip`.
+The datasets `depth_20_size_25_seed_{1,...,100}` are found on Unicorn at `/share/nikola/phantom-reasoning/data/wiki-v1-easy-depth_20_size_25.zip`.
 
 ```bash
 mkdir -p data/
-scp username@unicorn-login.coecis.cornell.edu:/share/nikola/phantom-wiki/data/wiki-v1-easy-depth_20_size_25.zip data/
+scp username@unicorn-login.coecis.cornell.edu:/share/nikola/phantom-reasoning/data/wiki-v1-easy-depth_20_size_25.zip data/
 
 cd data/
 unzip wiki-v1-easy-depth_20_size_25.zip
@@ -316,7 +316,6 @@ python examples/wiki/plot_all_wiki_scaling_final_ckpts.py \
 ### PhantomWiki evaluation data
 
 We can evaluate LLMs on PhantomWiki datasets with the `scripts/eval/pw_eval_grpo.sh` script.
-This script requires `phantom-wiki[eval]` to be installed from github source at `../phantom-wiki/`.
 
 ```bash
 # Assuming you have 1 GPU
