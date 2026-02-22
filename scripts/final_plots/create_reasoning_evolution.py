@@ -185,8 +185,8 @@ def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: 
     num_subplots = len(train_dataset_names) * len(base_model_names)
     # To maintain colors, plot all models for a training dataset,
     # then move to the next training dataset
-    fig_width = 5 * num_subplots
-    fig, axs = plt.subplots(1, num_subplots, figsize=(fig_width, 5), layout="constrained")
+    fig_width = 4 * num_subplots
+    fig, axs = plt.subplots(1, num_subplots, figsize=(fig_width, 4), layout="constrained")
 
     for i, train_ckpts_dict in enumerate(synthetic_train_ckpts):
         train_dataset_name = train_ckpts_dict["dataset_name"]
@@ -243,8 +243,12 @@ def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: 
             ]
 
             for ckpt_name, y in df_mean.iterrows():
-                # If the ckpt_number is 0, use the base model color, else use the gradient color
                 ckpt_number = get_ckpt_number(ckpt_name, base_model_name, ckpt_parent_dir)
+                if ckpt_number % 1000 != 0:
+                    # If ckpt_number is not divisible by 1000, skip to avoid crowding the plot
+                    continue
+
+                # If the ckpt_number is 0, use the base model color, else use the gradient color
                 if ckpt_number == 0:
                     color = BASE_COLOR
                     linestyle = BASE_LINE_STYLE
@@ -268,7 +272,7 @@ def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: 
 
             # Shade the OOD generalization region
             max_difficulty_training = train_dataset_names2max_difficulty_training[train_dataset_name]
-            ax.axvspan(max_difficulty_training, max_difficulty, alpha=0.10, color="gray", zorder=0)
+            ax.axvspan(max_difficulty_training, max_difficulty, alpha=0.1, color="gray", zorder=0)
             ax.axvline(
                 x=max_difficulty_training,
                 color="gray",
