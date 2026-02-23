@@ -82,12 +82,12 @@ synthetic_train_ckpts:
     ckpts:
       - model: Qwen/Qwen3-0.6B
         paths: [
-            # Only 1 seed so far
+            # TODO: seed 2 running on anvil
             "share/runs__rg/data/rg-family_relationships/Qwen/Qwen3-0.6B/grpo/x-anmolkab/1108__curr=random__training_seed=1",
           ]
       - model: Qwen/Qwen3-1.7B
         paths: [
-            # Only 1 seed so far
+            # TODO: seed 2 running on anvil
             "share/runs__rg/data/rg-family_relationships/Qwen/Qwen3-1.7B/grpo/x-anmolkab/1109__curr=random__training_seed=1",
           ]
       - model: Qwen/Qwen3-4B
@@ -97,12 +97,12 @@ synthetic_train_ckpts:
           ]
       - model: Qwen/Qwen2.5-1.5B-Instruct
         paths: [
-            # Only 1 seed so far
+            # TODO: seed 2 running on anvil
             "share/runs__rg/data/rg-family_relationships/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/1109__curr=random__training_seed=1",
           ]
       - model: microsoft/Phi-4-mini-reasoning
         paths: [
-            # Only 1 seed so far
+            # TODO: seed 2 running on aida
             "share/runs__rg/data/rg-family_relationships/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1112__curr=random__training_seed=1",
           ]
       - model: Qwen/Qwen2.5-7B-Instruct
@@ -116,12 +116,12 @@ synthetic_train_ckpts:
     ckpts:
       - model: Qwen/Qwen3-0.6B
         paths: [
-            # Only 1 seed so far
+            # TODO: seed 2 running on anvil
             "share/runs__rg/data/rg-knights_knaves/Qwen/Qwen3-0.6B/grpo/x-anmolkab/1115__curr=random__training_seed=1",
           ]
       - model: Qwen/Qwen3-1.7B
         paths: [
-            # Only 1 seed so far
+            # TODO: seed 2 running on anvil
             "share/runs__rg/data/rg-knights_knaves/Qwen/Qwen3-1.7B/grpo/ak2426/1115__curr=random__training_seed=1",
           ]
       - model: Qwen/Qwen3-4B
@@ -131,12 +131,12 @@ synthetic_train_ckpts:
           ]
       - model: Qwen/Qwen2.5-1.5B-Instruct
         paths: [
-            # Only 1 seed so far
+            # TODO: seed 2 running on anvil
             "share/runs__rg/data/rg-knights_knaves/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/1114__curr=random__training_seed=1",
           ]
       - model: microsoft/Phi-4-mini-reasoning
         paths: [
-            # Only 1 seed so far
+            # TODO: seed 2 running on aida
             "share/runs__rg/data/rg-knights_knaves/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1115__curr=random__training_seed=1",
           ]
       - model: Qwen/Qwen2.5-7B-Instruct
