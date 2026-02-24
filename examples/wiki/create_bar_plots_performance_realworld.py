@@ -2,6 +2,7 @@ import argparse
 import json
 from pathlib import Path
 
+import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -58,6 +59,7 @@ models_for_table_results = [
     "Qwen2.5-7B-Instruct",
 ]
 train_dataset_names = ["base", "pw", "hp", "2wiki", "msq"]
+train_dataset_names_for_bars = ["pw", "hp", "2wiki", "msq"]
 train_dataset_alias2name = {
     "base": plotting_utils.TRAIN_DATASET_ALIAS2NAME["base"],
     "pw": plotting_utils.TRAIN_DATASET_ALIAS2NAME["pw"],
@@ -87,13 +89,11 @@ TRAIN_DATASET_COLORS = {
     "msq": "#FFD8B8",  # Pastel orange
 }
 
-TRAIN_DATASET_HATCHES = {
-    "base": "",  # no hatch
-    "pw": "",  # no hatch
-    "hp": "//",  # vertical hatch
-    "2wiki": "\\\\",  # vertical hatch
-    "msq": "xx",  # cross hatch
-}
+# BASE_COLOR = TRAIN_DATASET_COLORS["base"]
+# NOTE: we use black for the base line to make it more visible
+BASE_COLOR = "black"
+BASE_LINE_WIDTH = 2
+BASE_LINE_STYLE = "dashed"
 
 LABEL_FONT_SIZE = plotting_utils.LABEL_FONT_SIZE + 2
 TICK_FONT_SIZE = plotting_utils.TICK_FONT_SIZE + 2
@@ -113,22 +113,33 @@ def create_bar_plot_for_model(
 ):
     # Bar settings
     bar_width = 0.85
-    x_pos = np.arange(len(train_dataset_names))
+    x_pos = np.arange(len(train_dataset_names_for_bars))
     EDGE_COLOR = "black"
 
     # Create bars for each subplot
     for j, dataset in enumerate(eval_dataset_names):
         ax = axes[j]
 
-        # Get values for this model-dataset combination
-        values = [mean_data[model][dataset][train_dataset_name] for train_dataset_name in train_dataset_names]
-        errors = [std_data[model][dataset][train_dataset_name] for train_dataset_name in train_dataset_names]
+        # Draw a horizontal dashed line at the base F1 value
+        base_value = mean_data[model][dataset]["base"]
+        ax.axhline(
+            y=base_value, color=BASE_COLOR, linestyle=BASE_LINE_STYLE, linewidth=BASE_LINE_WIDTH, zorder=3
+        )
+
+        # Get values for this model-dataset combination (trained models only)
+        values = [
+            mean_data[model][dataset][train_dataset_name]
+            for train_dataset_name in train_dataset_names_for_bars
+        ]
+        errors = [
+            std_data[model][dataset][train_dataset_name]
+            for train_dataset_name in train_dataset_names_for_bars
+        ]
 
         # Create bars with error bars
-        colors = [TRAIN_DATASET_COLORS[label] for label in train_dataset_names]
-        hatches = [TRAIN_DATASET_HATCHES[label] for label in train_dataset_names]
+        colors = [TRAIN_DATASET_COLORS[label] for label in train_dataset_names_for_bars]
 
-        bars = ax.bar(
+        _ = ax.bar(
             x_pos,
             values,
             bar_width,
@@ -138,10 +149,6 @@ def create_bar_plot_for_model(
             linewidth=LINE_WIDTH,
             error_kw={"linewidth": LINE_WIDTH, "ecolor": "black", "capsize": 5},
         )
-
-        # Apply hatches to bars
-        for bar, hatch in zip(bars, hatches):
-            bar.set_hatch(hatch)
 
         # Customize subplot
         ax.set_ylim(0, max(yticks))
@@ -374,13 +381,21 @@ if __name__ == "__main__":
 
     # Create legend with better styling
     legend_elements = [
+        mlines.Line2D(
+            [],
+            [],
+            color=BASE_COLOR,
+            linestyle=BASE_LINE_STYLE,
+            linewidth=BASE_LINE_WIDTH,
+            label=train_dataset_alias2name["base"],
+        ),
+    ] + [
         Patch(
             facecolor=TRAIN_DATASET_COLORS[train_dataset_name],
             edgecolor="black",
-            hatch=TRAIN_DATASET_HATCHES[train_dataset_name],
             label=train_dataset_alias2name[train_dataset_name],
         )
-        for train_dataset_name in train_dataset_names
+        for train_dataset_name in train_dataset_names_for_bars
     ]
 
     # Position legend at the top center
