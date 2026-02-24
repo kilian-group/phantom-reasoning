@@ -2,6 +2,7 @@ import argparse
 import json
 from pathlib import Path
 
+import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -56,6 +57,7 @@ models_in_appendix = [
     "Qwen2.5-7B-Instruct",
 ]
 train_dataset_names = ["base", "rg-family_relationships", "rg-knights_knaves", "gsminf", "pw"]
+train_dataset_names_for_bars = ["rg-family_relationships", "rg-knights_knaves", "gsminf", "pw"]
 eval_dataset_names = plotting_utils.EVAL_DATASET_NAMES
 eval_dataset_alias2name = {
     "hp500": "HotpotQA",
@@ -66,8 +68,13 @@ eval_dataset_alias2name = {
 }
 
 LINE_WIDTH = 1
+# BASE_COLOR = plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR["base"]]
+# NOTE: we use black for the base line to make it more visible
+BASE_COLOR = "black"
+BASE_LINE_WIDTH = 2
+BASE_LINE_STYLE = "dashed"
 
-# Data from the table
+# Data from the table format
 # data = {
 #     "Qwen3-0.6B": {
 #         "HotpotQA": {"base": 0.3654, "format": 0.3780, "gsminf": 0.4787, "pw": 0.5905},
@@ -109,22 +116,33 @@ def create_bar_plot_for_model(
 ):
     # Bar settings
     bar_width = 0.85
-    x_pos = np.arange(len(train_dataset_names))
+    x_pos = np.arange(len(train_dataset_names_for_bars))
     EDGE_COLOR = "black"
 
     # Create bars for each subplot
-    # for i, model in enumerate(models):
     for j, dataset in enumerate(eval_dataset_names):
         ax = axes[j]
 
-        # Get values for this model-dataset combination
-        values = [mean_data[model][dataset][train_dataset_name] for train_dataset_name in train_dataset_names]
-        errors = [std_data[model][dataset][train_dataset_name] for train_dataset_name in train_dataset_names]
+        # Draw a horizontal line at the base F1 value
+        base_value = mean_data[model][dataset]["base"]
+        ax.axhline(
+            y=base_value, color=BASE_COLOR, linestyle=BASE_LINE_STYLE, linewidth=BASE_LINE_WIDTH, zorder=3
+        )
 
-        # Create bars with error bars (using small errors for visual effect)
+        # Get values for this model-dataset combination (trained models only)
+        values = [
+            mean_data[model][dataset][train_dataset_name]
+            for train_dataset_name in train_dataset_names_for_bars
+        ]
+        errors = [
+            std_data[model][dataset][train_dataset_name]
+            for train_dataset_name in train_dataset_names_for_bars
+        ]
+
+        # Create bars with error bars
         colors = [
             plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR[label]]
-            for label in train_dataset_names
+            for label in train_dataset_names_for_bars
         ]
         _ = ax.bar(
             x_pos,
@@ -416,12 +434,21 @@ if __name__ == "__main__":
 
     # Create legend with better styling
     legend_elements = [
+        mlines.Line2D(
+            [],
+            [],
+            color=BASE_COLOR,
+            linestyle=BASE_LINE_STYLE,
+            linewidth=BASE_LINE_WIDTH,
+            label=plotting_utils.TRAIN_DATASET_ALIAS2NAME["base"],
+        ),
+    ] + [
         Patch(
             facecolor=plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR[label]],
             edgecolor="black",
             label=plotting_utils.TRAIN_DATASET_ALIAS2NAME[label],
         )
-        for label in train_dataset_names
+        for label in train_dataset_names_for_bars
     ]
 
     # Position legend on the right side
@@ -475,12 +502,21 @@ if __name__ == "__main__":
 
     # Create legend with better styling
     legend_elements = [
+        mlines.Line2D(
+            [],
+            [],
+            color=BASE_COLOR,
+            linestyle=BASE_LINE_STYLE,
+            linewidth=BASE_LINE_WIDTH,
+            label=plotting_utils.TRAIN_DATASET_ALIAS2NAME["base"],
+        ),
+    ] + [
         Patch(
             facecolor=plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR[label]],
             edgecolor="black",
             label=plotting_utils.TRAIN_DATASET_ALIAS2NAME[label],
         )
-        for label in train_dataset_names
+        for label in train_dataset_names_for_bars
     ]
 
     # Position legend on the right side
@@ -491,7 +527,7 @@ if __name__ == "__main__":
         frameon=True,
         fancybox=False,
         edgecolor="black",
-        bbox_to_anchor=(0.53, 0.93),  # Move just below the title at the top center
+        bbox_to_anchor=(0.53, 1.0),  # Move just below the title at the top center
         ncol=len(train_dataset_names),
     )
 
@@ -499,9 +535,9 @@ if __name__ == "__main__":
     plt.subplots_adjust(
         left=0.08,  # where the left subplot y-labels are, increase to move them away from left figure edge
         right=0.98,  # where the right subplot edges are, increase to move them closer to right figure edge
-        # top=0.85,  # where the top subplot edges are, increase to move them closer to top figure edge
-        # bottom=0.1,  # where the bottom subplot edges are, increase to move them closer to bottom figure
-        # hspace=0.25,  # horizontal space between subplots, increase to move them away
+        top=0.90,  # where the top subplot edges are, increase to move them closer to top figure edge
+        bottom=0.12,  # where the bottom subplot edges are, increase to move them closer to bottom figure
+        hspace=0.18,  # horizontal space between subplots, increase to move them away
         wspace=0.05,  # vertical space between subplots, increase to move them away
     )
 

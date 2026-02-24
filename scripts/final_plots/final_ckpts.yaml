@@ -127,7 +127,7 @@ synthetic_train_ckpts:
         paths:
           [
             "share/runs__rg/data/rg-knights_knaves/Qwen/Qwen3-1.7B/grpo/ak2426/1115__curr=random__training_seed=1",
-            "share/runs__rg/data/rg-knights_knaves/Qwen/Qwen3-1.7B/grpo/ak2426/0223__curr=random__training_seed=2",
+            "share/runs__rg/data/rg-knights_knaves/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0223__curr=random__training_seed=2",
           ]
       - model: Qwen/Qwen3-4B
         paths: [
