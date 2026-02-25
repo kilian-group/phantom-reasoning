@@ -24,7 +24,8 @@ TRAIN_DATASET_ALIAS2COLOR = {
     "base": "myYellow",
     "gsminf": "myBlue",
     "pw": "myOrange",
-    "rg-family_relationships": "myGreen",
+    # "rg-family_relationships": "myGreen",
+    "rg-family_relationships": "myYellow",
     "rg-knights_knaves": "myPurple",
 }
 

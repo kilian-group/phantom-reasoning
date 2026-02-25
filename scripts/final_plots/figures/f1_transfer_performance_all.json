@@ -4,35 +4,35 @@
             "HotpotQA": {
                 "base": 0.3569878787878788,
                 "rg-family_relationships": 0.45408947181850406,
-                "rg-knights_knaves": 0.4708046509046509,
+                "rg-knights_knaves": 0.48511880285102793,
                 "gsminf": 0.4786508090511793,
                 "pw": 0.5904737049758695
             },
             "2Wiki": {
                 "base": 0.3749100529100529,
                 "rg-family_relationships": 0.5446301587301586,
-                "rg-knights_knaves": 0.44174452173213785,
+                "rg-knights_knaves": 0.4542523196961278,
                 "gsminf": 0.5549701576201576,
                 "pw": 0.6004431834505365
             },
             "MuSiQue": {
                 "base": 0.1424928032751562,
                 "rg-family_relationships": 0.22489026060326933,
-                "rg-knights_knaves": 0.17839397605399226,
+                "rg-knights_knaves": 0.1917463998377217,
                 "gsminf": 0.26588868781028613,
                 "pw": 0.3294028100762753
             },
             "CofCA": {
                 "base": 0.3196061312921186,
                 "rg-family_relationships": 0.4754742458302468,
-                "rg-knights_knaves": 0.4640100263665291,
+                "rg-knights_knaves": 0.47895552038657924,
                 "gsminf": 0.471685221872549,
                 "pw": 0.5606595340935543
             },
             "SynthWorlds-RM": {
                 "base": 0.29661634182810653,
                 "rg-family_relationships": 0.4031171039910402,
-                "rg-knights_knaves": 0.3505700799200799,
+                "rg-knights_knaves": 0.35441442207030444,
                 "gsminf": 0.39462080659390864,
                 "pw": 0.46179046192675616
             }
@@ -115,35 +115,35 @@
             "HotpotQA": {
                 "base": 0.47855224992169965,
                 "rg-family_relationships": 0.5727025431856689,
-                "rg-knights_knaves": 0.5687848504436739,
+                "rg-knights_knaves": 0.58052904818142,
                 "gsminf": 0.5663010928542899,
                 "pw": 0.643022165226064
             },
             "2Wiki": {
                 "base": 0.6636267054582844,
                 "rg-family_relationships": 0.6693443587774233,
-                "rg-knights_knaves": 0.7222339759655549,
+                "rg-knights_knaves": 0.7090492279650175,
                 "gsminf": 0.6934892886683208,
                 "pw": 0.7448874047596609
             },
             "MuSiQue": {
                 "base": 0.26953865999153925,
                 "rg-family_relationships": 0.31932126901876007,
-                "rg-knights_knaves": 0.3469949938949939,
+                "rg-knights_knaves": 0.3482378580483844,
                 "gsminf": 0.3584353136546332,
                 "pw": 0.4416280322982683
             },
             "CofCA": {
                 "base": 0.45594079700617934,
                 "rg-family_relationships": 0.5323001679284951,
-                "rg-knights_knaves": 0.5062271457805175,
+                "rg-knights_knaves": 0.5104501890835474,
                 "gsminf": 0.5091782979586092,
                 "pw": 0.5842317244686134
             },
             "SynthWorlds-RM": {
                 "base": 0.4123082166199813,
                 "rg-family_relationships": 0.4700634913561384,
-                "rg-knights_knaves": 0.5368045682157896,
+                "rg-knights_knaves": 0.527881154583824,
                 "gsminf": 0.5140184522993346,
                 "pw": 0.5659596067341918
             }
@@ -228,35 +228,35 @@
             "HotpotQA": {
                 "base": 0.01971409654914603,
                 "rg-family_relationships": 0.01421081056135874,
-                "rg-knights_knaves": 0.02038097663952542,
+                "rg-knights_knaves": 0.01428037613502271,
                 "gsminf": 0.01425650581956877,
                 "pw": 0.0134873350299029
             },
             "2Wiki": {
                 "base": 0.020815152573320905,
                 "rg-family_relationships": 0.014815378585215882,
-                "rg-knights_knaves": 0.021134652023376697,
+                "rg-knights_knaves": 0.014873558892703987,
                 "gsminf": 0.01480047900387148,
                 "pw": 0.01451782381897165
             },
             "MuSiQue": {
                 "base": 0.014242731141799709,
                 "rg-family_relationships": 0.011765991411238786,
-                "rg-knights_knaves": 0.015594401404988759,
+                "rg-knights_knaves": 0.011137568085754054,
                 "gsminf": 0.012950909757316924,
                 "pw": 0.013210673411970741
             },
             "CofCA": {
                 "base": 0.018666199810884875,
                 "rg-family_relationships": 0.01392317165170641,
-                "rg-knights_knaves": 0.01961521465749476,
+                "rg-knights_knaves": 0.013718411407331963,
                 "gsminf": 0.013905432088767685,
                 "pw": 0.013738867767380819
             },
             "SynthWorlds-RM": {
                 "base": 0.018191629490429934,
                 "rg-family_relationships": 0.014148467297667573,
-                "rg-knights_knaves": 0.01967356484046434,
+                "rg-knights_knaves": 0.013744008718097478,
                 "gsminf": 0.014168716116519773,
                 "pw": 0.013065464230678345
             }
@@ -339,35 +339,35 @@
             "HotpotQA": {
                 "base": 0.020222346726023483,
                 "rg-family_relationships": 0.013617460195239546,
-                "rg-knights_knaves": 0.019407728946458244,
+                "rg-knights_knaves": 0.013778201736149622,
                 "gsminf": 0.01889205565120677,
                 "pw": 0.012888129742915054
             },
             "2Wiki": {
                 "base": 0.02023663276242398,
                 "rg-family_relationships": 0.013864984719289894,
-                "rg-knights_knaves": 0.01856039644318243,
+                "rg-knights_knaves": 0.013471020364680666,
                 "gsminf": 0.018425924008110262,
                 "pw": 0.012634113415154503
             },
             "MuSiQue": {
                 "base": 0.018224316867785643,
                 "rg-family_relationships": 0.013372001852706206,
-                "rg-knights_knaves": 0.01953144241012502,
+                "rg-knights_knaves": 0.013869061081889884,
                 "gsminf": 0.01893953315390639,
                 "pw": 0.014061536376005195
             },
             "CofCA": {
                 "base": 0.01957914995679079,
                 "rg-family_relationships": 0.013265656824681447,
-                "rg-knights_knaves": 0.01878747313192272,
+                "rg-knights_knaves": 0.013468422520594821,
                 "gsminf": 0.013167353731275769,
                 "pw": 0.013037681674749743
             },
             "SynthWorlds-RM": {
                 "base": 0.020792205722108797,
                 "rg-family_relationships": 0.014542913506014195,
-                "rg-knights_knaves": 0.020456487663215003,
+                "rg-knights_knaves": 0.014602334517543412,
                 "gsminf": 0.014375826231939287,
                 "pw": 0.013533004977336562
             }

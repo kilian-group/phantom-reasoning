@@ -119,9 +119,10 @@ synthetic_train_ckpts:
     dataset_path: data/rg-knights_knaves
     ckpts:
       - model: Qwen/Qwen3-0.6B
-        paths: [
-            # TODO: seed 2 running on anvil
+        paths:
+          [
             "share/runs__rg/data/rg-knights_knaves/Qwen/Qwen3-0.6B/grpo/x-anmolkab/1115__curr=random__training_seed=1",
+            "share/runs__rg/data/rg-knights_knaves/Qwen/Qwen3-0.6B/grpo/x-anmolkab/0223__curr=random__training_seed=2",
           ]
       - model: Qwen/Qwen3-1.7B
         paths:
@@ -141,9 +142,10 @@ synthetic_train_ckpts:
             "share/runs__rg/data/rg-knights_knaves/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0223__curr=random__training_seed=2",
           ]
       - model: microsoft/Phi-4-mini-reasoning
-        paths: [
-            # TODO: seed 2 running on aida
+        paths:
+          [
             "share/runs__rg/data/rg-knights_knaves/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1115__curr=random__training_seed=1",
+            "share/runs__rg/data/rg-knights_knaves/microsoft/Phi-4-mini-reasoning/grpo/ak2426/0223__curr=random__training_seed=2",
           ]
       - model: Qwen/Qwen2.5-7B-Instruct
         paths: [
@@ -174,8 +176,8 @@ real_train_ckpts:
             "share/runs/data/hp/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0919__curr=random__training_seed=2",
           ]
       - model: microsoft/Phi-4-mini-reasoning
-        paths:
-          [
+        paths: [
+            # TODO: seed 2 running on aida
             "share/runs/data/hp/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1118__curr=random__training_seed=1",
           ]
       # TODO: remove old paths to Qwen3-4B and Qwen2.5-7B-Instruct
@@ -215,6 +217,7 @@ real_train_ckpts:
         paths:
           [
             "share/runs/data/2wiki/microsoft/Phi-4-mini-reasoning/grpo/ak2426/0222__curr=random__training_seed=1",
+            "share/runs/data/2wiki/microsoft/Phi-4-mini-reasoning/grpo/ak2426/0224__curr=random__training_seed=2",
           ]
 
   - dataset_name: msq
@@ -239,8 +242,8 @@ real_train_ckpts:
             "share/runs/data/msq/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0919__curr=random__training_seed=2",
           ]
       - model: microsoft/Phi-4-mini-reasoning
-        paths:
-          [
+        paths: [
+            # TODO: seed 2 running on aida
             "share/runs/data/msq/microsoft/Phi-4-mini-reasoning/grpo/ak2426/0222__curr=random__training_seed=1",
           ]
 
