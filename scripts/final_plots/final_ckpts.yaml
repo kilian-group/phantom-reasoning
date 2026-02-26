@@ -176,9 +176,10 @@ real_train_ckpts:
             "share/runs/data/hp/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0919__curr=random__training_seed=2",
           ]
       - model: microsoft/Phi-4-mini-reasoning
-        paths: [
-            # TODO: seed 2 running on aida
+        paths:
+          [
             "share/runs/data/hp/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1118__curr=random__training_seed=1",
+            "share/runs/data/hp/microsoft/Phi-4-mini-reasoning/grpo/ak2426/0224__curr=random__training_seed=2",
           ]
       # TODO: remove old paths to Qwen3-4B and Qwen2.5-7B-Instruct
       - model: Qwen/Qwen3-4B
@@ -242,9 +243,10 @@ real_train_ckpts:
             "share/runs/data/msq/Qwen/Qwen2.5-1.5B-Instruct/grpo/x-anmolkab/0919__curr=random__training_seed=2",
           ]
       - model: microsoft/Phi-4-mini-reasoning
-        paths: [
-            # TODO: seed 2 running on aida
+        paths:
+          [
             "share/runs/data/msq/microsoft/Phi-4-mini-reasoning/grpo/ak2426/0222__curr=random__training_seed=1",
+            "share/runs/data/msq/microsoft/Phi-4-mini-reasoning/grpo/ak2426/0224__curr=random__training_seed=2",
           ]
 
 misc_train_ckpts:
