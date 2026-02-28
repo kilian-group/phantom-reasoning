@@ -24,7 +24,6 @@ TRAIN_DATASET_ALIAS2COLOR = {
     "base": "myYellow",
     "gsminf": "myBlue",
     "pw": "myOrange",
-    # "rg-family_relationships": "myGreen",
     "rg-family_relationships": "myYellow",
     "rg-knights_knaves": "myPurple",
 }
@@ -52,11 +51,9 @@ MODEL_NAME2ALIAS = {
     "Qwen/Qwen3-4B": "Qwen3-4B",
 }
 
-MODEL_NAME2MARKER = {
-    "microsoft/Phi-4-mini-reasoning": "X",
-    "Qwen/Qwen2.5-1.5B-Instruct": "d",
-    "Qwen/Qwen2.5-7B-Instruct": "+",
-    "Qwen/Qwen3-0.6B": "s",
-    "Qwen/Qwen3-1.7B": "o",
-    "Qwen/Qwen3-4B": "v",
+TRAIN_DATASET_NAME2MARKER = {
+    "gsminf": "s",
+    "pw": "o",
+    "rg-family_relationships": "d",
+    "rg-knights_knaves": "v",
 }
