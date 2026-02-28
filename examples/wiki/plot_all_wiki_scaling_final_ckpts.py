@@ -114,14 +114,12 @@ def get_yticks_from_ylims(ylims: tuple[float, float]) -> list[float]:
     else:
         # Default, add 1 for inclusive of both ends
         num_ticks = int(spread * 10) + 1
-    print(spread, num_ticks)
     return [round(x, 1) for x in np.linspace(ylims[0], ylims[1], num_ticks)]
 
 
 eval_dataset2yticks: dict[str, list[float]] = {
     eval_dataset: get_yticks_from_ylims(eval_dataset2ylims[eval_dataset]) for eval_dataset in eval_datasets
 }
-print(eval_dataset2yticks)
 
 # Load the yaml file
 with open(args.final_ckpts_yaml_path) as f:
@@ -131,12 +129,12 @@ with open(args.final_ckpts_yaml_path) as f:
 train_dataset_names: list[str] = ["rg-family_relationships", "rg-knights_knaves", "gsminf", "pw"]
 
 fig_width = len(eval_datasets) * 4
-fig, axes = plt.subplots(1, len(eval_datasets), figsize=(fig_width, 4))
+fig, axes = plt.subplots(1, len(eval_datasets), figsize=(fig_width, 5))
 
 # Increase font sizes for better readability
-LABEL_FONT_SIZE = plotting_utils.LABEL_FONT_SIZE + 2
-TICK_FONT_SIZE = plotting_utils.TICK_FONT_SIZE + 2
-LEGEND_FONT_SIZE = plotting_utils.LEGEND_FONT_SIZE + 2
+LABEL_FONT_SIZE = plotting_utils.LABEL_FONT_SIZE + 4
+TICK_FONT_SIZE = plotting_utils.TICK_FONT_SIZE + 3
+LEGEND_FONT_SIZE = plotting_utils.LEGEND_FONT_SIZE + 4
 
 # Create a subfigure for each dataset
 for i, eval_dataset in enumerate(eval_datasets):
@@ -246,7 +244,7 @@ legend = fig.legend(
     frameon=True,
     fancybox=False,
     edgecolor="black",
-    bbox_to_anchor=(0.48, 1.0),  # Move just below the title at the top center
+    bbox_to_anchor=(0.49, 1.0),  # Move just below the title at the top center
     ncol=len(train_dataset_names) + 1,  # +1 for the model name
 )
 # Set the fontweight and fontsize of the model name (first entry in the legend)
