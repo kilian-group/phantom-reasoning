@@ -17,7 +17,7 @@ cmd_args=$@
 # Go over all checkpoints, and run evaluation script on them
 OUT_DIR="$CHECKPOINT_PARENT_DIR/out-gsminf"
 
-DATASET="data/gsm-infinite-eval"
+DATASET="data/gsm-infinite-op_25-eval"
 ops_start=2
 ops_end=30
 ops_stride=1

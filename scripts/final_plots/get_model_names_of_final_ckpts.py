@@ -1,6 +1,6 @@
 """
 Script to extract model names from final_ckpts.yaml depending on the dataset name
-(base, pw, gsminf),
+(base, pw, gsminf, rg-family_relationships, hp, 2wiki, msq).
 
 Outputs space-separated model names to stdout, which can be piped into bash scripts.
 """
@@ -26,11 +26,18 @@ def main(args: argparse.Namespace):
                     # ckpt["model"] will be like "Qwen/Qwen3-0.6B", so add to list
                     model_names = [ckpt["model"] for ckpt in synthetic_train_ckpts["ckpts"]]
                     break
-        case "pw" | "gsminf":
+        case "pw" | "gsminf" | "rg-family_relationships" | "rg-knights_knaves":
             # Search through all synthetic_train_ckpts and append the paths
             for synthetic_train_ckpts in config["synthetic_train_ckpts"]:
                 if synthetic_train_ckpts["dataset_name"] == args.dataset_name:
                     for ckpt in synthetic_train_ckpts["ckpts"]:
+                        # ckpt["paths"] will be like ["path1", "path2"] so add to list
+                        model_names.extend(ckpt["paths"])
+                    break
+        case "hp" | "2wiki" | "msq":
+            for real_train_ckpts in config["real_train_ckpts"]:
+                if real_train_ckpts["dataset_name"] == args.dataset_name:
+                    for ckpt in real_train_ckpts["ckpts"]:
                         # ckpt["paths"] will be like ["path1", "path2"] so add to list
                         model_names.extend(ckpt["paths"])
                     break
@@ -55,7 +62,16 @@ if __name__ == "__main__":
         "--dataset_name",
         type=str,
         required=True,
-        choices=["base", "pw", "gsminf"],
+        choices=[
+            "base",
+            "pw",
+            "gsminf",
+            "rg-family_relationships",
+            "rg-knights_knaves",
+            "hp",
+            "2wiki",
+            "msq",
+        ],
         help="Name of the dataset to extract model names for",
     )
     args = parser.parse_args()

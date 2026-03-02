@@ -27,16 +27,15 @@ def load_data(data_dir: str, dataset: str, split: str, **kwargs) -> dict:
     """
     match dataset:
         case "hp" | "hp500":
-            return load_hp_data(os.path.join(data_dir, dataset), split, setting="distractor")
+            return load_hp_data(os.path.join(data_dir, dataset), split, setting="distractor", **kwargs)
         case "2wiki" | "2wiki500":
-            return load_2wiki_data(os.path.join(data_dir, dataset), split)
+            return load_2wiki_data(os.path.join(data_dir, dataset), split, **kwargs)
         case "msq" | "msq500":
-            if kwargs.get("intermediate_answers", False):
-                return load_msq_data(
-                    os.path.join(data_dir, dataset), split, intermediate_answers=True, answerable_only=True
-                )
-            else:
-                return load_msq_data(os.path.join(data_dir, dataset), split, answerable_only=True)
+            return load_msq_data(os.path.join(data_dir, dataset), split, answerable_only=True, **kwargs)
+        case "cofca" | "cofca500":
+            return load_cofca_data(os.path.join(data_dir, dataset), split, **kwargs)
+        case "synthrm" | "synthrm500":
+            return load_synthrm_data(os.path.join(data_dir, dataset), split, **kwargs)
         case _:
             raise ValueError(f"Invalid dataset: {dataset}")
 
@@ -188,6 +187,155 @@ def load_2wiki_data(data_path: str, split: str) -> dict:
 
 
 # ------------------------------------------------------------------------------------------------
+# COFCA
+# ------------------------------------------------------------------------------------------------
+def load_cofca_data(data_path: str, split: str, intermediate_answers: bool = False) -> dict:
+    """Load COFCA dataset from disk.
+
+    Args:
+        data_path: Path to the dataset directory
+        split: Dataset split (e.g., 'train', 'dev', 'minidev')
+        intermediate_answers: if True, also add question_decomposition field to each QA pair
+
+    Returns:
+        dict: Dictionary containing:
+            - qa_pairs: List of QA pairs with metadata
+            - text: List of context paragraphs with metadata
+    """
+    file_path = Path(data_path) / f"{split}.json"
+    logger.info(f"Loading COFCA dataset from {file_path}")
+
+    with open(file_path) as f:
+        data = json.load(f)
+
+    # Convert to format similar to phantom-wiki
+    qa_pairs = []
+    text_corpus = []
+
+    all_ids = []
+    for group in data:
+        if group["_id"] in all_ids:
+            logger.warning(f"Article with {group['_id']=} already exists")
+        else:
+            all_ids.append(group["_id"])
+        # Process articles, create a paragraph for each article
+        titles, text = [], []
+        for title, article in group["context"]:
+            titles.append(title)
+            text.append("\n".join(article))
+
+        text_corpus.append(
+            {
+                "title": titles,
+                # NOTE: article is a list of sentences, which we convert to a single string
+                "article": text,
+                "id": group["_id"],
+            }
+        )
+
+        qa_data = {
+            "id": group["_id"],
+            "question": group["question"],
+            "answer": group["answer"],
+            "type": group["type"],
+        }
+        if intermediate_answers:
+            # CofCA dataset does not have question_decomposition field.
+            # Instead, it has "sub_questions": list[str] and "sub_answers": list[str] fields.
+            # Create question_decomposition field from sub_questions and sub_answers.
+            question_decomposition = []
+            for i, (sub_question, sub_answer) in enumerate(zip(group["sub_questions"], group["sub_answers"])):
+                question_decomposition.append(
+                    {
+                        "idx": i,
+                        "question": sub_question,
+                        "answer": sub_answer,
+                    }
+                )
+            qa_data["question_decomposition"] = question_decomposition
+        qa_pairs.append(qa_data)
+
+    # Log final statistics
+    logger.info(f"Loaded {len(qa_pairs)} questions " f"and {len(text_corpus)} articles")
+
+    return {
+        "qa_pairs": qa_pairs,
+        "text": text_corpus,
+    }
+
+
+# ------------------------------------------------------------------------------------------------
+# SynthWorlds-RM
+# ------------------------------------------------------------------------------------------------
+def load_synthrm_data(data_path: str, split: str) -> dict:
+    """Load SynthWorlds-RM dataset from disk.
+
+    Args:
+        data_path: Path to the dataset directory
+        split: Dataset split (e.g., 'train', 'dev', 'minidev')
+
+    Returns:
+        dict: Dictionary containing:
+            - qa_pairs: List of QA pairs with metadata
+            - text: List of context paragraphs with metadata
+    """
+    file_path = Path(data_path) / f"{split}.json"
+    logger.info(f"Loading SynthWorlds-RM dataset from {file_path}")
+
+    with open(file_path) as f:
+        data = json.load(f)
+
+    # Convert to format similar to phantom-wiki
+    qa_pairs = []
+    text_corpus = []
+
+    all_ids = []
+    for group in data:
+        if group["instance_id"] in all_ids:
+            logger.warning(f"Article with {group['instance_id']=} already exists")
+        else:
+            all_ids.append(group["instance_id"])
+
+        # Process articles - gold_docs is a list of article texts
+        # Use first 20 characters of each article as the title
+        titles = [doc[:20] for doc in group["gold_docs"]]
+        articles = group["gold_docs"]
+
+        text_corpus.append(
+            {
+                "title": titles,
+                "article": articles,
+                "id": group["instance_id"],
+            }
+        )
+
+        # gold_answers is a list, take the first element
+        if len(group["gold_answers"]) > 1:
+            logger.warning(
+                f"Question {group['instance_id']} has {len(group['gold_answers'])} answers. "
+                f"Taking first answer. (SynthWorlds-RM should only have 1 answer per question)"
+            )
+        answer = group["gold_answers"][0] if group["gold_answers"] else ""
+
+        qa_pairs.append(
+            {
+                "id": group["instance_id"],
+                "question": group["query"],
+                "answer": answer,
+                "type": group["question_graph_type"],
+            }
+        )
+
+    # Log final statistics
+    logger.info(f"Loaded {len(qa_pairs)} questions and {len(text_corpus)} articles")
+
+    return {
+        "qa_pairs": qa_pairs,
+        "text": text_corpus,
+    }
+
+
+# ------------------------------------------------------------------------------------------------
 # MuSiQue
 # ------------------------------------------------------------------------------------------------
 def load_msq_data(
@@ -199,11 +347,11 @@ def load_msq_data(
         data_path: Path to the dataset directory
         split: Dataset split (e.g., 'train', 'dev')
         answerable_only: if True, use MuSiQue-Ans, otherwise use MuSiQue-Full
-        intermediate_answers: if True, preserve question_decomposition field and return dict keyed by id
+        intermediate_answers: if True, also add question_decomposition field to each QA pair
 
     Returns:
         dict: Dictionary containing:
-            - qa_pairs: List or Dict (if intermediate_answers=True) of QA pairs with metadata
+            - qa_pairs: List of QA pairs with metadata
             - text: List of context paragraphs with metadata
     """
     if answerable_only:
@@ -213,7 +361,7 @@ def load_msq_data(
     logger.info(f"Loading MuSiQue dataset from {file_path}")
 
     # Convert to format similar to phantom-wiki
-    qa_pairs = {} if intermediate_answers else []
+    qa_pairs = []
     text_corpus = []
 
     with open(file_path) as f:
@@ -232,19 +380,16 @@ def load_msq_data(
                 }
             )
 
+            qa_data = {
+                "id": group["id"],
+                "question": group["question"],
+                "answer": group["answer"],
+                "type": None,
+            }
             if intermediate_answers:
-                # Keep all fields from original data (including question_decomposition)
-                qa_data = group
-                qa_pairs[group["id"]] = qa_data
-            else:
-                # Extract only specific fields
-                qa_data = {
-                    "id": group["id"],
-                    "question": group["question"],
-                    "answer": group["answer"],
-                    "type": None,  # TODO: add type
-                }
-                qa_pairs.append(qa_data)
+                qa_data["question_decomposition"] = group["question_decomposition"]
+
+            qa_pairs.append(qa_data)
 
     # Log final statistics
     logger.info(f"Loaded {len(qa_pairs)} questions " f"and {len(text_corpus)} articles")
@@ -276,6 +421,6 @@ def get_parser():
         type=str,
         required=True,
         help="The dataset to evaluate on.",
-        choices=["hp", "hp500", "2wiki", "2wiki500", "msq", "msq500"],
+        choices=["hp", "hp500", "2wiki", "2wiki500", "msq", "msq500", "cofca500", "synthrm500"],
     )
     return parser

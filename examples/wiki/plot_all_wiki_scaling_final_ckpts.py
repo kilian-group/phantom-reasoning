@@ -8,7 +8,7 @@ NOTE: The script plots for all wiki, so dataset and split are ignored even thoug
 ```bash
 python examples/wiki/plot_all_wiki_scaling_final_ckpts.py \
     --final_ckpts_yaml_path scripts/final_plots/final_ckpts.yaml \
-    --base_model_names_to_plot "Qwen/Qwen3-0.6B" "Qwen/Qwen3-1.7B" \
+    --model_name "Qwen/Qwen3-0.6B" \
     --data_dir data \
     --dataset hp500 \
     --split minidev
@@ -23,6 +23,7 @@ from pathlib import Path
 import matplotlib.lines as lines
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+import numpy as np
 import yaml
 from phantom_eval.evaluate_utils import mean, std
 from utils.data_utils import get_parser
@@ -32,54 +33,108 @@ from phantom_reasoner.utils import plotting_utils
 
 parser = get_parser()
 parser.add_argument("--final_ckpts_yaml_path", type=str, required=True)
-parser.add_argument("--base_model_names_to_plot", nargs="+", default=["Qwen/Qwen3-0.6B", "Qwen/Qwen3-1.7B"])
+parser.add_argument("--model_name", type=str, default="Qwen/Qwen3-0.6B")
 parser.add_argument("--figures_dir", type=str, default="scripts/final_plots/figures")
 args = parser.parse_args()
 
-eval_datasets = ["hp500", "2wiki500", "msq500"]
+eval_datasets = ["hp500", "2wiki500", "msq500", "cofca500", "synthrm500"]
 eval_dataset2name = {
     "hp500": "HotpotQA",
     "2wiki500": "2Wiki",
     "msq500": "MuSiQue",
+    "cofca500": "CofCA",
+    "synthrm500": "SynthWorlds-RM",
 }
 eval_dataset2plot_metric = {
     "hp500": "f1",
     "2wiki500": "f1",
     "msq500": "f1",
+    "cofca500": "f1",
+    "synthrm500": "f1",
 }
-eval_dataset2ylims = {
+# Default ylims
+eval_dataset2ylims: dict[str, tuple[float, float]] = {
     "hp500": (0.3, 0.8),
     "2wiki500": (0.3, 0.8),
     "msq500": (0.0, 0.5),
+    "cofca500": (0.3, 0.8),
+    "synthrm500": (0.3, 0.8),
 }
-eval_dataset2yticks = {
-    "hp500": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
-    "2wiki500": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
-    "msq500": [0.0, 0.1, 0.2, 0.3, 0.4, 0.5],
-}
-if "Qwen/Qwen2.5-1.5B-Instruct" in args.base_model_names_to_plot:
-    # Qwen2.5-1.5B-Instruct model starts off poorly on hp and 2wiki
+# Adjust ylims for specific models
+if args.model_name == "Qwen/Qwen3-0.6B":
+    eval_dataset2ylims["hp500"] = (0.2, 0.7)
+    eval_dataset2ylims["2wiki500"] = (0.2, 0.7)
+    eval_dataset2ylims["msq500"] = (0.0, 0.5)
+    eval_dataset2ylims["cofca500"] = (0.2, 0.7)
+    eval_dataset2ylims["synthrm500"] = (0.2, 0.7)
+elif args.model_name == "Qwen/Qwen3-1.7B":
+    eval_dataset2ylims["hp500"] = (0.4, 0.9)
+    eval_dataset2ylims["2wiki500"] = (0.4, 0.9)
+    eval_dataset2ylims["msq500"] = (0.2, 0.7)
+    eval_dataset2ylims["cofca500"] = (0.2, 0.7)
+    eval_dataset2ylims["synthrm500"] = (0.2, 0.7)
+elif args.model_name == "Qwen/Qwen2.5-1.5B-Instruct":
+    # Qwen2.5-1.5B-Instruct model starts off poorly on hp and 2wiki and cofca
     # So start the y axis at 0
     eval_dataset2ylims["hp500"] = (0.0, 0.8)
     eval_dataset2ylims["2wiki500"] = (0.0, 0.8)
-    eval_dataset2yticks["hp500"] = [0.0, 0.2, 0.4, 0.6, 0.8]
-    eval_dataset2yticks["2wiki500"] = [0.0, 0.2, 0.4, 0.6, 0.8]
+    eval_dataset2ylims["msq500"] = (0.0, 0.5)
+    eval_dataset2ylims["cofca500"] = (0.0, 0.8)
+    eval_dataset2ylims["synthrm500"] = (0.0, 0.8)
+elif args.model_name == "microsoft/Phi-4-mini-reasoning":
+    # Same as Qwen3-1.7B, so that visually the plots are comparable in the same location
+    eval_dataset2ylims["hp500"] = (0.4, 0.9)
+    eval_dataset2ylims["2wiki500"] = (0.4, 0.9)
+    eval_dataset2ylims["msq500"] = (0.2, 0.7)
+    eval_dataset2ylims["cofca500"] = (0.2, 0.7)
+    eval_dataset2ylims["synthrm500"] = (0.2, 0.7)
+elif args.model_name in ["Qwen/Qwen3-4B", "Qwen/Qwen2.5-7B-Instruct"]:
+    # Big LLMs end up being very good on all datasets
+    # So end the y axis at 1.0 (only 2wiki500, msq500 needs adjusting)
+    eval_dataset2ylims["hp500"] = ((0.3, 0.8),)
+    eval_dataset2ylims["2wiki500"] = (0.5, 1.0)
+    eval_dataset2ylims["msq500"] = (0.3, 0.8)
+    eval_dataset2ylims["cofca500"] = (0.3, 0.8)
+    eval_dataset2ylims["synthrm500"] = (0.3, 0.8)
+else:
+    print(f"No ylims set for model {args.model_name}, using default")
+
+
+def get_yticks_from_ylims(ylims: tuple[float, float]) -> list[float]:
+    """
+    Get a list of evenly spaced ticks between the ylims inclusive, rounded to 1 decimal place.
+    The number of ticks is determined by the spread of the ylims.
+    """
+    spread = round(ylims[1] - ylims[0], 1)  # round to 1 decimal place to avoid floating point errors
+    # Either 5 or 6 ticks, depending on the spread
+    if int(spread * 10) % 2 == 0:
+        num_ticks = 5
+    elif int(spread * 10) % 5 == 0:
+        num_ticks = 6  # inclusive of both ends
+    else:
+        # Default, add 1 for inclusive of both ends
+        num_ticks = int(spread * 10) + 1
+    return [round(x, 1) for x in np.linspace(ylims[0], ylims[1], num_ticks)]
+
+
+eval_dataset2yticks: dict[str, list[float]] = {
+    eval_dataset: get_yticks_from_ylims(eval_dataset2ylims[eval_dataset]) for eval_dataset in eval_datasets
+}
 
 # Load the yaml file
 with open(args.final_ckpts_yaml_path) as f:
     final_ckpts_yaml = yaml.safe_load(f)
     synthetic_train_ckpts = final_ckpts_yaml["synthetic_train_ckpts"]
 
-training_dataset_names: list[str] = [train_dataset["dataset_name"] for train_dataset in synthetic_train_ckpts]
-base_model_names: set[str] = set()
+train_dataset_names: list[str] = ["rg-family_relationships", "rg-knights_knaves", "gsminf", "pw"]
 
 fig_width = len(eval_datasets) * 4
-fig, axes = plt.subplots(1, len(eval_datasets), figsize=(fig_width, 4))
+fig, axes = plt.subplots(1, len(eval_datasets), figsize=(fig_width, 5))
 
 # Increase font sizes for better readability
-LABEL_FONT_SIZE = plotting_utils.LABEL_FONT_SIZE
-TICK_FONT_SIZE = plotting_utils.TICK_FONT_SIZE
-LEGEND_FONT_SIZE = plotting_utils.LEGEND_FONT_SIZE
+LABEL_FONT_SIZE = plotting_utils.LABEL_FONT_SIZE + 4
+TICK_FONT_SIZE = plotting_utils.TICK_FONT_SIZE + 3
+LEGEND_FONT_SIZE = plotting_utils.LEGEND_FONT_SIZE + 4
 
 # Create a subfigure for each dataset
 for i, eval_dataset in enumerate(eval_datasets):
@@ -95,9 +150,8 @@ for i, eval_dataset in enumerate(eval_datasets):
 
         for ckpt in train_ckpts_dict["ckpts"]:
             base_model_name = ckpt["model"]
-            if base_model_name not in args.base_model_names_to_plot:
+            if base_model_name != args.model_name:
                 continue
-            base_model_names.add(base_model_name)
             ckpt_path = ckpt["paths"][0]  # NOTE: Take the first model path only
             output_dir = os.path.join(ckpt_path, f"out-{eval_dataset}")
 
@@ -125,14 +179,13 @@ for i, eval_dataset in enumerate(eval_datasets):
             # Plot a line chart of metric vs checkpoint number
             metric = eval_dataset2plot_metric[eval_dataset]
             metric_data = acc[metric]
-            marker = plotting_utils.MODEL_NAME2MARKER[base_model_name]  # based on model name
             color = plotting_utils.COLORS2HEX[
                 plotting_utils.TRAIN_DATASET_ALIAS2COLOR[train_dataset_name]
             ]  # based on pw or gsminf
             ax.plot(
                 ckpt_numbers,
                 metric_data["mean"],
-                marker=marker,
+                marker=plotting_utils.TRAIN_DATASET_NAME2MARKER[train_dataset_name],
                 color=color,
                 linestyle="solid",
                 linewidth=plotting_utils.LINE_WIDTH,
@@ -146,85 +199,67 @@ for i, eval_dataset in enumerate(eval_datasets):
             )
             max_ckpt_number = max(max_ckpt_number, max(ckpt_numbers))
 
-    ax.set_xlabel("Training steps", fontsize=LABEL_FONT_SIZE)
-    if i == 0:
-        ax.set_ylabel(metric.upper(), fontsize=LABEL_FONT_SIZE)
     ax.set_title(eval_dataset2name[eval_dataset], fontsize=LABEL_FONT_SIZE, fontweight="bold")
+
+    ax.set_xlabel("Training steps", fontsize=LABEL_FONT_SIZE)
     ax.set_xlim(1, max_ckpt_number)
     ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f"{int(x // 1000):d}" + "K"))
+    ax.tick_params(axis="x", labelsize=TICK_FONT_SIZE)
+
+    if i == 0:
+        ax.set_ylabel(metric.upper(), fontsize=LABEL_FONT_SIZE)
     ax.set_ylim(eval_dataset2ylims[eval_dataset])
     ax.set_yticks(eval_dataset2yticks[eval_dataset])
-    # Add horizontal grid lines
+    ax.tick_params(axis="y", labelsize=TICK_FONT_SIZE)
     ax.grid(axis="y", alpha=0.3, linestyle="--", linewidth=plotting_utils.LINE_WIDTH)
     ax.set_axisbelow(True)
 
-# Add a legend on the right side of the figure
-handles = []
-for training_dataset_name in training_dataset_names:
-    # Add the training dataset name as a legend handle with no line or marker
-    handles.append(
-        lines.Line2D(
-            [],
-            [],
-            color=plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR[training_dataset_name]],
-            marker="None",
-            label=plotting_utils.TRAIN_DATASET_ALIAS2NAME[training_dataset_name],
-            linestyle="None",
-        )
+# Add a legend on the top of the figure
+legend_elements = [
+    lines.Line2D(
+        [],
+        [],
+        marker="None",
+        label=f"{plotting_utils.MODEL_NAME2ALIAS[args.model_name]} fine-tuned with",
+        linestyle="None",
     )
-    # Then add a line+marker for each base model
-    for base_model_name in base_model_names:
-        handles.append(
-            lines.Line2D(
-                [0],
-                [0],
-                color=plotting_utils.COLORS2HEX[
-                    plotting_utils.TRAIN_DATASET_ALIAS2COLOR[training_dataset_name]
-                ],
-                marker=plotting_utils.MODEL_NAME2MARKER[base_model_name],
-                label=plotting_utils.MODEL_NAME2ALIAS[base_model_name],
-                linewidth=plotting_utils.LINE_WIDTH,
-                linestyle="solid",
-            )
-        )
+]
+legend_elements += [
+    lines.Line2D(
+        [0],
+        [0],
+        color=plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR[train_dataset_name]],
+        marker=plotting_utils.TRAIN_DATASET_NAME2MARKER[train_dataset_name],
+        label=plotting_utils.TRAIN_DATASET_ALIAS2NAME[train_dataset_name],
+        linewidth=plotting_utils.LINE_WIDTH,
+        linestyle="solid",
+    )
+    for train_dataset_name in train_dataset_names
+]
 
 legend = fig.legend(
-    handles=handles,
-    fontsize=LEGEND_FONT_SIZE,
+    handles=legend_elements,
     loc="upper center",
-    ncol=len(training_dataset_names),
+    fontsize=LEGEND_FONT_SIZE,
     frameon=True,
     fancybox=False,
     edgecolor="black",
-    bbox_to_anchor=(0.49, -0.02),
-    bbox_transform=fig.transFigure,
-    title="Train dataset",
-    title_fontsize=LEGEND_FONT_SIZE,
+    bbox_to_anchor=(0.49, 1.0),  # Move just below the title at the top center
+    ncol=len(train_dataset_names) + 1,  # +1 for the model name
 )
-
-# Make the training dataset names bold and their specific color
-for i, training_dataset_name in enumerate(training_dataset_names):
-    # There are 3 rows per training dataset name in the legend:
-    # 1. The training dataset name
-    # ... rest are base models
-    text_object = legend.get_texts()[i * (len(base_model_names) + 1)]
-
-    # Modify its style
-    text_object.set_color(
-        plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR[training_dataset_name]]
-    )
-    text_object.set_fontweight("bold")
+# Set the fontweight and fontsize of the model name (first entry in the legend)
+legend.get_texts()[0].set_fontweight("bold")
 
 plt.subplots_adjust(
     left=0.08,  # where the left subplot y-labels are, increase to move them away from left figure edge
     right=0.9,  # where the right subplot edges are, increase to move them closer to right figure edge
-    top=0.9,  # where the top subplot edges are, increase to move them closer to top figure edge
+    top=0.8,  # where the top subplot edges are, increase to move them closer to top figure edge
     bottom=0.1,  # where the bottom subplot edges are, increase to move them closer to bottom figure edge
-    hspace=0.2,  # horizontal space between subplots, increase to move them away
-    wspace=0.15,  # vertical space between subplots, increase to move them away
+    # hspace=0.25,  # horizontal space between subplots, increase to move them away
+    wspace=0.20,  # vertical space between subplots, increase to move them away
 )
 
-str_for_model_names = "__".join([m.replace("/", "--") for m in args.base_model_names_to_plot])
+str_for_model_names = args.model_name.replace("/", "--")
 save_path = Path(args.figures_dir) / f"f1_v_training_steps_{str_for_model_names}.pdf"
 plt.savefig(save_path, dpi=300, bbox_inches="tight")
 plt.savefig(save_path.with_suffix(".png"), dpi=300, bbox_inches="tight")

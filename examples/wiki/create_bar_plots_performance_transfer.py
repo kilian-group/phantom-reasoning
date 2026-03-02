@@ -2,10 +2,12 @@ import argparse
 import json
 from pathlib import Path
 
+import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import yaml
+from matplotlib.patches import Patch
 from phantom_eval.evaluate_utils import mean, std
 from utils.evaluate_utils import get_preds
 
@@ -16,6 +18,16 @@ parser.add_argument("--final_ckpts_yaml_path", type=str, required=True)
 parser.add_argument("--base_model_preds_dir", type=str, default="out__train=base__eval=wiki")
 parser.add_argument("--pw_model_preds_dir", type=str, default="out__train=pw__eval=wiki")
 parser.add_argument("--gsminf_model_preds_dir", type=str, default="out__train=gsminf__eval=wiki")
+parser.add_argument(
+    "--rg_family_relationships_model_preds_dir",
+    type=str,
+    default="out__train=rg-family_relationships__eval=wiki",
+)
+parser.add_argument(
+    "--rg_knights_knaves_model_preds_dir",
+    type=str,
+    default="out__train=rg-knights_knaves__eval=wiki",
+)
 parser.add_argument("--figures_dir", type=str, default="scripts/final_plots/figures")
 args = parser.parse_args()
 
@@ -26,18 +38,43 @@ with open(args.final_ckpts_yaml_path) as f:
     final_ckpts_yaml = yaml.safe_load(f)
     synthetic_train_ckpts = final_ckpts_yaml["synthetic_train_ckpts"]
 
-models_in_matrix = [["Qwen3-0.6B", "Phi-4-Mini-Reasoning"], ["Qwen3-1.7B", "Qwen2.5-1.5B-Instruct"]]
-train_dataset_names = ["base", "gsminf", "pw"]
+models_in_order = [
+    "Qwen3-0.6B",
+    "Qwen3-1.7B",
+    "Qwen2.5-1.5B-Instruct",
+    "Phi-4-Mini-Reasoning",
+    "Qwen3-4B",
+    "Qwen2.5-7B-Instruct",
+]
+models_in_main_text = [
+    "Qwen3-0.6B",
+    "Qwen3-1.7B",
+    "Phi-4-Mini-Reasoning",
+    "Qwen2.5-1.5B-Instruct",
+]
+models_in_appendix = [
+    "Qwen3-4B",
+    "Qwen2.5-7B-Instruct",
+]
+train_dataset_names = ["base", "rg-family_relationships", "rg-knights_knaves", "gsminf", "pw"]
+train_dataset_names_for_bars = ["rg-family_relationships", "rg-knights_knaves", "gsminf", "pw"]
 eval_dataset_names = plotting_utils.EVAL_DATASET_NAMES
 eval_dataset_alias2name = {
     "hp500": "HotpotQA",
     "2wiki500": "2Wiki",
     "msq500": "MuSiQue",
+    "cofca500": "CofCA",
+    "synthrm500": "SynthWorlds-RM",
 }
 
 LINE_WIDTH = 1
+# BASE_COLOR = plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR["base"]]
+# NOTE: we use black for the base line to make it more visible
+BASE_COLOR = "black"
+BASE_LINE_WIDTH = 2
+BASE_LINE_STYLE = "dashed"
 
-# Data from the table
+# Data from the table format
 # data = {
 #     "Qwen3-0.6B": {
 #         "HotpotQA": {"base": 0.3654, "format": 0.3780, "gsminf": 0.4787, "pw": 0.5905},
@@ -72,30 +109,40 @@ def create_bar_plot_for_model(
     model: str,
     yticks: list[float],
     axes: list[plt.Axes],
-    show_yticks: bool,
-    x_left: float,
-    x_right: float,
+    show_yticks: bool = True,
+    show_eval_titles: bool = True,
+    x_left: float = 0.0,
+    x_right: float = 0.0,
 ):
     # Bar settings
     bar_width = 0.85
-    x_pos = np.arange(len(train_dataset_names))
+    x_pos = np.arange(len(train_dataset_names_for_bars))
     EDGE_COLOR = "black"
 
     # Create bars for each subplot
-    # for i, model in enumerate(models):
     for j, dataset in enumerate(eval_dataset_names):
         ax = axes[j]
 
-        # Get values for this model-dataset combination
-        values = [mean_data[model][dataset][train_dataset_name] for train_dataset_name in train_dataset_names]
-        errors = [std_data[model][dataset][train_dataset_name] for train_dataset_name in train_dataset_names]
+        # Draw a horizontal line at the base F1 value
+        base_value = mean_data[model][dataset]["base"]
+        ax.axhline(
+            y=base_value, color=BASE_COLOR, linestyle=BASE_LINE_STYLE, linewidth=BASE_LINE_WIDTH, zorder=3
+        )
 
-        # Create bars with error bars (using small errors for visual effect)
-        # TODO add error bars
-        # errors = [0.02] * len(values)  # Small error bars for visual effect
+        # Get values for this model-dataset combination (trained models only)
+        values = [
+            mean_data[model][dataset][train_dataset_name]
+            for train_dataset_name in train_dataset_names_for_bars
+        ]
+        errors = [
+            std_data[model][dataset][train_dataset_name]
+            for train_dataset_name in train_dataset_names_for_bars
+        ]
+
+        # Create bars with error bars
         colors = [
             plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR[label]]
-            for label in train_dataset_names
+            for label in train_dataset_names_for_bars
         ]
         _ = ax.bar(
             x_pos,
@@ -133,17 +180,18 @@ def create_bar_plot_for_model(
             spine.set_linewidth(LINE_WIDTH)
 
         # Set titles for top row (eval datasets)
-        ax.set_title(dataset, fontsize=LABEL_FONT_SIZE, fontweight="bold")
+        if show_eval_titles:
+            ax.set_title(dataset, fontsize=LABEL_FONT_SIZE, fontweight="bold")
 
     # Get the positions of the first and last subplot in this row
-    LEFT_OFFSET = 0.0
-    RIGHT_OFFSET = 0.0
-    BRACKET_Y_OFFSET = 0.05
+    LEFT_OFFSET = -0.025
+    RIGHT_OFFSET = 0.01
+    BRACKET_Y_OFFSET = 0.02
 
     # Calculate positions
     ax_left = axes[0].get_position()
     y_pos = ax_left.y0 - BRACKET_Y_OFFSET
-    BRACKET_HEIGHT = 0.015
+    BRACKET_HEIGHT = 0.01
 
     # Draw left vertical line
     fig.add_artist(
@@ -179,7 +227,7 @@ def create_bar_plot_for_model(
     )
 
     # Add the model name centered below the bracket
-    x_center = (x_left + x_right) / 2
+    x_center = (x_left - LEFT_OFFSET + x_right + RIGHT_OFFSET) / 2
     fig.text(
         x_center,
         y_pos + BRACKET_HEIGHT,
@@ -194,11 +242,15 @@ def create_bar_plot_for_model(
 
 
 def load_data(
-    models: list[str], base_model_preds_dir: str, pw_model_preds_dir: str, gsminf_model_preds_dir: str
+    models: list[str],
+    base_model_preds_dir: str,
+    pw_model_preds_dir: str,
+    gsminf_model_preds_dir: str,
+    rg_family_relationships_model_preds_dir: str,
+    rg_knights_knaves_model_preds_dir: str,
 ) -> tuple[dict, dict]:
     mean_data = {
         model: {
-            # "HotpotQA": {"base": 0.0, "format": 0.0, "gsminf": 0.0, "pw": 0.0}
             dataset: {train_dataset_name: 0.0 for train_dataset_name in train_dataset_names}
             for dataset in eval_dataset_names
         }
@@ -206,7 +258,6 @@ def load_data(
     }
     std_data = {
         model: {
-            # "HotpotQA": {"base": 0.0, "format": 0.0, "gsminf": 0.0, "pw": 0.0}
             dataset: {train_dataset_name: 0.0 for train_dataset_name in train_dataset_names}
             for dataset in eval_dataset_names
         }
@@ -278,55 +329,126 @@ def load_data(
             mean_data[model][eval_name]["gsminf"] = mean(dfs_of_ckpt_paths["f1"])
             std_data[model][eval_name]["gsminf"] = std(dfs_of_ckpt_paths["f1"])
 
-    # Also save the data to a json file
-    save_path = Path(args.figures_dir) / "f1_transfer_performance_all.json"
-    with open(save_path, "w") as f:
-        json.dump({"mean_data": mean_data, "std_data": std_data}, f, indent=4)
-        f.write("\n")
+    # Get rg-family_relationships model data
+    for alias, eval_name in eval_dataset_alias2name.items():
+        df_preds, _ = get_preds(args.rg_family_relationships_model_preds_dir, "data", alias, "minidev", "cot")
+
+        # Get pw train dataset dict
+        pw_train_dataset_dict = None
+        for train_dataset_dict in synthetic_train_ckpts:
+            if train_dataset_dict["dataset_name"] == "rg-family_relationships":
+                pw_train_dataset_dict = train_dataset_dict
+                break
+
+        # Get ckpt paths of model
+        for model in models:
+            ckpt_paths_of_model = None
+            for ckpt in pw_train_dataset_dict["ckpts"]:
+                if plotting_utils.MODEL_NAME2ALIAS[ckpt["model"]] == model:
+                    ckpt_paths_of_model = ckpt["paths"]
+                    break
+
+            # Collect data for the all checkpoints in a single df
+            dfs_of_ckpt_paths = []
+            for ckpt_path in ckpt_paths_of_model:
+                dfs_of_ckpt_paths.append(df_preds[df_preds["_model"] == ckpt_path])
+
+            dfs_of_ckpt_paths = pd.concat(dfs_of_ckpt_paths)
+            mean_data[model][eval_name]["rg-family_relationships"] = mean(dfs_of_ckpt_paths["f1"])
+            std_data[model][eval_name]["rg-family_relationships"] = std(dfs_of_ckpt_paths["f1"])
+
+    # Get rg-knights_knaves model data
+    for alias, eval_name in eval_dataset_alias2name.items():
+        df_preds, _ = get_preds(args.rg_knights_knaves_model_preds_dir, "data", alias, "minidev", "cot")
+
+        # Get pw train dataset dict
+        pw_train_dataset_dict = None
+        for train_dataset_dict in synthetic_train_ckpts:
+            if train_dataset_dict["dataset_name"] == "rg-knights_knaves":
+                pw_train_dataset_dict = train_dataset_dict
+                break
+
+        # Get ckpt paths of model
+        for model in models:
+            ckpt_paths_of_model = None
+            for ckpt in pw_train_dataset_dict["ckpts"]:
+                if plotting_utils.MODEL_NAME2ALIAS[ckpt["model"]] == model:
+                    ckpt_paths_of_model = ckpt["paths"]
+                    break
+
+            # Collect data for the all checkpoints in a single df
+            dfs_of_ckpt_paths = []
+            for ckpt_path in ckpt_paths_of_model:
+                dfs_of_ckpt_paths.append(df_preds[df_preds["_model"] == ckpt_path])
+
+            dfs_of_ckpt_paths = pd.concat(dfs_of_ckpt_paths)
+            mean_data[model][eval_name]["rg-knights_knaves"] = mean(dfs_of_ckpt_paths["f1"])
+            std_data[model][eval_name]["rg-knights_knaves"] = std(dfs_of_ckpt_paths["f1"])
+
     return mean_data, std_data
 
 
 if __name__ == "__main__":
-    mean_data, std_data = load_data(
-        [m for model_row in models_in_matrix for m in model_row],
-        args.base_model_preds_dir,
-        args.pw_model_preds_dir,
-        args.gsminf_model_preds_dir,
-    )
-    # Create a 2 x 6 subplot figure, where the first row is for Qwen3-0.6B and Phi-4-mini-reasoning,
-    # and the second row is for Qwen3-1.7B and Qwen2.5-1.5B-Instruct
-    # Select the axes
-    fig, axes = plt.subplots(2, 6, figsize=(12, 8))
-    for i, model_row in enumerate(models_in_matrix):
-        for j, model in enumerate(model_row):
-            yticks = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
-            show_yticks = j == 0
-            # i is the row index, and j*3:(j+1)*3 is the column index
-            axes_slice = axes[i, j * 3 : (j + 1) * 3]
-            x_left = axes_slice[0].get_position().x0
-            x_right = axes_slice[-1].get_position().x1
-            if j == 0:
-                # Move the x a bit left
-                x_left -= 0.01
-                x_right -= 0.01
-            elif j == 1:
-                # Move the x a bit right
-                x_left += 0.045
-                x_right += 0.045
-            create_bar_plot_for_model(
-                mean_data, std_data, model, yticks, axes_slice, show_yticks, x_left, x_right
-            )
+    save_path = Path(args.figures_dir) / "f1_transfer_performance_all.json"
+    if not save_path.exists():
+        mean_data, std_data = load_data(
+            models_in_order,
+            args.base_model_preds_dir,
+            args.pw_model_preds_dir,
+            args.gsminf_model_preds_dir,
+            args.rg_family_relationships_model_preds_dir,
+            args.rg_knights_knaves_model_preds_dir,
+        )
+
+        # Also save the data to a json file
+        with open(save_path, "w") as f:
+            json.dump({"mean_data": mean_data, "std_data": std_data}, f, indent=4)
+            f.write("\n")
+
+    with open(save_path) as f:
+        data = json.load(f)
+        mean_data = data["mean_data"]
+        std_data = data["std_data"]
+
+    # Create a num_models x num_eval_datasets subplot figure
+    # First main text figure
+    num_models = len(models_in_main_text)
+    fig, axes = plt.subplots(num_models, len(eval_dataset_names), figsize=(12, 4 * num_models))
+    for i, model in enumerate(models_in_main_text):
+        yticks = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+        show_eval_titles = i == 0  # Only show eval titles for the first model (top row)
+        axes_slice = axes[i, :]
+        x_left = axes_slice[0].get_position().x0
+        x_right = axes_slice[-1].get_position().x1
+        create_bar_plot_for_model(
+            mean_data,
+            std_data,
+            model,
+            yticks,
+            axes_slice,
+            show_yticks=True,
+            show_eval_titles=show_eval_titles,
+            x_left=x_left,
+            x_right=x_right,
+        )
 
     # Create legend with better styling
-    from matplotlib.patches import Patch
-
     legend_elements = [
+        mlines.Line2D(
+            [],
+            [],
+            color=BASE_COLOR,
+            linestyle=BASE_LINE_STYLE,
+            linewidth=BASE_LINE_WIDTH,
+            label=plotting_utils.TRAIN_DATASET_ALIAS2NAME["base"],
+        ),
+    ] + [
         Patch(
             facecolor=plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR[label]],
             edgecolor="black",
             label=plotting_utils.TRAIN_DATASET_ALIAS2NAME[label],
         )
-        for label in train_dataset_names
+        for label in train_dataset_names_for_bars
     ]
 
     # Position legend on the right side
@@ -345,13 +467,81 @@ if __name__ == "__main__":
     plt.subplots_adjust(
         left=0.08,  # where the left subplot y-labels are, increase to move them away from left figure edge
         right=0.98,  # where the right subplot edges are, increase to move them closer to right figure edge
-        top=0.82,  # where the top subplot edges are, increase to move them closer to top figure edge
-        bottom=0.1,  # where the bottom subplot edges are, increase to move them closer to bottom figure edge
-        hspace=0.35,  # horizontal space between subplots, increase to move them away
+        # top=0.85,  # where the top subplot edges are, increase to move them closer to top figure edge
+        # bottom=0.1,  # where the bottom subplot edges are, increase to move them closer to bottom figure
+        # hspace=0.25,  # horizontal space between subplots, increase to move them away
         wspace=0.05,  # vertical space between subplots, increase to move them away
     )
 
-    save_path = Path(args.figures_dir) / "f1_transfer_performance_all.pdf"
+    save_path = Path(args.figures_dir) / "f1_transfer_performance_main_text.pdf"
+    plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    plt.savefig(save_path.with_suffix(".png"), dpi=300, bbox_inches="tight")
+    print(f"Saved bar plot to {save_path} and {save_path.with_suffix('.png')}")
+    plt.close()
+
+    # Second appendix figure
+    num_models = len(models_in_appendix)
+    fig, axes = plt.subplots(num_models, len(eval_dataset_names), figsize=(12, 4 * num_models))
+    for i, model in enumerate(models_in_appendix):
+        yticks = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+        show_eval_titles = i == 0  # Only show eval titles for the first model (top row)
+        axes_slice = axes[i, :]
+        x_left = axes_slice[0].get_position().x0
+        x_right = axes_slice[-1].get_position().x1
+        create_bar_plot_for_model(
+            mean_data,
+            std_data,
+            model,
+            yticks,
+            axes_slice,
+            show_yticks=True,
+            show_eval_titles=show_eval_titles,
+            x_left=x_left,
+            x_right=x_right,
+        )
+
+    # Create legend with better styling
+    legend_elements = [
+        mlines.Line2D(
+            [],
+            [],
+            color=BASE_COLOR,
+            linestyle=BASE_LINE_STYLE,
+            linewidth=BASE_LINE_WIDTH,
+            label=plotting_utils.TRAIN_DATASET_ALIAS2NAME["base"],
+        ),
+    ] + [
+        Patch(
+            facecolor=plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR[label]],
+            edgecolor="black",
+            label=plotting_utils.TRAIN_DATASET_ALIAS2NAME[label],
+        )
+        for label in train_dataset_names_for_bars
+    ]
+
+    # Position legend on the right side
+    fig.legend(
+        handles=legend_elements,
+        loc="upper center",
+        fontsize=LABEL_FONT_SIZE,
+        frameon=True,
+        fancybox=False,
+        edgecolor="black",
+        bbox_to_anchor=(0.53, 1.0),  # Move just below the title at the top center
+        ncol=len(train_dataset_names),
+    )
+
+    # Adjust layout
+    plt.subplots_adjust(
+        left=0.08,  # where the left subplot y-labels are, increase to move them away from left figure edge
+        right=0.98,  # where the right subplot edges are, increase to move them closer to right figure edge
+        top=0.90,  # where the top subplot edges are, increase to move them closer to top figure edge
+        bottom=0.12,  # where the bottom subplot edges are, increase to move them closer to bottom figure
+        hspace=0.18,  # horizontal space between subplots, increase to move them away
+        wspace=0.05,  # vertical space between subplots, increase to move them away
+    )
+
+    save_path = Path(args.figures_dir) / "f1_transfer_performance_appendix.pdf"
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
     plt.savefig(save_path.with_suffix(".png"), dpi=300, bbox_inches="tight")
     print(f"Saved bar plot to {save_path} and {save_path.with_suffix('.png')}")

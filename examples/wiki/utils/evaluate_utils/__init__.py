@@ -1,16 +1,13 @@
 import pandas as pd
 
-if False:
-    # NOTE: these imports contain reference evaluation code
-    from utils.evaluate_utils.evaluate_2wiki import get_preds as get_preds_2wiki
-    from utils.evaluate_utils.hp import get_preds as get_preds_hp
-    from utils.evaluate_utils.msq import get_preds as get_preds_msq
-else:
-    from phantom_reasoner.utils.hp import get_preds as get_preds_hp
-    from phantom_reasoner.utils.msq.evaluate_utils import get_preds as get_preds_msq
-    from phantom_reasoner.utils.twowiki.evaluate_2wiki import (
-        get_preds as get_preds_2wiki,
-    )
+# NOTE: We don't use CofCA or SynthWorlds-RM for training, so the evaluation code is in utils.evaluate_utils
+# instead of phantom_reasoner.utils
+from utils.evaluate_utils.cofca import get_preds as get_preds_cofca
+from utils.evaluate_utils.synthrm import get_preds as get_preds_synthrm
+
+from phantom_reasoner.utils.hp import get_preds as get_preds_hp
+from phantom_reasoner.utils.msq.evaluate_utils import get_preds as get_preds_msq
+from phantom_reasoner.utils.twowiki.evaluate_2wiki import get_preds as get_preds_2wiki
 
 
 def get_preds(output_dir, data_dir, dataset, split, method) -> tuple[pd.DataFrame, list[str]]:
@@ -53,6 +50,24 @@ def get_preds(output_dir, data_dir, dataset, split, method) -> tuple[pd.DataFram
                 dataset,
                 split,
                 False,
+                method,
+            )
+            metrics = ["em", "f1"]
+        case "cofca500":
+            df_preds = get_preds_cofca(
+                output_dir,
+                data_dir,
+                dataset,
+                split,
+                method,
+            )
+            metrics = ["em", "f1", "prec", "recall"]
+        case "synthrm500":
+            df_preds = get_preds_synthrm(
+                output_dir,
+                data_dir,
+                dataset,
+                split,
                 method,
             )
             metrics = ["em", "f1"]

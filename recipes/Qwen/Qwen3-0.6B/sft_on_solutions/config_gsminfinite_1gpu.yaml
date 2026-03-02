@@ -1,0 +1,31 @@
+# Script config
+dataset_name: "data/gsm-infinite-train/zero_context/realistic"
+training_mode: "gsminfinite"
+split_list: ["medium"]
+eval_dataset_name: "data/gsm-infinite-eval/zero_context/realistic"
+eval_split_list: ["medium"]
+data_curriculum: "random"
+prompt_method: "cot"
+
+# Model arguments
+model_name_or_path: "Qwen/Qwen3-0.6B"
+bf16: true
+torch_dtype: bfloat16
+attn_implementation: "flash_attention_2" # Use flash attention for better performance
+gradient_checkpointing: true # Enable gradient checkpointing for memory efficiency, automatically sets `use_cache=False`
+
+# Trainer arguments
+num_train_epochs: 1
+per_device_train_batch_size: 8
+gradient_accumulation_steps: 1
+packing: false
+max_length: 8192 # sufficient for gsm-infinite medium prompt + completion
+
+# Logging config
+log_level: "info"
+logging_strategy: "steps"
+logging_first_step: true
+logging_steps: 0.1 # logging is done every 0.1 of total training steps
+save_strategy: "steps"
+save_steps: 0.1 # save is done every 0.1 of total training steps
+eval_strategy: "no" # NOTE: DO NOT EVALUATE because it slows down training by a lot

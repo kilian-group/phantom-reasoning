@@ -5,7 +5,7 @@
 
 if [ "$#" -ne 1 ]; then
     echo "Usage: $0 <cluster_name>"
-    echo "Supported cluster names: aida, anvil, empire"
+    echo "Supported cluster names: aida, anvil, empire, unicorn"
     exit 1
 fi
 
@@ -13,9 +13,9 @@ CLUSTER_NAME=$1
 OUTPUT_FILE="scripts/train_grpo__vllm_colocate.sub"
 
 # Validate cluster name
-if [[ "$CLUSTER_NAME" != "aida" && "$CLUSTER_NAME" != "anvil" && "$CLUSTER_NAME" != "empire" ]]; then
+if [[ "$CLUSTER_NAME" != "aida" && "$CLUSTER_NAME" != "anvil" && "$CLUSTER_NAME" != "empire" && "$CLUSTER_NAME" != "unicorn" ]]; then
     echo "Error: Unsupported cluster name '$CLUSTER_NAME'"
-    echo "Supported cluster names: aida, anvil, empire"
+    echo "Supported cluster names: aida, anvil, empire, unicorn"
     exit 1
 fi
 
@@ -29,9 +29,9 @@ SBATCH_JOB_NAME="grpo"
 SBATCH_OUTPUT="logs/grpo-%j.out"
 SBATCH_ERROR="logs/grpo-%j.err"
 SBATCH_NODES="1"
-SBATCH_NTASKS="8"
-SBATCH_MEM="50GB"
-SBATCH_TIME="24:00:00"
+SBATCH_NTASKS="32"
+SBATCH_MEM="100GB"
+SBATCH_TIME="48:00:00"
 SBATCH_MAIL_USER=$USER_EMAIL
 
 # Define SBATCH_PARTITION based on cluster
@@ -41,6 +41,8 @@ elif [[ "$CLUSTER_NAME" == "anvil" ]]; then
     SBATCH_PARTITION="ai"
 elif [[ "$CLUSTER_NAME" == "empire" ]]; then
     SBATCH_PARTITION="cornell,priority"
+elif [[ "$CLUSTER_NAME" == "unicorn" ]]; then
+    SBATCH_PARTITION="aimi"
 fi
 
 # Create the merged script, substituting the variables
@@ -70,7 +72,7 @@ fi
 # Add account information for each cluster
 if [[ "$CLUSTER_NAME" == "aida" ]]; then
     # If aida, no need to add anything
-    echo "No sbatch -A information needed for AIDA"
+    echo "No sbatch -A information needed for aida"
 elif [[ "$CLUSTER_NAME" == "anvil" ]]; then
     # If anvil, add SBATCH -A $ANVIL_PROJECT_ID-ai
     cat >> "$OUTPUT_FILE" << EOT
@@ -81,6 +83,9 @@ elif [[ "$CLUSTER_NAME" == "empire" ]]; then
     cat >> "$OUTPUT_FILE" << EOT
 #SBATCH -A cornell
 EOT
+elif [[ "$CLUSTER_NAME" == "unicorn" ]]; then
+    # If unicorn, no need to add anything
+    echo "No sbatch -A information needed for unicorn"
 fi
 
 # Add conda environment loading
@@ -94,6 +99,10 @@ module load conda
 source $(pwd)/scripts/anvil/load_modules_cuda.sh
 EOF
 elif [[ "$CLUSTER_NAME" == "empire" ]]; then
+    cat >> "$OUTPUT_FILE" << 'EOF'
+source $HOME/.bashrc
+EOF
+elif [[ "$CLUSTER_NAME" == "unicorn" ]]; then
     cat >> "$OUTPUT_FILE" << 'EOF'
 source $HOME/.bashrc
 EOF

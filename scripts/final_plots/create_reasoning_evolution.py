@@ -43,8 +43,8 @@ args = parser.parse_args()
 assert len(args.base_model_names_to_plot) == 2, "Only two base models together are supported for this script"
 
 train_dataset_names2xticks = {
-    "pw": [1, 5, 9],
-    "gsminf": [2, 5, 10, 15, 20],
+    "pw": [1, 5, 9, 14],
+    "gsminf": [2, 5, 10, 15, 20, 25],
 }
 train_dataset_names2metric = {
     "pw": "f1",
@@ -55,6 +55,10 @@ train_dataset_names2xlabel = {
     "gsminf": "Arithmetic operations",
 }
 train_dataset_names2max_difficulty = {
+    "pw": 14,
+    "gsminf": 25,
+}
+train_dataset_names2max_difficulty_training = {
     "pw": 9,
     "gsminf": 20,
 }
@@ -70,6 +74,9 @@ DIFFICULTY = "difficulty"
 LABEL_FONT_SIZE = plotting_utils.LABEL_FONT_SIZE + 5
 TICK_FONT_SIZE = plotting_utils.TICK_FONT_SIZE + 5
 LEGEND_FONT_SIZE = plotting_utils.LEGEND_FONT_SIZE + 5
+
+BASE_COLOR = "darkgray"
+BASE_LINE_STYLE = "dashed"
 
 
 def get_colormap(training_dataset_name):
@@ -170,6 +177,11 @@ def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: 
     for training evolution for each training dataset.
     """
     train_dataset_names = [train_ckpts_dict["dataset_name"] for train_ckpts_dict in synthetic_train_ckpts]
+    # Remove rg-family_relationships from the list
+    if "rg-family_relationships" in train_dataset_names:
+        train_dataset_names.pop(train_dataset_names.index("rg-family_relationships"))
+    if "rg-knights_knaves" in train_dataset_names:
+        train_dataset_names.pop(train_dataset_names.index("rg-knights_knaves"))
     num_subplots = len(train_dataset_names) * len(base_model_names)
     # To maintain colors, plot all models for a training dataset,
     # then move to the next training dataset
@@ -178,6 +190,12 @@ def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: 
 
     for i, train_ckpts_dict in enumerate(synthetic_train_ckpts):
         train_dataset_name = train_ckpts_dict["dataset_name"]
+        if train_dataset_name == "rg-family_relationships":
+            # Not supported for this script
+            continue
+        if train_dataset_name == "rg-knights_knaves":
+            # TODO: not supported for this script
+            continue
         metric = train_dataset_names2metric[train_dataset_name]
         colormap = get_colormap(train_dataset_name)
         method = "cot"
@@ -201,7 +219,7 @@ def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: 
                 preds_output_dir,
                 method,
                 [metric],
-                dataset_path=train_ckpts_dict["dataset_path"],
+                dataset_path=train_ckpts_dict["dataset_path_high_difficulty"],
                 from_local=True,
             )
 
@@ -225,14 +243,20 @@ def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: 
             ]
 
             for ckpt_name, y in df_mean.iterrows():
-                # If the ckpt_number is 0, use the base model color, else use the gradient color
                 ckpt_number = get_ckpt_number(ckpt_name, base_model_name, ckpt_parent_dir)
+                if ckpt_number % 1000 != 0:
+                    # If ckpt_number is not divisible by 1000, skip to avoid crowding the plot
+                    continue
+
+                # If the ckpt_number is 0, use the base model color, else use the gradient color
                 if ckpt_number == 0:
-                    color = plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR["base"]]
+                    color = BASE_COLOR
+                    linestyle = BASE_LINE_STYLE
                 else:
                     color = get_color(
                         ckpt_name, base_model_name, ckpt_parent_dir, max_ckpt=max_ckpt, colormap=colormap
                     )
+                    linestyle = "solid"
 
                 linewidth = plotting_utils.LINE_WIDTH
                 if ckpt_number in [0, max_ckpt]:
@@ -241,10 +265,32 @@ def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: 
                     x,
                     y,
                     color=color,
-                    linestyle="solid",
+                    linestyle=linestyle,
                     linewidth=linewidth,
                     alpha=plotting_utils.LINE_ALPHA,
                 )
+
+            # Shade the OOD generalization region
+            max_difficulty_training = train_dataset_names2max_difficulty_training[train_dataset_name]
+            ax.axvspan(max_difficulty_training, max_difficulty, alpha=0.1, color="gray", zorder=0)
+            ax.axvline(
+                x=max_difficulty_training,
+                color="gray",
+                linestyle=":",
+                linewidth=plotting_utils.LINE_WIDTH,
+                alpha=0.6,
+            )
+            ax.text(
+                (max_difficulty_training + max_difficulty) / 2,
+                0.97,
+                "OOD",
+                transform=ax.get_xaxis_transform(),
+                ha="center",
+                va="top",
+                fontsize=TICK_FONT_SIZE,
+                color="gray",
+                fontweight="bold",
+            )
 
             # format x-axis
             xticks = train_dataset_names2xticks[train_dataset_name]
@@ -298,7 +344,8 @@ def plot_training_evolution(base_model_names: list[str], synthetic_train_ckpts: 
         lines.Line2D(
             [0],
             [0],
-            color=plotting_utils.COLORS2HEX[plotting_utils.TRAIN_DATASET_ALIAS2COLOR["base"]],
+            color=BASE_COLOR,
+            linestyle=BASE_LINE_STYLE,
             label=plotting_utils.TRAIN_DATASET_ALIAS2NAME["base"],
             linewidth=1.5,
         )
