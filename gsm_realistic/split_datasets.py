@@ -41,7 +41,7 @@ def walk_and_split(src_root: Path, train_root: Path, eval_root: Path, split_prob
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Deterministically split GSM dataset into train/eval.")
     parser.add_argument(
-        "--data_dir", default="data/", type=str, help="Base directory containing gsm-infinite."
+        "--src_dir", default="data/gsm-infinite", type=str, help="Base directory containing gsm-infinite, e.g. data/gsm-infinite."
     )
     parser.add_argument("--seed", default=1, type=int, help="Random seed for deterministic splitting.")
     return parser.parse_args()
@@ -51,10 +51,9 @@ if __name__ == "__main__":
     args = parse_args()
     random.seed(args.seed)
 
-    base = Path(args.data_dir)
-    SRC_DIR = base / "gsm-infinite"
-    TRAIN_DIR = base / "gsm-infinite-train"
-    EVAL_DIR = base / "gsm-infinite-eval"
+    SRC_DIR = Path(args.src_dir)
+    TRAIN_DIR = f"{SRC_DIR}-train"
+    EVAL_DIR = f"{SRC_DIR}-eval"
 
     print(f"Splitting dataset with eval probability = {SPLIT_PROB}, seed = {args.seed}")
     walk_and_split(SRC_DIR, TRAIN_DIR, EVAL_DIR, SPLIT_PROB)

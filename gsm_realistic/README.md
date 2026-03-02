@@ -25,15 +25,16 @@ uv pip install -r requirements.txt
 ```bash
 bash generate_data.sh
 
+cd ..
 mkdir -p data/gsm-infinite/zero_context/realistic
 cp -r gsm_realistic/Igsm/zero_context/medium/ data/gsm-infinite/zero_context/realistic/
 ```
 
 4. Run the data splitting script.
-   This will split the generated data in `data/gsm-infinite` into training and evaluating dataset.
+   This will split the generated data in `data/gsm-infinite` into training and evaluating dataset. DO NOT add a `/` at the end of `src_dir`.
 
 ```bash
-python gsm_realistic/split_datasets.py --data_dir data/ --seed 1
+python gsm_realistic/split_datasets.py --src_dir data/gsm-infinite --seed 1
 ```
 
 After splitting, these datasets are zipped at:
@@ -41,4 +42,11 @@ After splitting, these datasets are zipped at:
 ```bash
 ls /share/nikola/phantom-reasoning/data/gsm-infinite-train.zip
 ls /share/nikola/phantom-reasoning/data/gsm-infinite-eval.zip
+```
+
+We also generate higher difficulty questions (number of operations 21..25), which are zipped at:
+
+```bash
+ls /share/nikola/phantom-reasoning/data/gsm-infinite-op_25-train.zip
+ls /share/nikola/phantom-reasoning/data/gsm-infinite-op_25-eval.zip
 ```
