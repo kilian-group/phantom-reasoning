@@ -2,68 +2,17 @@
 
 We run all these commands from the root of this repository `./phantom-reasoning/` (and not `./docs/` for instance).
 
-1. First, install the conda environment. The Anvil cluster provides shared conda installation, which we recommend over installing your own personal conda (Anmol: there were issues with python paths with personal conda installations).
+- The Anvil cluster provides shared conda installation, which we recommend over installing your own personal conda.
 
 ```bash
 module load conda
 ./scripts/anvil/load_modules_cuda.sh
 ```
 
-Now follow the instructions in [README.md] to install the repository in development mode.
-For convenience, we write them down here.
+- Follow the instructions in [README.md] to install the repository in development mode and set the environment flags.
+  NOTE as of 2025-08-11: flash-attn does not seem to work on Anvil because of old GLIBC version 2.28.
 
-```bash
-# Assuming you are in ./phantom-reasoning git root repository
-
-export CONDA_ENV_NAME="phantom-reasoning" # or whatever the name of your conda environment is
-
-conda create -n $CONDA_ENV_NAME
-conda activate $CONDA_ENV_NAME
-
-conda install conda-forge::swi-prolog
-conda install python=3.12
-pip install uv
-
-# Install phantom-wiki and phantom-reasoning in editable modes
-git clone git@github.com:kilian-group/phantom-wiki.git
-cd phantom-wiki
-uv pip install -e ".[eval]"
-
-cd ..
-git clone git@github.com:anmolkabra/phantom-reasoning.git
-cd phantom-reasoning
-uv pip install -e ".[dev]"
-
-# NOTE as of 2025-08-11: flash-attn does not seem to work on Anvil because of old GLIBC version 2.28
-# (flash-attn==2.8.2 requires GLIBC 2.32 or higher)
-# NOTE: installing flash-attn will require a GPU allocation
-# so skip to the end for getting an interactive GPU allocation to install flash-attn
-uv pip install flash-attn --no-build-isolation
-
-pre-commit install
-```
-
-2. Set environment vars in the conda environment.
-
-> \[!NOTE\]
-> Home paths `~/` only have 25GB on Anvil, so it's extremely important that you set huggingface datasets, models, checkpoints to scratch. If anything needs to be shared (e.g. datasets), we save them to the shared directory. The conda and pip environments (folders `~/.conda/` and `~/.cache/pip`) will take up 10GB or so with just this 1 project.
-
-```bash
-conda env config vars set ANVIL_PROJECT_ID="nairr250102"
-conda env config vars set RUN_BASE_DIR="$SCRATCH/phantom-reasoning"
-conda env config vars set WANDB_ENTITY="mlcore"
-conda env config vars set WANDB_PROJECT="phantom-reasoning"
-conda env config vars set HF_HOME="$SCRATCH/huggingface"
-conda env config vars set CONDA_ENV_NAME=$CONDA_ENV_NAME # so the env name is available automatically when activated
-conda env config vars set USER_EMAIL="user@email.com" # for emailing when allocations become available
-
-conda deactivate
-conda activate $CONDA_ENV_NAME
-```
-
-3. Setup wandb login: `wandb login` and paste the API key from the `mlcore` organization. Contact Anmol if you don't have access to the `mlcore` org.
-
-4. Create a symlink to the data and runs directories.
+- Create a symlink to the data and runs directories.
 
 ```bash
 # experiment runs in scratch, not shared
@@ -77,7 +26,7 @@ ln -s /anvil/projects/x-$ANVIL_PROJECT_ID/phantom-reasoning/data .
 ln -s /anvil/projects/x-$ANVIL_PROJECT_ID/phantom-reasoning ./share
 ```
 
-5. Run a GRPO experiment on Qwen3-1.7B model:
+- Run a GRPO experiment on Qwen3-1.7B model:
 
 ```bash
 module load conda
