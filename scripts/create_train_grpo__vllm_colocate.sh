@@ -1,21 +1,17 @@
 #!/usr/bin/env bash
 
-# Script to create a merged training script for GRPO with VLLM colocation
-# Usage: ./scripts/create_train_grpo_vllm_colocate.sh <cluster_name>
+# Script to create a training submission script for GRPO with VLLM colocation
+# Usage: ./scripts/create_train_grpo__vllm_colocate.sh [cluster_name]
+# If no cluster_name is provided, a generic script is created (no cluster-specific SBATCH headers).
+# Supported cluster names: aida, anvil, empire, unicorn
 
-if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 <cluster_name>"
-    echo "Supported cluster names: aida, anvil, empire, unicorn"
-    exit 1
-fi
-
-CLUSTER_NAME=$1
+CLUSTER_NAME=${1:-"generic"}
 OUTPUT_FILE="scripts/train_grpo__vllm_colocate.sub"
 
 # Validate cluster name
-if [[ "$CLUSTER_NAME" != "aida" && "$CLUSTER_NAME" != "anvil" && "$CLUSTER_NAME" != "empire" && "$CLUSTER_NAME" != "unicorn" ]]; then
+if [[ "$CLUSTER_NAME" != "aida" && "$CLUSTER_NAME" != "anvil" && "$CLUSTER_NAME" != "empire" && "$CLUSTER_NAME" != "unicorn" && "$CLUSTER_NAME" != "generic" ]]; then
     echo "Error: Unsupported cluster name '$CLUSTER_NAME'"
-    echo "Supported cluster names: aida, anvil, empire, unicorn"
+    echo "Supported cluster names: aida, anvil, empire, unicorn (omit for a generic setup)"
     exit 1
 fi
 
@@ -34,24 +30,12 @@ SBATCH_MEM="100GB"
 SBATCH_TIME="48:00:00"
 SBATCH_MAIL_USER=$USER_EMAIL
 
-# Define SBATCH_PARTITION based on cluster
-if [[ "$CLUSTER_NAME" == "aida" ]]; then
-    SBATCH_PARTITION="full"
-elif [[ "$CLUSTER_NAME" == "anvil" ]]; then
-    SBATCH_PARTITION="ai"
-elif [[ "$CLUSTER_NAME" == "empire" ]]; then
-    SBATCH_PARTITION="cornell,priority"
-elif [[ "$CLUSTER_NAME" == "unicorn" ]]; then
-    SBATCH_PARTITION="aimi"
-fi
-
-# Create the merged script, substituting the variables
+# Create the merged script with common SBATCH headers
 cat << EOT > "$OUTPUT_FILE"
 #!/usr/bin/env bash
 #SBATCH --job-name=$SBATCH_JOB_NAME
 #SBATCH --output=$SBATCH_OUTPUT
 #SBATCH --error=$SBATCH_ERROR
-#SBATCH -p $SBATCH_PARTITION
 #SBATCH -N $SBATCH_NODES
 #SBATCH -n $SBATCH_NTASKS
 #SBATCH --gres=gpu:4
@@ -61,6 +45,17 @@ cat << EOT > "$OUTPUT_FILE"
 #SBATCH --mail-type=all
 EOT
 
+# Add cluster-specific partition
+if [[ "$CLUSTER_NAME" == "aida" ]]; then
+    echo "#SBATCH -p full" >> "$OUTPUT_FILE"
+elif [[ "$CLUSTER_NAME" == "anvil" ]]; then
+    echo "#SBATCH -p ai" >> "$OUTPUT_FILE"
+elif [[ "$CLUSTER_NAME" == "empire" ]]; then
+    echo "#SBATCH -p cornell,priority" >> "$OUTPUT_FILE"
+elif [[ "$CLUSTER_NAME" == "unicorn" ]]; then
+    echo "#SBATCH -p aimi" >> "$OUTPUT_FILE"
+fi
+
 # On aida, select H100 or A100 GPUs by adding SBATCH -C=gpu-h100|gpu-a100&no-gpu-1g.10gb
 # NOTE: the &no-gpu-1g.10gb part is necessary to avoid the aida nodes with 1GB of memory, which are not supported by GRPO
 if [[ "$CLUSTER_NAME" == "aida" ]]; then
@@ -69,40 +64,25 @@ if [[ "$CLUSTER_NAME" == "aida" ]]; then
 EOT
 fi
 
-# Add account information for each cluster
-if [[ "$CLUSTER_NAME" == "aida" ]]; then
-    # If aida, no need to add anything
-    echo "No sbatch -A information needed for aida"
-elif [[ "$CLUSTER_NAME" == "anvil" ]]; then
-    # If anvil, add SBATCH -A $ANVIL_PROJECT_ID-ai
+# Add account information for cluster-managed accounts
+if [[ "$CLUSTER_NAME" == "anvil" ]]; then
     cat >> "$OUTPUT_FILE" << EOT
 #SBATCH -A $ANVIL_PROJECT_ID-ai
 EOT
 elif [[ "$CLUSTER_NAME" == "empire" ]]; then
-    # If empire, add SBATCH -A cornell
     cat >> "$OUTPUT_FILE" << EOT
 #SBATCH -A cornell
 EOT
-elif [[ "$CLUSTER_NAME" == "unicorn" ]]; then
-    # If unicorn, no need to add anything
-    echo "No sbatch -A information needed for unicorn"
 fi
 
 # Add conda environment loading
-if [[ "$CLUSTER_NAME" == "aida" ]]; then
-    cat >> "$OUTPUT_FILE" << 'EOF'
-source $HOME/.bashrc
-EOF
-elif [[ "$CLUSTER_NAME" == "anvil" ]]; then
+if [[ "$CLUSTER_NAME" == "anvil" ]]; then
     cat >> "$OUTPUT_FILE" << 'EOF'
 module load conda
 source $(pwd)/scripts/anvil/load_modules_cuda.sh
 EOF
-elif [[ "$CLUSTER_NAME" == "empire" ]]; then
-    cat >> "$OUTPUT_FILE" << 'EOF'
-source $HOME/.bashrc
-EOF
-elif [[ "$CLUSTER_NAME" == "unicorn" ]]; then
+else
+    # aida, empire, unicorn, and generic all use .bashrc
     cat >> "$OUTPUT_FILE" << 'EOF'
 source $HOME/.bashrc
 EOF
