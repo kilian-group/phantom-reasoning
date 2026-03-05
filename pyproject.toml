@@ -26,11 +26,11 @@ classifiers = [
 
 dependencies = [
     "torch",
-    "vllm==0.10.0",
-    "deepspeed==0.17.4",
-    "trl[vllm]==0.21.0",
-    "transformers==4.55.0",
-    "accelerate==1.10.0",
+    "vllm",
+    "deepspeed",
+    "trl[vllm] @ git+https://github.com/huggingface/trl.git",
+    "transformers",
+    "accelerate",
     "datasets",
     "peft",
     "huggingface_hub[cli]",
@@ -38,7 +38,7 @@ dependencies = [
     "wandb",
     "ujson", # needed for HotPotQA evaluation
     "reasoning_gym==0.1.24",
-    "phantom-wiki[eval]",
+    "phantom-wiki[eval]>=1.0.3",
 ]
 
 [project.optional-dependencies]
@@ -57,9 +57,9 @@ Repository = "https://github.com/anmolkabra/phantom-reasoning.git"
 index-strategy = "unsafe-best-match"
 
 [[tool.uv.index]]
-name = "pytorch-cu128"
-url = "https://download.pytorch.org/whl/cu128"
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
 explicit = true
 
 [tool.uv.sources]
-torch = { index = "pytorch-cu128" }
+torch = { index = "pytorch-cu130" }
