@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Set up conda environment variables for phantom-reasoning.
-# Persists CONDA_ENV_NAME, RUN_BASE_DIR (uses $SCRATCH if set, otherwise "."), HF_HOME
-# (only when $SCRATCH is set), ANVIL_PROJECT_ID (when cluster=anvil), and prompts for
-# USER_EMAIL, WANDB_ENTITY, WANDB_PROJECT.
+# Persists CONDA_ENV_NAME, RUN_BASE_DIR, HF_HOME (cluster-dependent), ANVIL_PROJECT_ID
+# (when cluster=anvil), and prompts for USER_EMAIL, WANDB_ENTITY, WANDB_PROJECT.
 # Run with: bash scripts/setup_conda_env_vars.sh <conda_env_name> [cluster]
 # After completion, run: conda deactivate && conda activate <conda_env_name>
 
@@ -10,7 +9,7 @@ if [ $# -lt 1 ]; then
     echo "Usage: $0 <conda_env_name> [cluster]"
     echo ""
     echo "  conda_env_name  Name of the conda environment to configure"
-    echo "  cluster         Optional. Supported values: anvil"
+    echo "  cluster         Optional. Supported values: anvil, unicorn"
     exit 1
 fi
 
@@ -28,18 +27,17 @@ conda_set() {
 # --- Always-set variables ---
 conda_set CONDA_ENV_NAME="$CONDA_ENV_NAME"
 
-# --- Scratch-dependent variables ---
-if [ -n "$SCRATCH" ]; then
-    conda_set RUN_BASE_DIR="$SCRATCH/phantom-reasoning"
-    conda_set HF_HOME="$SCRATCH/huggingface"
-else
-    echo "Warning: \$SCRATCH is not set — setting RUN_BASE_DIR to '.'"
-    conda_set RUN_BASE_DIR="."
-fi
-
 # --- Cluster-specific variables ---
 if [ "$CLUSTER" = "anvil" ]; then
+    conda_set RUN_BASE_DIR="$SCRATCH/phantom-reasoning"
+    conda_set HF_HOME="$SCRATCH/huggingface"
     conda_set ANVIL_PROJECT_ID="nairr250102"
+elif [ "$CLUSTER" = "unicorn" ]; then
+    conda_set RUN_BASE_DIR="/scratch/$USER/phantom-reasoning"
+    conda_set HF_HOME="/scratch/$USER/huggingface"
+else
+    echo "Warning: no cluster specified — setting RUN_BASE_DIR to '.'"
+    conda_set RUN_BASE_DIR="."
 fi
 
 # --- Interactive prompts ---
@@ -56,14 +54,15 @@ conda_set WANDB_PROJECT="$WANDB_PROJECT"
 echo ""
 echo "Environment variables set for conda env '$CONDA_ENV_NAME':"
 echo "  CONDA_ENV_NAME = $CONDA_ENV_NAME"
-if [ -n "$SCRATCH" ]; then
-    echo "  RUN_BASE_DIR   = $SCRATCH/phantom-reasoning"
-    echo "  HF_HOME        = $SCRATCH/huggingface"
+if [ "$CLUSTER" = "anvil" ]; then
+    echo "  RUN_BASE_DIR     = $SCRATCH/phantom-reasoning"
+    echo "  HF_HOME          = $SCRATCH/huggingface"
+    echo "  ANVIL_PROJECT_ID = nairr250102"
+elif [ "$CLUSTER" = "unicorn" ]; then
+    echo "  RUN_BASE_DIR   = /scratch/$USER/phantom-reasoning"
+    echo "  HF_HOME        = /scratch/$USER/huggingface"
 else
     echo "  RUN_BASE_DIR   = ."
-fi
-if [ "$CLUSTER" = "anvil" ]; then
-    echo "  ANVIL_PROJECT_ID = nairr250102"
 fi
 echo "  USER_EMAIL     = $USER_EMAIL"
 echo "  WANDB_ENTITY   = $WANDB_ENTITY"
