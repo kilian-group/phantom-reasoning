@@ -9,7 +9,7 @@
 We RL fine-tune on rule-generated synthetic data (PhantomWiki, GSM-Infinite, ReasoningGym) and show transfer to real-world multi-hop reasoning  (HotpotQA, 2Wiki, Musique, CofCA, SynthWorlds-RM).
 
 <p align="center">
-  <img src="assets/motivation.jpg" alt="Motivation" width="80%"/>
+  <img src="assets/motivation.jpg" alt="Motivation" width="100%"/>
 </p>
 
 ## Quick start
@@ -36,7 +36,7 @@ uv pip install flash-attn --no-build-isolation
 ./scripts/download_data.sh data
 ```
 
-**3. Smoke-test the training loop** (a few minutes, Qwen3-0.6B, 10 steps, no checkpoints):
+**3. Smoke-test the training loop** (a few minutes, Qwen3-0.6B, 10 steps, no checkpoints, tested on 1 A6000 with 48GB memory):
 
 ```bash
 accelerate launch --num_processes 1 --config_file recipes/accelerate_configs/multi_gpu.yaml \
@@ -45,7 +45,7 @@ accelerate launch --num_processes 1 --config_file recipes/accelerate_configs/mul
     --report_to none
 ```
 
-**4. Train for real** on one GPU (Qwen3-0.6B on PhantomWiki):
+**4. Train for real** on one GPU (Qwen3-0.6B on PhantomWiki, tested on 1 H100/B200):
 
 ```bash
 accelerate launch --num_processes 1 --config_file recipes/accelerate_configs/multi_gpu.yaml \
@@ -75,7 +75,7 @@ Per-sample predictions land in the `out__eval=*` directories; aggregate F1 is pr
 <details>
 <summary><strong>Multi-GPU training (the paper recipes)</strong></summary>
 
-Recipes live under `recipes/<org>/<model>/grpo/`. The `*_4gpu` / `*_2gpu` suffix indicates the GPU count they are tuned for. Launch directly with `accelerate` — `--num_processes` should match your GPU count:
+Recipes live under `recipes/<org>/<model>/grpo/`. The `*_4gpu` / `*_2gpu` suffix indicates the GPU count they are tuned for - you can play around with `vllm_gpu_memory_utilization`, batch sizes, and number of generations if you go CUDA OOM. Launch directly with `accelerate` — `--num_processes` should match your GPU count:
 
 ```bash
 # 4-GPU GRPO: Qwen3-1.7B on PhantomWiki

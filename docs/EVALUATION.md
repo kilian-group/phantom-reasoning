@@ -76,6 +76,23 @@ python examples/wiki/plot_all_wiki_scaling_final_ckpts.py \
 
 </details>
 
+## PhantomWiki
+
+Evaluate on held-out PhantomWiki splits (seeds 1–3 of `depth_20_size_25`):
+
+```bash
+MODEL_NAMES="Qwen/Qwen3-1.7B" bash scripts/eval/pw_eval_grpo.sh out__eval=pw
+```
+
+> **Prerequisite:** the leaderboard-formatting step (`pw_eval_grpo.sh` → `format_leaderboard.py`) is **not** shipped with the `phantom-wiki` PyPI package, so it must be run from a clone of the [phantom-wiki](https://github.com/kilian-group/phantom-wiki) repo placed **next to this repo** (the script calls `../phantom-wiki/eval/format_leaderboard.py`):
+>
+> ```bash
+> # from the parent directory of phantom-reasoning/
+> git clone https://github.com/kilian-group/phantom-wiki.git
+> ```
+>
+> The prediction step (`phantom_eval`) comes from the `phantom-wiki[eval]` pip dependency and needs no clone; only the final formatting step does.
+
 ## Reasoning Evolution Plots
 
 Evaluate all intermediate training checkpoints on synthetic evaluation splits and plot how model performance evolves as a function of question difficulty as training progresses:
