@@ -1,4 +1,4 @@
-# Setup instructions for Anvil Purdue
+# Setup instructions for the Unicorn cluster
 
 We run all these commands from the root of this repository `./phantom-reasoning/` (and not `./docs/` for instance).
 
@@ -32,7 +32,7 @@ conda activate $CONDA_ENV_NAME
     recipes/Qwen/Qwen3-1.7B/grpo/config_pw_2gpu.yaml
 
 # Option 2: Batch job
-./scripts/create_train_grpo__vlm_colocate.sh unicorn
+./scripts/create_train_grpo__vllm_colocate.sh unicorn
 sbatch scripts/train_grpo__vllm_colocate.sub \
     recipes/accelerate_configs/zero1.yaml \
     recipes/Qwen/Qwen3-1.7B/grpo/config_pw_2gpu.yaml
