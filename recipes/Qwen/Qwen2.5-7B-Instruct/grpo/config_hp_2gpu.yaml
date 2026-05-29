@@ -1,15 +1,17 @@
 # Script config
-dataset_name: "data/rg-family_relationships"
-training_mode: "rg-family_relationships"
-split_list: []
-eval_dataset_name: "data/rg-family_relationships"
-eval_split_list: []
-reward_func_names: ["exact_match"]
+training_mode: "hp"
+dataset_name: "data/hp"
+split_list: ["train"]
+from_local: true
+eval_dataset_name: "data/hp500"
+eval_split_list: ["minidev"]
+eval_from_local: true
+reward_func_names: ["f1"]
 data_curriculum: "random"
 prompt_method: "cot"
 
 # Model arguments
-model_name_or_path: "Qwen/Qwen3-1.7B"
+model_name_or_path: "Qwen/Qwen2.5-7B-Instruct"
 bf16: true
 dtype: bfloat16
 attn_implementation: "flash_attention_2" # Use flash attention for better performance
@@ -17,15 +19,15 @@ gradient_checkpointing: true # Enable gradient checkpointing for memory efficien
 
 # Trainer arguments
 num_train_epochs: 1
-per_device_train_batch_size: 8
+per_device_train_batch_size: 16
 gradient_accumulation_steps: 1
 use_vllm: true
 vllm_mode: "colocate"
-vllm_gpu_memory_utilization: 0.20
+vllm_gpu_memory_utilization: 0.10
 generation_kwargs: {}
 
-# max_prompt_length: 2048 # 2048 is sufficient for Reasoning Gym family_relationships (no truncation)
-vllm_max_model_length: 6144 # combined prompt + completion length
+# max_prompt_length: 6000 # hotpotqa is about maximum ~3000 words, so 2*that should avoid truncation
+vllm_max_model_length: 10496 # combined prompt + completion length
 num_generations: 16 # Should divide per_device_train_batch_size * number of GPUs.
 max_completion_length: 4096
 

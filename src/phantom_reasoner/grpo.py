@@ -30,6 +30,7 @@ from phantom_eval.utils import setup_logging
 from transformers import AutoModelForCausalLM, AutoTokenizer, set_seed
 from transformers.trainer_utils import get_last_checkpoint
 from trl import ModelConfig, TrlParser, get_peft_config, get_quantization_config
+from trl.trainer.grpo_trainer import GRPOTrainer
 
 from phantom_reasoner._types import CONVO_T
 from phantom_reasoner.configs import GRPOConfig, GRPOScriptArguments
@@ -41,7 +42,6 @@ from phantom_reasoner.datasets_for_grpo import (
     ReasoningGymDataset,
     TwoWikiDataset,
 )
-from phantom_reasoner.trainers.custom_grpo_trainer import CustomGRPOTrainer
 from phantom_reasoner.utils import exp_utils
 from phantom_reasoner.utils.callbacks import DeleteAllButLastOptimizerCheckpointCallback
 from phantom_reasoner.utils.hp.hotpot_evaluate_v1 import (
@@ -155,7 +155,7 @@ def reward_with_metric_single_string(
 
 
 def get_reward_func(training_mode: str, reward_type_name: str) -> typing.Callable:
-    # Add a __name__ attribute because CustomGRPOTrainer uses the attribute
+    # Add a __name__ attribute because GRPOTrainer uses the attribute
     if reward_type_name == "binary_format":
         f = reward_binary_format
         f.__name__ = f"reward_{reward_type_name}"
@@ -242,7 +242,7 @@ def get_reward_func(training_mode: str, reward_type_name: str) -> typing.Callabl
                     raise ValueError(f"Invalid {reward_type_name=}")
         case _:
             raise ValueError(f"Invalid {training_mode=}")
-    # Add a __name__ attribute because CustomGRPOTrainer uses the attribute
+    # Add a __name__ attribute because GRPOTrainer uses the attribute
     f.__name__ = f"reward_{reward_type_name}"
     return f
 
@@ -322,11 +322,7 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
     logger.info(f"*** Selected reward functions: {script_args.reward_func_names}")
 
     logger.info("*** Initializing model kwargs ***")
-    torch_dtype = (
-        model_args.torch_dtype
-        if model_args.torch_dtype in ["auto", None]
-        else getattr(torch, model_args.torch_dtype)
-    )
+    torch_dtype = model_args.dtype if model_args.dtype in ["auto", None] else getattr(torch, model_args.dtype)
 
     exp_utils.disable_flash_attn_if_unsupported_glibc(model_args)
 
@@ -339,7 +335,7 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
         quantization_config=get_quantization_config(model_args) if model_args.use_peft else None,
     )
     logger.info(f"*** Model kwargs: {model_kwargs} ***")
-    # NOTE: CustomGRPOTrainer does not prepare model for kbit training,
+    # NOTE: GRPOTrainer does not prepare model for kbit training,
     # so we do it outside of the trainer manually
     # Reference: https://huggingface.co/docs/peft/en/developer_guides/quantization
     model = AutoModelForCausalLM.from_pretrained(
@@ -356,7 +352,7 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
 
     # Instantiate the trainer
     callbacks = [DeleteAllButLastOptimizerCheckpointCallback()]
-    trainer = CustomGRPOTrainer(
+    trainer = GRPOTrainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,

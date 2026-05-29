@@ -1,4 +1,4 @@
-"""Generate a 500-sample evaluation set from SynthWorlds-RM QA data."""
+"""Generate a 500-sample evaluation set from SynthWorlds-RM/SM QA data."""
 
 import argparse
 import json
@@ -10,13 +10,21 @@ from datasets import load_dataset
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate SynthRM500 evaluation set by sampling from SynthWorlds QA-RM data"
+        description="Generate SynthRM500/SM500 evaluation set by sampling from SynthWorlds QA-RM/SM data"
+    )
+    parser.add_argument(
+        "--synth_type",
+        type=str,
+        required=True,
+        choices=["rm", "sm"],
+        help="Type of SynthWorlds dataset to use (rm: real-world, sm: synthetic)",
     )
     parser.add_argument(
         "--destination_path",
         type=str,
-        default="data/synthrm500/minidev.json",
-        help="Path to save the sampled evaluation set",
+        default=None,
+        help="Path to save the sampled evaluation set "
+        "(default: data/synth<synth_type><num_samples>/minidev.json)",
     )
     parser.add_argument("--seed", type=int, default=1, help="Random seed for shuffling")
     parser.add_argument(
@@ -25,13 +33,16 @@ def main():
 
     args = parser.parse_args()
 
+    if args.destination_path is None:
+        args.destination_path = f"data/synth{args.synth_type}{args.num_samples}/minidev.json"
+
     # Set random seed
     random.seed(args.seed)
 
     # Load dataset from Hugging Face
     # Login using e.g. `huggingface-cli login` to access this dataset
-    print("Loading SynthWorlds qa-rm dataset (split=test) from Huggingface...")
-    ds = load_dataset("kenqgu/SynthWorlds", "qa-rm", split="test")
+    print(f"Loading SynthWorlds qa-{args.synth_type} dataset (split=test) from Huggingface...")
+    ds = load_dataset("kenqgu/SynthWorlds", f"qa-{args.synth_type}", split="test")
     print(f"Loaded {len(ds)} entries")
 
     # Convert to list of dictionaries
