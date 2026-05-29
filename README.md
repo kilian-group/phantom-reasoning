@@ -122,7 +122,20 @@ To persist environment variables (`RUN_BASE_DIR`, `HF_HOME`, W&B, SLURM email) i
 
 The released data on [HuggingFace](https://huggingface.co/datasets/kilian-group/phantom-reasoning) is enough to reproduce the paper. To regenerate:
 
-- **PhantomWiki:** use the [phantom-wiki](https://github.com/kilian-group/phantom-wiki) package. We use `depth_20_size_25` with `--easy-mode`; seeds 1–10 are reserved for evaluation, seeds 11+ for training.
+- **PhantomWiki:** install the [phantom-wiki](https://github.com/kilian-group/phantom-wiki) package, then generate one universe (a single family tree of up to 25 people) per seed — seeds 1–10 are reserved for evaluation, 11+ for training:
+  ```bash
+  # depth_20_size_25 with --easy-mode — the split the recipes train on
+  for seed in $(seq 1 41); do
+    python -m phantom_wiki \
+      -od data/wiki-v1-easy-depth_20_size_25/depth_20_size_25_seed_${seed} \
+      --seed ${seed} \
+      --question-depth 20 --max-family-tree-depth 20 \
+      --num-family-trees 1 --max-family-tree-size 25 \
+      --article-format json --question-format json \
+      --easy-mode
+  done
+  ```
+  For the `depth_30_size_25` reasoning-evolution eval split, change `20 → 30` in both the depth flags and the output path.
 - **GSM-Infinite:** see [gsm_realistic/README.md](gsm_realistic/README.md).
 - **ReasoningGym:**
   ```bash
