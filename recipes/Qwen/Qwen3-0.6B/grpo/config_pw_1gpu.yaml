@@ -17,6 +17,27 @@ split_list:
     "depth_20_size_25_seed_18",
     "depth_20_size_25_seed_19",
     "depth_20_size_25_seed_20",
+    "depth_20_size_25_seed_21",
+    "depth_20_size_25_seed_22",
+    "depth_20_size_25_seed_23",
+    "depth_20_size_25_seed_24",
+    "depth_20_size_25_seed_25",
+    "depth_20_size_25_seed_26",
+    "depth_20_size_25_seed_27",
+    "depth_20_size_25_seed_28",
+    "depth_20_size_25_seed_29",
+    "depth_20_size_25_seed_30",
+    "depth_20_size_25_seed_31",
+    "depth_20_size_25_seed_32",
+    "depth_20_size_25_seed_33",
+    "depth_20_size_25_seed_34",
+    "depth_20_size_25_seed_35",
+    "depth_20_size_25_seed_36",
+    "depth_20_size_25_seed_37",
+    "depth_20_size_25_seed_38",
+    "depth_20_size_25_seed_39",
+    "depth_20_size_25_seed_40",
+    "depth_20_size_25_seed_41",
   ]
 from_local: true
 eval_dataset_name: "data/wiki-v1-easy-depth_20_size_25"
@@ -29,7 +50,7 @@ prompt_method: "cot"
 # Model arguments
 model_name_or_path: "Qwen/Qwen3-0.6B"
 bf16: true
-torch_dtype: bfloat16
+dtype: bfloat16
 attn_implementation: "flash_attention_2" # Use flash attention for better performance
 gradient_checkpointing: true # Enable gradient checkpointing for memory efficiency, automatically sets `use_cache=False`
 
@@ -42,7 +63,8 @@ vllm_mode: "colocate"
 vllm_gpu_memory_utilization: 0.30 # a bit higher than the 4-GPU recipe since the small model leaves room
 generation_kwargs: {}
 
-max_prompt_length: 6000 # size_25 universe is about 5000 tokens, so we set the max length to 6000
+# max_prompt_length: 6000 # size_25 universe is about 5000 tokens, so we set the max length to 6000
+vllm_max_model_length: 10096 # combined prompt + completion length
 num_generations: 8 # Should divide per_device_train_batch_size * number of GPUs.
 max_completion_length: 4096
 
