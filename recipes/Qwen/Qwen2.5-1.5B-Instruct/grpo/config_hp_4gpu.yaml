@@ -13,7 +13,7 @@ prompt_method: "cot"
 # Model arguments
 model_name_or_path: "Qwen/Qwen2.5-1.5B-Instruct"
 bf16: true
-torch_dtype: bfloat16
+dtype: bfloat16
 attn_implementation: "flash_attention_2" # Use flash attention for better performance
 gradient_checkpointing: true # Enable gradient checkpointing for memory efficiency, automatically sets `use_cache=False`
 
@@ -26,7 +26,8 @@ vllm_mode: "colocate"
 vllm_gpu_memory_utilization: 0.20
 generation_kwargs: {}
 
-max_prompt_length: 6000 # hotpotqa is about maximum ~3000 words, so 2*that should avoid truncation
+# max_prompt_length: 6000 # hotpotqa is about maximum ~3000 words, so 2*that should avoid truncation
+vllm_max_model_length: 10096 # combined prompt + completion length
 num_generations: 16 # Should divide per_device_train_batch_size * number of GPUs.
 max_completion_length: 4096
 

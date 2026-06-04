@@ -322,11 +322,7 @@ def train_grpo(script_args: GRPOScriptArguments, training_args: GRPOConfig, mode
     logger.info(f"*** Selected reward functions: {script_args.reward_func_names}")
 
     logger.info("*** Initializing model kwargs ***")
-    torch_dtype = (
-        model_args.dtype
-        if model_args.dtype in ["auto", None]
-        else getattr(torch, model_args.dtype)
-    )
+    torch_dtype = model_args.dtype if model_args.dtype in ["auto", None] else getattr(torch, model_args.dtype)
 
     exp_utils.disable_flash_attn_if_unsupported_glibc(model_args)
 

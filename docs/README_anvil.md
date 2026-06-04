@@ -15,6 +15,8 @@ module load conda
 - Create a symlink to the data and runs directories.
 
 ```bash
+./scripts/setup_conda_env_vars.sh $CONDA_ENV_NAME anvil
+
 # experiment runs in scratch, not shared
 mkdir -p $RUN_BASE_DIR/runs
 ln -s $RUN_BASE_DIR ./scratch

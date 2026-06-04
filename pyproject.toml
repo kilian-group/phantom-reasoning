@@ -7,12 +7,12 @@ name = "phantom-reasoner"
 description = "Phantom Reasoner"
 version = "0.0.0"
 authors = [
-    {name="Albert Gong", email="agong@cs.cornell.edu"},
     {name="Anmol Kabra", email="anmol@cs.cornell.edu"},
-    {name="Johann Lee", email="jcl354@cornell.edu"},
+    {name="Yilun Yin", email="yy958@cornell.edu"},
+    {name="Albert Gong", email="agong@cs.cornell.edu"},
     {name="Kamilė Stankevičiūtė", email="ks2448@cornell.edu"},
-    {name="Raphael Thesmar", email="rft38@cornell.edu"},
-    {name="Chao Wan", email="cw862@cornell.edu"},
+    {name="Johann Lee", email="jcl354@cornell.edu"},
+    {name="Katie Luo", email="katieluo@stanford.edu"},
 ]
 
 
@@ -28,7 +28,7 @@ dependencies = [
     "torch",
     "vllm",
     "deepspeed",
-    "trl[vllm] @ git+https://github.com/huggingface/trl.git",
+    "trl[vllm] @ git+https://github.com/huggingface/trl.git@d24ec77dafa595de1f7f99be8e11771c29f62c7f",
     "transformers",
     "accelerate",
     "datasets",
@@ -48,10 +48,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/anmolkabra/phantom-reasoning"
-Issues = "https://github.com/anmolkabra/phantom-reasoning/issues"
-Documentation = "https://anmolkabra.github.io/phantom-reasoning"
-Repository = "https://github.com/anmolkabra/phantom-reasoning.git"
+Homepage = "https://github.com/kilian-group/phantom-reasoning"
+Issues = "https://github.com/kilian-group/phantom-reasoning/issues"
+Repository = "https://github.com/kilian-group/phantom-reasoning.git"
 
 [tool.uv]
 index-strategy = "unsafe-best-match"

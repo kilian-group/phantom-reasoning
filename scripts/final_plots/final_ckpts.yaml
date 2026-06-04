@@ -16,9 +16,10 @@ synthetic_train_ckpts:
             "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-1.7B/grpo/x-anmolkab/0914__curr=random__training_seed=2",
           ]
       - model: Qwen/Qwen3-4B
-        paths: [
-            # Only 1 seed so far
-            "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-4B/grpo/x-anmolkab/1113__curr=random__training_seed=1",
+        paths:
+          [
+            "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-4B/grpo/ak2426/0306__curr=random__training_seed=1",
+            "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen3-4B/grpo/ak2426/0306__curr=random__training_seed=2",
           ]
       - model: Qwen/Qwen2.5-1.5B-Instruct
         paths:
@@ -33,9 +34,10 @@ synthetic_train_ckpts:
             "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1113__curr=random__training_seed=2",
           ]
       - model: Qwen/Qwen2.5-7B-Instruct
-        paths: [
-            # Only 1 seed so far
-            "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen2.5-7B-Instruct/grpo/x-anmolkab/1112__curr=random__training_seed=1",
+        paths:
+          [
+            "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen2.5-7B-Instruct/grpo/ak2426/0311__curr=random__training_seed=1",
+            "share/runs__pw10k/data/wiki-v1-easy-depth_20_size_25/Qwen/Qwen2.5-7B-Instruct/grpo/ak2426/0311__curr=random__training_seed=2",
           ]
 
   - dataset_name: gsminf
@@ -181,16 +183,17 @@ real_train_ckpts:
             "share/runs/data/hp/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1118__curr=random__training_seed=1",
             "share/runs/data/hp/microsoft/Phi-4-mini-reasoning/grpo/ak2426/0224__curr=random__training_seed=2",
           ]
-      # TODO: remove old paths to Qwen3-4B and Qwen2.5-7B-Instruct
       - model: Qwen/Qwen3-4B
         paths:
           [
-            "share/runs/data/hp/microsoft/Phi-4-mini-reasoning/grpo/ak2426/1118__curr=random__training_seed=1",
+            "share/runs/data/hp/Qwen/Qwen3-4B/grpo/ak2426/0304__curr=random__training_seed=1",
+            "share/runs/data/hp/Qwen/Qwen3-4B/grpo/ak2426/0305__curr=random__training_seed=2",
           ]
       - model: Qwen/Qwen2.5-7B-Instruct
         paths:
           [
-            "share/runs/data/hp/Qwen/Qwen2.5-7B-Instruct/grpo/ak2426/1118__curr=random__training_seed=1",
+            "share/runs/data/hp/Qwen/Qwen2.5-7B-Instruct/grpo/ak2426/0311__curr=random__training_seed=1",
+            "share/runs/data/hp/Qwen/Qwen2.5-7B-Instruct/grpo/ak2426/0311__curr=random__training_seed=2",
           ]
 
   - dataset_name: 2wiki

@@ -28,23 +28,15 @@ df_preds, metrics = get_preds(output_dir, data_dir, dataset, split, method)
 df_preds["completion_tokens"] = df_preds["usage"].apply(lambda x: x["completion_tokens"])
 
 # Define aggregation functions
+# Show the mean +- sem
+metrics = ["f1"]
 agg_dict = {
-    **{metric: "mean" for metric in metrics},
-    "completion_tokens": [
-        "mean",
-        lambda x: x.quantile(0.5),
-        lambda x: x.quantile(0.90),
-    ],
+    **{metric: ["mean", "sem"] for metric in metrics},
 }
 
-acc = df_preds.groupby(["_model", "_split", "_seed"]).agg(agg_dict)
-
-# Flatten column names
-acc.columns = metrics + [
-    "completion_tokens_mean",
-    "completion_tokens_median",
-    "completion_tokens_90",
-]
+# Want to group by ignoring the MMDD__curr=random__training_seed=... suffix  pattern
+df_preds["_model"] = df_preds["_model"].str.replace(r"\d+__curr=random__training_seed=\d+", "", regex=True)
+acc = df_preds.groupby(["_model"]).agg(agg_dict)
 
 print(tabulate(acc, headers="keys", tablefmt="github"))
 # save to csv
