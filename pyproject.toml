@@ -38,7 +38,7 @@ dependencies = [
     "wandb",
     "ujson", # needed for HotPotQA evaluation
     "reasoning_gym==0.1.24",
-    "phantom-wiki[eval]",
+    "phantom-wiki[eval]>=1.0.3",
 ]
 
 [project.optional-dependencies]
